@@ -1,37 +1,36 @@
+/* eslint-disable react/prop-types */
 import { FaRegStar, FaStar, FaStarHalfAlt } from "react-icons/fa";
 
-const Ratings = ({ value, text, color = "yellow-400" }) => {
+const Ratings = ({ value, text }) => {
   const fullStars = Math.floor(value);
   const halfStars = value - fullStars > 0.5 ? 1 : 0;
   const emptyStar = 5 - fullStars - halfStars;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       {[...Array(fullStars)].map((_, index) => (
         <FaStar
-          key={index}
-          className={`text-${color} text-xs transition-transform transform hover:scale-125 duration-200 text-yellow-300`}
+          key={`full-${index}`}
+          className="text-amber-500 text-xs sm:text-sm transition-transform transform hover:scale-110 duration-200"
         />
       ))}
 
-      <div>
-        {halfStars === 1 && (
-          <FaStarHalfAlt
-            className={`text-${color} ml-1 text-xs transition-transform transform hover:scale-125 duration-200`}
-          />
-        )}
-      </div>
+      {halfStars === 1 && (
+        <FaStarHalfAlt className="text-amber-500 text-xs sm:text-sm transition-transform transform hover:scale-110 duration-200" />
+      )}
 
       {[...Array(emptyStar)].map((_, index) => (
         <FaRegStar
-          key={index}
-          className="text-[#FFAB31] ml-1 text-xs transition-transform transform hover:scale-105 duration-200"
+          key={`empty-${index}`}
+          className="text-gray-300 text-xs sm:text-sm transition-transform transform hover:scale-105 duration-200"
         />
       ))}
 
-      <span className="text-yellow-300 font-medium hover:text-yellow-400 transition-colors duration-300">
-        {text && text}
-      </span>
+      {text && (
+        <span className="ml-1.5 text-xs font-semibold text-gray-800">
+          {text}
+        </span>
+      )}
     </div>
   );
 };

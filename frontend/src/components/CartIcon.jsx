@@ -5,11 +5,11 @@ import { Link } from "react-router-dom";
 
 const CartIcon = ({ cartCount, onClick }) => {
   return (
-    <Link to="/cart" onClick={onClick} className="relative group block">
-      <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gray-50 rounded-full border border-gray-200 transition-all duration-300 ease-in-out group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:shadow-sm">
+    <Link to="/cart" onClick={onClick} className="relative group block p-1">
+      <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-300 group-hover:bg-white/10">
         <RiShoppingBag3Fill
-          className="text-gray-400 transition-colors duration-300 group-hover:text-blue-600"
-          size={20}
+          className="text-gray-400 transition-colors duration-300 group-hover:text-[#D4A843]"
+          size={18}
         />
 
         {/* Dynamic Badge */}
@@ -18,7 +18,8 @@ const CartIcon = ({ cartCount, onClick }) => {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 text-[8px] sm:text-[10px] font-bold text-white bg-blue-600 rounded-full border-2 border-white  hover:border-blue-100"
+              exit={{ scale: 0 }}
+              className="absolute top-0 right-0 flex items-center justify-center h-4 w-4 sm:h-[18px] sm:w-[18px] text-[8px] sm:text-[9px] font-bold text-[#1A1A1A] bg-[#D4A843] rounded-full border-2 border-[#1A1A1A]"
             >
               {cartCount}
             </motion.span>

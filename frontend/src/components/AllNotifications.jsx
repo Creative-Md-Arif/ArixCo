@@ -7,8 +7,10 @@ import Loader from "../components/Loader.jsx";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
-import { LuBell, LuBellRing, LuCheckCircle2, LuInbox } from "react-icons/lu";
+import { LuBell, LuBellRing, LuInbox } from "react-icons/lu";
 import { Link } from "react-router-dom";
+import { FiCheckCircle } from "react-icons/fi";
+
 
 const AllNotifications = () => {
   const {
@@ -90,7 +92,7 @@ const AllNotifications = () => {
 
                     {/* আইকন সেকশন */}
                     <div className={`mt-1 p-3 rounded-xl ${!n.isRead ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-400"}`}>
-                      {n.isRead ? <LuCheckCircle2 size={18} /> : <LuBell size={18} />}
+                      {n.isRead ? <FiCheckCircle size={18} /> : <LuBell size={18} />}
                     </div>
 
                     <div className="flex-1">
@@ -115,7 +117,7 @@ const AllNotifications = () => {
                     {!n.isRead && (
                       <div className="hidden md:flex items-center self-center opacity-0 group-hover:opacity-100 transition-opacity">
                          <span className="text-[9px] font-mono font-black text-red-600 uppercase tracking-widest mr-2">Mark as read</span>
-                         <LuCheckCircle2 className="text-red-600" size={16} />
+                         <FiCheckCircle className="text-red-600" size={16} />
                       </div>
                     )}
                   </motion.div>

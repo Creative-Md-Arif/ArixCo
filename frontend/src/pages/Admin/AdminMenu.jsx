@@ -49,6 +49,8 @@ const AdminMenu = () => {
     { to: "/admin/userlist", icon: <LuUsers />, label: "Users" },
     { to: "/admin/orderlist", icon: <CiShoppingCart />, label: "Orders" },
     { to: "/admin/bannerlist", icon: <RiImageLine />, label: "Banners" },
+    { to: "/admin/cuppon-manage", icon: <AiOutlinePlusSquare />, label: "Cuppons" },
+    { to: "/admin/shipping-manage", icon: <AiOutlinePlusSquare />, label: "Shipping" },
     {
       to: "/admin/payment-settings",
       icon: <FaCreditCard />,

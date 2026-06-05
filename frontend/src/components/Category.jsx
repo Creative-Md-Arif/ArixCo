@@ -1,189 +1,168 @@
-/* eslint-disable react/prop-types */
 import { useFetchCategoriesQuery } from "@redux/api/categoryApiSlice";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaFolder, FaImage, FaSpinner } from "react-icons/fa";
+import { FaFolder } from "react-icons/fa";
 
-// 🎯 Category Item Skeleton
-const CategorySkeleton = ({ index }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1 }}
-      className="flex flex-col items-center"
-    >
-      {/* Image Container Skeleton */}
-      <div className="relative w-20 h-20 md:w-24 md:h-24">
-        {/* Rotating Border */}
-        <div className="absolute inset-0 border-2 border-dashed border-gray-200 rounded-[2rem] animate-pulse" />
-        
-        {/* Inner Circle */}
-        <div className="absolute inset-2 rounded-[1.8rem] bg-gray-100 border border-gray-200 flex items-center justify-center">
-          <FaImage className="text-gray-300 text-2xl" />
-        </div>
-      </div>
+/*
+  SECTION IDENTITY: Category
+  BG: Pure white #FFFFFF with ultra-subtle concentric diamond rings
+  PATTERN: Minimal — premium jewellery-store feel
+  ACCENT: #B88E2F gold
+  Optimized for: white-bg readability, WCAG AA contrast, visual hierarchy
+*/
 
-      {/* Name Skeleton */}
-      <div className="w-16 h-4 bg-gray-200 rounded mt-5 animate-pulse" />
-      
-      {/* Dot Skeleton */}
-      <div className="w-1 h-1 bg-gray-200 rounded-full mt-1" />
-    </motion.div>
-  );
+const BG = {
+  backgroundColor: "#FFFFFF",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='none'/%3E%3Cpolygon points='40,4 76,40 40,76 4,40' fill='none' stroke='%23B88E2F' stroke-opacity='0.045' stroke-width='1'/%3E%3Cpolygon points='40,16 64,40 40,64 16,40' fill='none' stroke='%23B88E2F' stroke-opacity='0.035' stroke-width='1'/%3E%3Cpolygon points='40,28 52,40 40,52 28,40' fill='none' stroke='%23B88E2F' stroke-opacity='0.04' stroke-width='1'/%3E%3Ccircle cx='40' cy='4' r='1.2' fill='%23B88E2F' fill-opacity='0.08'/%3E%3Ccircle cx='76' cy='40' r='1.2' fill='%23B88E2F' fill-opacity='0.08'/%3E%3Ccircle cx='40' cy='76' r='1.2' fill='%23B88E2F' fill-opacity='0.08'/%3E%3Ccircle cx='4' cy='40' r='1.2' fill='%23B88E2F' fill-opacity='0.08'/%3E%3C/svg%3E")`,
+  backgroundSize: "80px 80px",
 };
 
-// 🎯 Section Header Skeleton
-const HeaderSkeleton = () => (
-  <div className="flex flex-col items-center mb-12">
-    <div className="text-center space-y-3">
-      {/* Small Label */}
-      <div className="w-24 h-3 bg-blue-200 rounded mx-auto animate-pulse" />
-      
-      {/* Main Title */}
-      <div className="flex items-center justify-center gap-2">
-        <div className="w-32 h-8 bg-gray-300 rounded animate-pulse" />
-        <div className="w-24 h-8 bg-[#B88E2F]/20 rounded animate-pulse" />
+const Skeleton = () => (
+  <section
+    aria-label="Loading categories"
+    className="py-10 sm:py-14 font-figtree"
+    style={BG}
+  >
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col items-center mb-8 sm:mb-10 gap-2.5">
+        <div className="w-20 h-3 bg-gray-200 rounded animate-pulse" />
+        <div className="w-44 h-6 bg-gray-200 rounded animate-pulse" />
+        <div className="w-10 h-[2px] bg-gray-200 rounded animate-pulse" />
       </div>
-      
-      {/* Gradient Line */}
-      <div className="flex justify-center pt-2">
-        <div className="h-[3px] w-12 bg-gradient-to-r from-blue-200 to-[#B88E2F]/20 rounded-full animate-pulse" />
-      </div>
-    </div>
-  </div>
-);
-
-// 🎯 Loading State Component
-const LoadingState = () => {
-  return (
-    <div className="container mx-auto py-16 px-4">
-      <HeaderSkeleton />
-      
-      {/* Categories Grid Skeleton */}
-      <div className="flex items-center justify-center gap-4 md:gap-8 flex-wrap">
-        {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-          <CategorySkeleton key={index} index={index} />
+      <div className="flex flex-wrap justify-center gap-5 sm:gap-7">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-2.5">
+            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-gray-100 border border-gray-200 animate-pulse" />
+            <div className="w-14 h-3 bg-gray-200 rounded animate-pulse" />
+          </div>
         ))}
       </div>
-
-      {/* Loading Indicator */}
-      <div className="flex justify-center mt-8">
-        <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full">
-          <FaSpinner className="animate-spin text-blue-600" />
-          <span className="text-sm text-blue-600 font-medium">Loading categories...</span>
-        </div>
-      </div>
     </div>
-  );
-};
-
-// 🎯 Error State Component
-const ErrorState = () => (
-  <div className="container mx-auto py-16 px-4">
-    <div className="flex flex-col items-center justify-center text-center">
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-        <FaFolder className="text-red-500 text-2xl" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">Failed to Load Categories</h3>
-      <p className="text-gray-500 text-sm">Please try refreshing the page</p>
-    </div>
-  </div>
+  </section>
 );
 
-// 🎯 Empty State Component
-const EmptyState = () => (
-  <div className="container mx-auto py-16 px-4">
-    <div className="flex flex-col items-center justify-center text-center">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <FaFolder className="text-gray-400 text-2xl" />
+const ErrorState = () => (
+  <section className="py-10 font-figtree" style={BG}>
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-3 text-center">
+      <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center">
+        <FaFolder
+          className="w-5 h-5 text-[#B88E2F] opacity-50"
+          aria-hidden="true"
+        />
       </div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">No Categories Found</h3>
-      <p className="text-gray-500 text-sm">Check back later for new categories</p>
+      <h3 className="text-xs font-black text-gray-800 uppercase tracking-[0.18em]">
+        Failed to Load Categories
+      </h3>
+      <p className="text-[11px] text-gray-500 leading-relaxed">
+        Please try refreshing the page
+      </p>
     </div>
-  </div>
+  </section>
+);
+
+const EmptyState = () => (
+  <section className="py-10 font-figtree" style={BG}>
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex flex-col items-center gap-3 text-center">
+      <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center">
+        <FaFolder
+          className="w-5 h-5 text-[#B88E2F] opacity-50"
+          aria-hidden="true"
+        />
+      </div>
+      <h3 className="text-xs font-black text-gray-800 uppercase tracking-[0.18em]">
+        No Categories Found
+      </h3>
+      <p className="text-[11px] text-gray-500 leading-relaxed">
+        Check back later for new categories
+      </p>
+    </div>
+  </section>
 );
 
 const Category = () => {
   const { data, error, isLoading } = useFetchCategoriesQuery();
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  if (isLoading) return <Skeleton />;
+  if (error) return <ErrorState />;
+  if (!Array.isArray(data) || data.length === 0) return <EmptyState />;
 
-  if (error) {
-    return <ErrorState />;
-  }
-
-  if (!Array.isArray(data) || data.length === 0) {
-    return <EmptyState />;
-  }
-
-  // Only show Main Categories
   const mainCategories = data.filter((c) => {
-    const parentId = c.parent && typeof c.parent === "object" ? c.parent._id : c.parent;
+    const parentId =
+      c.parent && typeof c.parent === "object" ? c.parent._id : c.parent;
     return !parentId;
   });
 
   return (
-    <div className="container mx-auto py-16 px-4">
-      {/* Section Header */}
-      <div className="flex flex-col items-center mb-12">
+    <section
+      aria-labelledby="category-heading"
+      className="py-10 sm:py-14 font-figtree"
+      style={BG}
+    >
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ── Header ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
+          viewport={{ once: true }}
+          transition={{ duration: 0.35 }}
+          className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2"
         >
-          <span className="text-blue-600 font-mono font-bold tracking-[0.4em] uppercase text-[10px]">
+          <span className="text-[10px] sm:text-[11px] font-black text-[#B88E2F] uppercase tracking-[0.3em]">
             Browse by
           </span>
-          <h2 className="text-3xl md:text-4xl font-mono font-black text-[#212B36] mt-2 mb-3 tracking-tighter">
+          <h2
+            id="category-heading"
+            className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-[0.1em] leading-tight"
+          >
             Featured <span className="text-[#B88E2F]">Category</span>
           </h2>
-          <div className="flex justify-center">
-            <div className="h-[3px] w-12 bg-gradient-to-r from-blue-600 to-[#B88E2F] rounded-full" />
-          </div>
+          <div className="h-[2px] w-12 bg-[#B88E2F] rounded-full" />
         </motion.div>
+
+        {/* ── Category Grid ── */}
+        <ul
+          role="list"
+          className="flex flex-wrap justify-center gap-x-5 gap-y-6 sm:gap-x-7 sm:gap-y-8 lg:gap-x-9 lg:gap-y-9"
+        >
+          {mainCategories.map((category, index) => (
+            <li key={category._id}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05, duration: 0.3 }}
+              >
+                <Link
+                  to={`/shop?category=${category._id}`}
+                  aria-label={`Browse ${category.name} category`}
+                  className="group flex flex-col items-center gap-2.5"
+                >
+                  {/* Circle thumbnail with hover ring */}
+                  <div className="relative p-1">
+                    {/* Outer hover ring */}
+                    <div className="absolute inset-0 rounded-full border-2 border-[#B88E2F] opacity-0 group-hover:opacity-25 scale-[1.18] transition-all duration-300" />
+
+                    <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] lg:w-20 lg:h-20 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-[#B88E2F] transition-all duration-250 bg-white shadow-sm group-hover:shadow-md group-hover:shadow-[#B88E2F]/10 shrink-0">
+                      <img
+                        src={category.image || "/placeholder.jpg"}
+                        alt={category.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
+                      />
+                    </div>
+                  </div>
+
+                  <h3 className="text-[11px] sm:text-xs font-bold text-gray-700 group-hover:text-[#B88E2F] tracking-[0.08em] text-center capitalize transition-colors duration-200 max-w-[80px] leading-snug">
+                    {category.name}
+                  </h3>
+                </Link>
+              </motion.div>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      {/* Category Grid */}
-      <div className="flex items-center justify-center gap-4 md:gap-8 flex-wrap">
-        {mainCategories.map((category, index) => (
-          <motion.div
-            key={category._id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Link
-              to={`/shop?category=${category._id}`}
-              className="group flex flex-col items-center"
-            >
-              {/* Category Image Container */}
-              <div className="relative w-20 h-20 md:w-24 md:h-24">
-                <div className="absolute inset-0 border-2 border-dashed border-blue-200 rounded-[2rem] group-hover:rotate-45 group-hover:border-blue-500 transition-all duration-700" />
-
-                <div className="absolute inset-2 overflow-hidden rounded-[1.8rem] bg-gray-50 border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-500">
-                  <img
-                    src={category.image || "/placeholder.jpg"}
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-blue-900/0 group-hover:bg-blue-600/10 transition-all duration-300" />
-                </div>
-              </div>
-
-              <h4 className="text-[14px] font-trebuchet text-[#212B36] font-black mt-5 text-center capitalize group-hover:text-blue-600 transition-colors">
-                {category.name}
-              </h4>
-
-              <div className="w-1 h-1 bg-[#B88E2F] rounded-full mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-    </div>
+    </section>
   );
 };
 

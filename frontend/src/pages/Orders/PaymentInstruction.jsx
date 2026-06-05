@@ -1,18 +1,19 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetPaymentMethodsQuery,
   useSubmitManualPaymentMutation,
-  useCheckTransactionIdQuery, // 🆕 নতুন API endpoint
+  useCheckTransactionIdQuery,
 } from "../../redux/api/paymentApiSlice";
 import { useCreateOrderMutation } from "../../redux/api/orderApiSlice";
 import { useUploadProductImageMutation } from "../../redux/api/productApiSlice";
 import { clearCartItems } from "../../redux/features/cart/cartSlice";
 import Loader from "../../components/Loader";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   FaCopy,
   FaCheckCircle,
@@ -28,7 +29,6 @@ import {
 // ==========================================
 // VALIDATION RULES
 // ==========================================
-
 const VALIDATION_RULES = {
   transactionId: {
     required: true,
@@ -53,37 +53,54 @@ const VALIDATION_RULES = {
 // ==========================================
 // CUSTOM HOOK: Debounce
 // ==========================================
-
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
   }, [value, delay]);
-
   return debouncedValue;
 };
 
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
+//
+// TWO MODES:
+//
+// 1) STANDALONE (default, existing behaviour):
+//    <PaymentInstruction />
+//    — reads pendingOrder from localStorage
+//    — navigates via react-router on success/cancel
+//
+// 2) EMBEDDED (new):
+//    <PaymentInstruction
+//      embedded
+//      pendingOrder={orderData}       ← passed directly, no localStorage read
+//      onBack={() => setShowPayment(false)}    ← replaces navigate("/cart")
+//      onOrderComplete={(orderId) => ...}      ← replaces navigate(`/order/${id}`)
+//    />
+//    — used by Shipping.jsx to show payment in the same right panel
+//    — no page transition, no route change
 
-const PaymentInstruction = () => {
+const PaymentInstruction = ({
+  embedded = false,
+  pendingOrder: embeddedPendingOrder = null,
+  onBack = null,
+  onOrderComplete = null,
+}) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Refs for preventing duplicate submissions
   const isSubmittingRef = useRef(false);
   const hasSubmittedRef = useRef(false);
 
-  const [pendingOrder, setPendingOrder] = useState(null);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  // In embedded mode: use the prop directly (no localStorage).
+  // In standalone mode: load from localStorage (original behaviour).
+  const [pendingOrder, setPendingOrder] = useState(
+    embedded ? embeddedPendingOrder : null,
+  );
+  const [isDataLoaded, setIsDataLoaded] = useState(embedded);
 
   // Form states
   const [transactionId, setTransactionId] = useState("");
@@ -95,9 +112,9 @@ const PaymentInstruction = () => {
   // UI states
   const [copied, setCopied] = useState(false);
   const [step, setStep] = useState(1);
-  const [transactionStatus, setTransactionStatus] = useState(null); // 'valid' | 'invalid' | 'duplicate' | null
+  const [transactionStatus, setTransactionStatus] = useState(null);
 
-  // API queries
+  // API
   const { data: paymentMethods, isLoading: methodsLoading } =
     useGetPaymentMethodsQuery();
   const [submitPayment, { isLoading: submitting }] =
@@ -106,45 +123,39 @@ const PaymentInstruction = () => {
   const [uploadImage, { isLoading: uploading }] =
     useUploadProductImageMutation();
 
-  // ✅ Debounced transaction ID for checking
   const debouncedTransactionId = useDebounce(transactionId, 500);
 
-  // ✅✅✅ RTK QUERY: Check transaction ID availability
   const {
     data: transactionCheckData,
     isFetching: isCheckingTransaction,
     error: transactionCheckError,
     isError: isTransactionCheckError,
   } = useCheckTransactionIdQuery(debouncedTransactionId, {
-    // Skip query if less than 8 characters
     skip: !debouncedTransactionId || debouncedTransactionId.length < 8,
   });
 
-  // ✅ Handle transaction check result
+  // Transaction check result
   useEffect(() => {
     if (transactionCheckData) {
       if (transactionCheckData.exists) {
         setTransactionStatus("duplicate");
-        setErrors((prev) => ({
-          ...prev,
+        setErrors((p) => ({
+          ...p,
           transactionId:
             "This Transaction ID has already been used. Please check and enter a unique ID.",
         }));
       } else {
         setTransactionStatus("valid");
-        setErrors((prev) => ({ ...prev, transactionId: null }));
+        setErrors((p) => ({ ...p, transactionId: null }));
       }
     }
   }, [transactionCheckData]);
 
-  // ✅ Handle transaction check error
+  // Transaction check error
   useEffect(() => {
     if (isTransactionCheckError && transactionCheckError) {
-      console.error("Transaction check error:", transactionCheckError);
       setTransactionStatus(null);
-      
-      // Handle specific errors
-      if (transactionCheckError.status === 'FETCH_ERROR') {
+      if (transactionCheckError.status === "FETCH_ERROR") {
         toast.error("Network error. Cannot connect to server.");
       } else if (transactionCheckError.status === 404) {
         toast.error("API endpoint not found. Please contact support.");
@@ -154,100 +165,107 @@ const PaymentInstruction = () => {
     }
   }, [isTransactionCheckError, transactionCheckError]);
 
-  // Load pending order from localStorage
+  // ─── STANDALONE MODE: load pendingOrder from localStorage ───────────
   useEffect(() => {
-    const loadPendingOrder = () => {
-      try {
-        const savedOrder = localStorage.getItem("pendingOrderData");
+    if (embedded) return; // embedded mode skips this entirely
 
-        if (!savedOrder) {
-          toast.error(
-            "No pending order found! Please add items to cart first.",
-          );
-          navigate("/cart");
-          return;
-        }
+    try {
+      const savedOrder = localStorage.getItem("pendingOrderData");
 
-        const parsedOrder = JSON.parse(savedOrder);
-
-        // Validate required fields
-        if (!parsedOrder.orderItems || parsedOrder.orderItems.length === 0) {
-          toast.error("Your cart is empty!");
-          navigate("/cart");
-          return;
-        }
-
-        if (!parsedOrder.shippingAddress || !parsedOrder.shippingAddress.name) {
-          toast.error("Shipping address is incomplete.");
-          navigate("/shipping");
-          return;
-        }
-
-        if (!parsedOrder.paymentMethod) {
-          toast.error("Payment method not selected!");
-          navigate("/shipping");
-          return;
-        }
-
-        // Check if already submitted (prevent double submission)
-        const submissionKey = `submitted_${parsedOrder.shippingAddress.phoneNumber}_${parsedOrder.totalPrice}`;
-        const alreadySubmitted = sessionStorage.getItem(submissionKey);
-
-        if (alreadySubmitted) {
-          toast.info("This order is already being processed!");
-          navigate("/orders");
-          return;
-        }
-
-        const safeOrder = {
-          ...parsedOrder,
-          itemsPrice: parsedOrder.itemsPrice || "0.00",
-          shippingPrice: parsedOrder.shippingPrice || "0.00",
-          totalPrice: parsedOrder.totalPrice || "0.00",
-          totalSavings: parsedOrder.totalSavings || "0.00",
-          shippingAddress: {
-            name: parsedOrder.shippingAddress.name || "",
-            address: parsedOrder.shippingAddress.address || "",
-            city: parsedOrder.shippingAddress.city || "",
-            postalCode: parsedOrder.shippingAddress.postalCode || "",
-            country: parsedOrder.shippingAddress.country || "Bangladesh",
-            phoneNumber: parsedOrder.shippingAddress.phoneNumber || "",
-          },
-        };
-
-        setPendingOrder(safeOrder);
-        setIsDataLoaded(true);
-      } catch (error) {
-        console.error("Error loading pending order:", error);
-        toast.error("Failed to load order data");
+      if (!savedOrder) {
+        toast.error("No pending order found! Please add items to cart first.");
         navigate("/cart");
+        return;
       }
-    };
 
-    loadPendingOrder();
-  }, [navigate]);
+      const parsedOrder = JSON.parse(savedOrder);
 
-  // Validation functions
+      if (!parsedOrder.orderItems || parsedOrder.orderItems.length === 0) {
+        toast.error("Your cart is empty!");
+        navigate("/cart");
+        return;
+      }
+
+      if (!parsedOrder.shippingAddress?.name) {
+        toast.error("Shipping address is incomplete.");
+        navigate("/shipping");
+        return;
+      }
+
+      if (!parsedOrder.paymentMethod) {
+        toast.error("Payment method not selected!");
+        navigate("/shipping");
+        return;
+      }
+
+      const submissionKey = `submitted_${parsedOrder.shippingAddress.phoneNumber}_${parsedOrder.totalPrice}`;
+      if (sessionStorage.getItem(submissionKey)) {
+        toast.info("This order is already being processed!");
+        navigate("/orders");
+        return;
+      }
+
+      setPendingOrder({
+        ...parsedOrder,
+        itemsPrice: parsedOrder.itemsPrice || "0.00",
+        shippingPrice: parsedOrder.shippingPrice || "0.00",
+        totalPrice: parsedOrder.totalPrice || "0.00",
+        totalSavings: parsedOrder.totalSavings || "0.00",
+        shippingAddress: {
+          name: parsedOrder.shippingAddress.name || "",
+          address: parsedOrder.shippingAddress.address || "",
+          division: parsedOrder.shippingAddress.division || "",
+          district: parsedOrder.shippingAddress.district || "",
+          thana: parsedOrder.shippingAddress.thana || "",
+          city: parsedOrder.shippingAddress.city || "",
+          postalCode: parsedOrder.shippingAddress.postalCode || "",
+          country: parsedOrder.shippingAddress.country || "Bangladesh",
+          phoneNumber: parsedOrder.shippingAddress.phoneNumber || "",
+        },
+      });
+      setIsDataLoaded(true);
+    } catch (error) {
+      toast.error("Failed to load order data");
+      navigate("/cart");
+    }
+  }, [embedded, navigate]);
+
+  // ─── EMBEDDED MODE: sync prop → state (if parent updates the order) ──
+  useEffect(() => {
+    if (embedded && embeddedPendingOrder) {
+      setPendingOrder(embeddedPendingOrder);
+      setIsDataLoaded(true);
+    }
+  }, [embedded, embeddedPendingOrder]);
+
+  // ─── Navigation helpers (work in both modes) ─────────────────────────
+  const handleGoBack = () => {
+    if (embedded && onBack) {
+      onBack(); // tells Shipping.jsx to show PlaceOrder again
+    } else {
+      navigate("/cart");
+    }
+  };
+
+  const handleOrderSuccess = (orderId) => {
+    if (embedded && onOrderComplete) {
+      onOrderComplete(orderId); // tells Shipping.jsx to navigate to order page
+    } else {
+      navigate(`/order/${orderId}`);
+    }
+  };
+
+  // ─── Validation ──────────────────────────────────────────────────────
   const validateField = useCallback((name, value) => {
     const rule = VALIDATION_RULES[name];
     if (!rule) return "";
-
-    if (rule.required && !value) {
+    if (rule.required && !value)
       return rule.message || "This field is required";
-    }
-
-    if (value && rule.minLength && value.length < rule.minLength) {
-      return rule.message || `Minimum ${rule.minLength} characters required`;
-    }
-
-    if (value && rule.maxLength && value.length > rule.maxLength) {
-      return rule.message || `Maximum ${rule.maxLength} characters allowed`;
-    }
-
-    if (value && rule.pattern && !rule.pattern.test(value)) {
-      return rule.message || "Invalid format";
-    }
-
+    if (value && rule.minLength && value.length < rule.minLength)
+      return rule.message;
+    if (value && rule.maxLength && value.length > rule.maxLength)
+      return rule.message;
+    if (value && rule.pattern && !rule.pattern.test(value)) return rule.message;
     return "";
   }, []);
 
@@ -255,7 +273,6 @@ const PaymentInstruction = () => {
     const newErrors = {};
     let isValid = true;
 
-    // Validate transaction ID
     const txError = validateField("transactionId", transactionId);
     if (txError) {
       newErrors.transactionId = txError;
@@ -265,14 +282,12 @@ const PaymentInstruction = () => {
       isValid = false;
     }
 
-    // Validate sender number
     const phoneError = validateField("senderNumber", senderNumber);
     if (phoneError) {
       newErrors.senderNumber = phoneError;
       isValid = false;
     }
 
-    // Validate screenshot
     if (!screenshot) {
       newErrors.screenshot =
         "Please upload a payment screenshot for verification";
@@ -280,12 +295,7 @@ const PaymentInstruction = () => {
     }
 
     setErrors(newErrors);
-    setTouched({
-      transactionId: true,
-      senderNumber: true,
-      screenshot: true,
-    });
-
+    setTouched({ transactionId: true, senderNumber: true, screenshot: true });
     return isValid;
   }, [
     transactionId,
@@ -296,14 +306,12 @@ const PaymentInstruction = () => {
   ]);
 
   const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const error = validateField(
-      field,
-      field === "transactionId" ? transactionId : senderNumber,
-    );
-    setErrors((prev) => ({ ...prev, [field]: error }));
+    setTouched((p) => ({ ...p, [field]: true }));
+    const val = field === "transactionId" ? transactionId : senderNumber;
+    setErrors((p) => ({ ...p, [field]: validateField(field, val) }));
   };
 
+  // ─── Clipboard ───────────────────────────────────────────────────────
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -311,17 +319,16 @@ const PaymentInstruction = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ─── File upload ─────────────────────────────────────────────────────
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast.error("Please upload a valid image file (JPEG, PNG, WEBP)");
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File size should be less than 5MB");
       return;
@@ -333,29 +340,27 @@ const PaymentInstruction = () => {
     try {
       const res = await uploadImage(formData).unwrap();
       setScreenshot(res.url || res.image);
-      setErrors((prev) => ({ ...prev, screenshot: null }));
-      setTouched((prev) => ({ ...prev, screenshot: true }));
+      setErrors((p) => ({ ...p, screenshot: null }));
+      setTouched((p) => ({ ...p, screenshot: true }));
       toast.success("Screenshot uploaded successfully!");
-    } catch (err) {
+    } catch {
       toast.error("Failed to upload image");
       setScreenshot(null);
     }
   };
 
+  // ─── Submit ───────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Prevent duplicate submissions
     if (isSubmittingRef.current || hasSubmittedRef.current) {
       toast.warning("Please wait, your submission is being processed...");
       return;
     }
-
     if (!validateAll()) {
       toast.error("Please fix the errors in the form");
       return;
     }
-
     if (!pendingOrder) {
       toast.error("Order data not found!");
       return;
@@ -365,18 +370,12 @@ const PaymentInstruction = () => {
       isSubmittingRef.current = true;
       setStep(2);
 
-      // ✅ Server-side validation: Check again if transaction ID exists
-      // Note: We rely on backend validation here, but frontend state already checked
-      
-      // Create order first
       const orderRes = await createOrder(pendingOrder).unwrap();
-
-      // Mark as submitted to prevent duplicates
       hasSubmittedRef.current = true;
+
       const submissionKey = `submitted_${pendingOrder.shippingAddress.phoneNumber}_${pendingOrder.totalPrice}`;
       sessionStorage.setItem(submissionKey, orderRes._id);
 
-      // Submit payment details
       await submitPayment({
         orderId: orderRes._id,
         data: {
@@ -388,25 +387,23 @@ const PaymentInstruction = () => {
         },
       }).unwrap();
 
-      // Clear data only after successful submission
       dispatch(clearCartItems());
       localStorage.removeItem("pendingOrderData");
       localStorage.removeItem("shippingAddress");
 
       toast.success("Payment submitted and order created successfully! 📦");
-      navigate(`/order/${orderRes._id}`);
+      handleOrderSuccess(orderRes._id); // ← works in both modes
     } catch (err) {
       setStep(1);
       isSubmittingRef.current = false;
 
-      // Handle specific errors
       if (
         err?.data?.message?.includes("Transaction ID") ||
         err?.data?.message?.includes("already been used")
       ) {
         setTransactionStatus("duplicate");
-        setErrors((prev) => ({
-          ...prev,
+        setErrors((p) => ({
+          ...p,
           transactionId: "This Transaction ID has already been used!",
         }));
       }
@@ -419,18 +416,20 @@ const PaymentInstruction = () => {
 
   const handleCancel = () => {
     if (window.confirm("Are you sure? Your order will not be placed.")) {
-      navigate("/cart");
+      handleGoBack(); // ← works in both modes
     }
   };
 
-  // Get selected method
   const selectedMethod = paymentMethods?.find(
-    (method) => method.type === pendingOrder?.paymentMethod,
+    (m) => m.type === pendingOrder?.paymentMethod,
   );
 
+  // ─── Loading state ────────────────────────────────────────────────────
   if (methodsLoading || !isDataLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className={`flex items-center justify-center ${embedded ? "min-h-[300px]" : "min-h-screen"}`}
+      >
         <Loader />
       </div>
     );
@@ -438,187 +437,213 @@ const PaymentInstruction = () => {
 
   if (!selectedMethod) {
     return (
-      <div className="container mx-auto px-4 mt-[100px] text-center">
-        <h2 className="text-2xl font-mono font-black text-red-600 mb-4">
+      <div
+        className={`px-4 text-center ${embedded ? "py-10" : "container mx-auto mt-[100px]"}`}
+      >
+        <h2 className="text-xl font-mono font-black text-red-600 mb-4">
           Payment Method Not Available
         </h2>
         <button
-          onClick={() => navigate("/shipping")}
-          className="px-6 py-3 bg-blue-600 text-white rounded-xl font-mono font-bold"
+          onClick={handleGoBack}
+          className="px-6 py-3 bg-black text-white font-mono font-bold text-sm uppercase tracking-widest"
         >
-          Go Back & Select Again
+          Go Back &amp; Select Again
         </button>
       </div>
     );
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────
+  // In embedded mode: no top breadcrumb/header area, no outer padding for page.
+  // In standalone mode: full page layout with mt-[100px].
+  const containerClass = embedded
+    ? "w-full"
+    : "bg-[#FDFDFD] min-h-screen pb-20";
+
+  const innerClass = embedded
+    ? "w-full"
+    : "container mx-auto px-4 mt-[100px] max-w-4xl";
+
   return (
-    <div className="bg-[#FDFDFD] min-h-screen pb-20">
-      <div className="container mx-auto px-4 mt-[100px] max-w-4xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10"
-        >
-          <div className="inline-flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full mb-4">
-            <FaLock className="text-blue-600 text-sm" />
-            <span className="text-blue-600 font-mono text-xs font-bold uppercase">
-              Secure Payment
-            </span>
-          </div>
-
-          <h1 className="text-3xl md:text-4xl font-mono font-black uppercase tracking-tighter mb-4">
-            Pay with{" "}
-            <span className="text-blue-600">{selectedMethod.type}</span>
-          </h1>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm inline-block">
-            <p className="text-gray-500 font-mono text-sm mb-2">
-              Total Amount to Pay
-            </p>
-            <p className="text-4xl font-mono font-black text-red-600">
-              ৳{pendingOrder?.totalPrice || "0.00"}
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Processing Overlay */}
-        {step === 2 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-white/95 z-50 flex items-center justify-center"
+    <div className={containerClass}>
+      <div className={innerClass}>
+        {/* ── Back button (embedded only — standalone has browser back) ── */}
+        {embedded && (
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-gray-400 mb-5"
           >
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h3 className="text-xl font-mono font-black mb-2">
-                Processing Payment...
-              </h3>
-              <p className="text-gray-500 font-mono text-sm">
-                Please do not close or refresh this window
-              </p>
-            </div>
-          </motion.div>
+            <FaArrowLeft size={10} /> Back to order
+          </button>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Instructions Section */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-4"
-          >
-            <h2 className="text-lg font-mono font-black uppercase tracking-tighter mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-              Payment Instructions
-            </h2>
+        {/* ── Header (standalone only) ── */}
+        {!embedded && (
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-black px-4 py-2 mb-4">
+              <FaLock className="text-white text-sm" />
+              <span className="text-white font-mono text-xs font-bold uppercase tracking-widest">
+                Secure Payment
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-mono font-black uppercase tracking-tight mb-4">
+              Pay with{" "}
+              <span className="underline underline-offset-4">
+                {selectedMethod.type}
+              </span>
+            </h1>
+            <div className="bg-white p-6 border border-gray-200 inline-block">
+              <p className="text-gray-500 font-mono text-sm mb-2">
+                Total Amount to Pay
+              </p>
+              <p className="text-4xl font-mono font-black text-black">
+                ৳{pendingOrder?.totalPrice || "0.00"}
+              </p>
+            </div>
+          </div>
+        )}
 
-            <div className="p-6 rounded-3xl border-2 border-blue-600 bg-blue-50/30 shadow-lg shadow-blue-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl text-white ${
-                    selectedMethod.type === "bKash"
-                      ? "bg-pink-600"
-                      : selectedMethod.type === "Nagad"
-                        ? "bg-orange-500"
-                        : selectedMethod.type === "Rocket"
-                          ? "bg-purple-600"
-                          : "bg-blue-600"
-                  }`}
-                >
-                  {selectedMethod.type[0]}
+        {/* ── Embedded header ── */}
+        {embedded && (
+          <div className="border-b border-black pb-4 mb-6">
+            <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-1">
+              Step 2 of 2
+            </p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-mono font-black text-black uppercase tracking-tight">
+                Pay via {selectedMethod.type}
+              </h2>
+              <div className="text-right">
+                <p className="text-[9px] font-mono uppercase tracking-widest text-gray-400">
+                  Amount Due
+                </p>
+                <p className="text-xl font-mono font-black text-black">
+                  ৳{pendingOrder?.totalPrice || "0.00"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Processing Overlay ── */}
+        {step === 2 && (
+          <div className="fixed inset-0 bg-white/95 z-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-12 h-12 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <h3 className="text-lg font-mono font-black mb-1 uppercase tracking-tight">
+                Processing Payment
+              </h3>
+              <p className="text-gray-400 font-mono text-xs uppercase tracking-widest">
+                Do not close or refresh
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Main grid ── */}
+        <div
+          className={`grid grid-cols-1 gap-8 ${embedded ? "" : "lg:grid-cols-2"}`}
+        >
+          {/* Instructions */}
+          <div className="space-y-4">
+            <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-3">
+              Payment Instructions
+            </p>
+
+            {/* Account card */}
+            <div className="border-2 border-black p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 bg-black flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-mono font-black text-xl">
+                    {selectedMethod.type[0]}
+                  </span>
                 </div>
                 <div>
-                  <h3 className="font-mono font-black text-2xl">
+                  <p className="font-mono font-black text-xl text-black">
                     {selectedMethod.type}
-                  </h3>
-                  <p className="text-sm text-gray-500 font-mono">
+                  </p>
+                  <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
                     {selectedMethod.accountType} Account
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-blue-100 mb-4">
-                <p className="text-xs text-gray-400 font-mono uppercase mb-2">
+              <div className="bg-gray-50 border border-gray-200 p-4 mb-4">
+                <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-gray-400 mb-2">
                   Send Money To
                 </p>
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-mono font-black text-3xl tracking-wider">
+                    <p className="font-mono font-black text-2xl tracking-wider text-black">
                       {selectedMethod.number}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-[11px] font-mono text-gray-500 mt-0.5">
                       {selectedMethod.accountName}
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => copyToClipboard(selectedMethod.number)}
-                    className="p-4 bg-blue-600 text-white rounded-xl hover:bg-black transition-colors flex-shrink-0"
+                    className="w-10 h-10 bg-black text-white flex items-center justify-center flex-shrink-0"
                   >
                     {copied ? (
-                      <FaCheckCircle size={20} />
+                      <FaCheckCircle size={14} />
                     ) : (
-                      <FaCopy size={20} />
+                      <FaCopy size={14} />
                     )}
                   </button>
                 </div>
               </div>
 
               {selectedMethod.instructions && (
-                <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 flex items-start gap-3">
-                  <FaInfoCircle className="text-yellow-600 mt-1 flex-shrink-0" />
-                  <p className="text-sm text-gray-700 font-mono">
+                <div className="p-3 bg-gray-50 border border-gray-200 flex items-start gap-2">
+                  <FaInfoCircle
+                    className="text-gray-400 mt-0.5 flex-shrink-0"
+                    size={12}
+                  />
+                  <p className="text-[10px] font-mono text-gray-600">
                     {selectedMethod.instructions}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Step by Step Guide */}
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <h3 className="font-mono font-black text-sm uppercase mb-4 text-gray-800">
-                How to pay via {selectedMethod.type}:
-              </h3>
-              <ol className="space-y-3 text-sm text-gray-700 font-mono list-decimal list-inside">
-                <li>Open your {selectedMethod.type} app</li>
-                <li>
-                  Select <strong>Send Money</strong>
-                </li>
-                <li>
-                  Enter number:{" "}
-                  <strong className="text-blue-600">
-                    {selectedMethod.number}
-                  </strong>
-                </li>
-                <li>
-                  Enter amount:{" "}
-                  <strong className="text-red-600">
-                    ৳{pendingOrder?.totalPrice || "0.00"}
-                  </strong>
-                </li>
-                <li>
-                  Complete payment & copy the <strong>Transaction ID</strong>
-                </li>
+            {/* Step guide */}
+            <div className="border border-gray-200 p-4">
+              <p className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400 mb-3">
+                How to pay via {selectedMethod.type}
+              </p>
+              <ol className="space-y-2">
+                {[
+                  `Open your ${selectedMethod.type} app`,
+                  "Select Send Money",
+                  `Enter number: ${selectedMethod.number}`,
+                  `Enter amount: ৳${pendingOrder?.totalPrice || "0.00"}`,
+                  "Complete payment & copy the Transaction ID",
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-[8px] font-mono font-black text-white bg-black w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-[11px] font-mono text-gray-600">
+                      {step}
+                    </span>
+                  </li>
+                ))}
               </ol>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Payment Form */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm"
-          >
-            <h2 className="text-lg font-mono font-black uppercase tracking-tighter mb-6 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-600 rounded-full"></span>
+          {/* Payment form */}
+          <div className="border border-gray-200 p-6">
+            <p className="text-[9px] font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-5">
               Confirm Your Payment
-            </h2>
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Transaction ID Field with RTK Query Validation */}
+              {/* Transaction ID */}
               <div>
-                <label className="block text-xs font-mono font-black uppercase text-gray-500 mb-2">
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">
                   Transaction ID (TrxID) *
                 </label>
                 <div className="relative">
@@ -626,31 +651,29 @@ const PaymentInstruction = () => {
                     type="text"
                     value={transactionId}
                     onChange={(e) => {
-                      const value = e.target.value
+                      const val = e.target.value
                         .toUpperCase()
                         .replace(/[^A-Z0-9]/g, "");
-                      setTransactionId(value);
-                      setTransactionStatus(null); // Reset status on change
+                      setTransactionId(val);
+                      setTransactionStatus(null);
                     }}
                     onBlur={() => handleBlur("transactionId")}
                     placeholder="8A9B2C3D"
-                    className={`w-full p-4 bg-gray-50 border rounded-2xl font-mono uppercase tracking-wider focus:ring-2 outline-none transition-all ${
+                    className={`w-full px-4 py-3 bg-white border font-mono text-sm uppercase tracking-wider outline-none transition-colors ${
                       errors.transactionId && touched.transactionId
-                        ? "border-red-300 focus:ring-red-200 bg-red-50"
+                        ? "border-red-400"
                         : transactionStatus === "valid"
-                          ? "border-green-300 focus:ring-green-200 bg-green-50"
-                          : "border-gray-200 focus:ring-blue-500"
+                          ? "border-green-400"
+                          : "border-gray-200 focus:border-black"
                     }`}
                     required
                     minLength={8}
                     maxLength={20}
                     disabled={step === 2}
                   />
-
-                  {/* ✅ Status Indicator with RTK Query loading */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                     {isCheckingTransaction ? (
-                      <FaSpinner className="animate-spin text-blue-500" />
+                      <FaSpinner className="animate-spin text-gray-400" />
                     ) : transactionStatus === "valid" ? (
                       <FaCheckCircle className="text-green-500" />
                     ) : transactionStatus === "duplicate" ? (
@@ -659,38 +682,32 @@ const PaymentInstruction = () => {
                   </div>
                 </div>
 
-                {/* Validation Messages */}
                 <AnimatePresence>
                   {errors.transactionId && touched.transactionId && (
                     <motion.p
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="text-red-500 text-xs mt-2 font-mono flex items-center gap-1"
+                      exit={{ opacity: 0, y: -6 }}
+                      className="mt-1.5 text-[9px] font-mono text-red-500 uppercase tracking-wide flex items-center gap-1"
                     >
-                      <FaExclamationTriangle /> {errors.transactionId}
+                      <FaExclamationTriangle size={8} /> {errors.transactionId}
                     </motion.p>
                   )}
                 </AnimatePresence>
 
                 {transactionStatus === "valid" && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-green-600 text-xs mt-2 font-mono flex items-center gap-1"
-                  >
-                    <FaCheckCircle /> This Transaction ID is available
-                  </motion.p>
+                  <p className="mt-1.5 text-[9px] font-mono text-green-600 uppercase tracking-wide flex items-center gap-1">
+                    <FaCheckCircle size={8} /> Transaction ID is available
+                  </p>
                 )}
-
-                <p className="mt-1 text-[10px] text-gray-400 font-mono">
-                  Found in your SMS or app history (8-20 characters)
+                <p className="mt-1 text-[9px] text-gray-400 font-mono">
+                  Found in your SMS or app history (8–20 characters)
                 </p>
               </div>
 
-              {/* Sender Number Field */}
+              {/* Sender number */}
               <div>
-                <label className="block text-xs font-mono font-black uppercase text-gray-500 mb-2">
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">
                   Your {selectedMethod.type} Number *
                 </label>
                 <input
@@ -703,98 +720,95 @@ const PaymentInstruction = () => {
                   }
                   onBlur={() => handleBlur("senderNumber")}
                   placeholder="01XXXXXXXXX"
-                  className={`w-full p-4 bg-gray-50 border rounded-2xl font-mono focus:ring-2 outline-none transition-all ${
+                  className={`w-full px-4 py-3 bg-white border font-mono text-sm outline-none transition-colors ${
                     errors.senderNumber && touched.senderNumber
-                      ? "border-red-300 focus:ring-red-200 bg-red-50"
-                      : "border-gray-200 focus:ring-blue-500"
+                      ? "border-red-400"
+                      : "border-gray-200 focus:border-black"
                   }`}
                   required
                   maxLength={11}
-                  minLength={11}
                   disabled={step === 2}
                 />
                 <AnimatePresence>
                   {errors.senderNumber && touched.senderNumber && (
                     <motion.p
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="text-red-500 text-xs mt-2 font-mono flex items-center gap-1"
+                      exit={{ opacity: 0, y: -6 }}
+                      className="mt-1.5 text-[9px] font-mono text-red-500 uppercase tracking-wide flex items-center gap-1"
                     >
-                      <FaExclamationTriangle /> {errors.senderNumber}
+                      <FaExclamationTriangle size={8} /> {errors.senderNumber}
                     </motion.p>
                   )}
                 </AnimatePresence>
-                <p className="mt-1 text-[10px] text-gray-400 font-mono">
+                <p className="mt-1 text-[9px] text-gray-400 font-mono">
                   Number you used to send money
                 </p>
               </div>
 
-              {/* Screenshot Upload */}
+              {/* Screenshot */}
               <div>
-                <label className="block text-xs font-mono font-black uppercase text-gray-500 mb-2">
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">
                   Payment Screenshot *
                 </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="screenshot"
-                    disabled={uploading || step === 2}
-                  />
-                  <label
-                    htmlFor="screenshot"
-                    className={`flex items-center justify-center gap-3 w-full p-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
-                      uploading
-                        ? "border-blue-400 bg-blue-50"
-                        : screenshot
-                          ? "border-green-400 bg-green-50"
-                          : "border-gray-300 hover:border-blue-500 hover:bg-blue-50/30"
-                    }`}
-                  >
-                    {uploading ? (
-                      <span className="font-mono text-sm text-blue-600 flex items-center gap-2">
-                        <FaSpinner className="animate-spin" /> Uploading...
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="screenshot-upload"
+                  disabled={uploading || step === 2}
+                />
+                <label
+                  htmlFor="screenshot-upload"
+                  className={`flex items-center justify-center gap-3 w-full p-4 border-2 border-dashed cursor-pointer transition-colors ${
+                    uploading
+                      ? "border-gray-400 bg-gray-50"
+                      : screenshot
+                        ? "border-black bg-white"
+                        : "border-gray-300 bg-white"
+                  }`}
+                >
+                  {uploading ? (
+                    <span className="font-mono text-xs text-gray-500 flex items-center gap-2 uppercase tracking-widest">
+                      <FaSpinner className="animate-spin" /> Uploading...
+                    </span>
+                  ) : screenshot ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={screenshot}
+                        alt="Preview"
+                        className="h-12 w-12 object-cover border border-gray-200"
+                      />
+                      <span className="font-mono text-xs text-black flex items-center gap-2 uppercase tracking-widest">
+                        <FaCheckCircle /> Screenshot Uploaded
                       </span>
-                    ) : screenshot ? (
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={screenshot}
-                          alt="Preview"
-                          className="h-16 w-16 object-cover rounded-lg"
-                        />
-                        <span className="font-mono text-sm text-green-600 flex items-center gap-2">
-                          <FaCheckCircle /> Screenshot Uploaded
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <FaUpload className="text-gray-400" />
-                        <span className="font-mono text-sm text-gray-500">
-                          Upload Payment Screenshot
-                        </span>
-                      </>
-                    )}
-                  </label>
-                </div>
+                    </div>
+                  ) : (
+                    <>
+                      <FaUpload className="text-gray-400" size={14} />
+                      <span className="font-mono text-xs text-gray-400 uppercase tracking-widest">
+                        Upload Payment Screenshot
+                      </span>
+                    </>
+                  )}
+                </label>
                 <AnimatePresence>
                   {errors.screenshot && touched.screenshot && (
                     <motion.p
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="text-red-500 text-xs mt-2 font-mono flex items-center gap-1"
+                      exit={{ opacity: 0, y: -6 }}
+                      className="mt-1.5 text-[9px] font-mono text-red-500 uppercase tracking-wide flex items-center gap-1"
                     >
-                      <FaExclamationTriangle /> {errors.screenshot}
+                      <FaExclamationTriangle size={8} /> {errors.screenshot}
                     </motion.p>
                   )}
                 </AnimatePresence>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="pt-4 space-y-3">
+              {/* Buttons */}
+              <div className="pt-2 space-y-3">
                 <button
                   type="submit"
                   disabled={
@@ -805,7 +819,16 @@ const PaymentInstruction = () => {
                     transactionStatus === "duplicate" ||
                     !screenshot
                   }
-                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-mono font-black uppercase tracking-widest hover:bg-black transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className={`w-full py-4 font-mono font-black text-[11px] uppercase tracking-[0.25em] transition-none flex items-center justify-center gap-2 ${
+                    submitting ||
+                    uploading ||
+                    creatingOrder ||
+                    isCheckingTransaction ||
+                    transactionStatus === "duplicate" ||
+                    !screenshot
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-black text-white"
+                  }`}
                 >
                   {submitting || creatingOrder ? (
                     <>
@@ -813,7 +836,7 @@ const PaymentInstruction = () => {
                     </>
                   ) : uploading ? (
                     <>
-                      <FaSpinner className="animate-spin" /> Uploading Image...
+                      <FaSpinner className="animate-spin" /> Uploading...
                     </>
                   ) : isCheckingTransaction ? (
                     <>
@@ -825,12 +848,12 @@ const PaymentInstruction = () => {
                     </>
                   ) : !screenshot ? (
                     <>
-                      <FaUpload /> Upload Screenshot Required
+                      <FaUpload /> Upload Screenshot First
                     </>
                   ) : (
                     <>
-                      <FaLock /> Pay ৳{pendingOrder?.totalPrice || "0.00"} &
-                      Place Order
+                      <FaLock /> Pay ৳{pendingOrder?.totalPrice || "0.00"} &amp;
+                      Confirm
                     </>
                   )}
                 </button>
@@ -839,13 +862,13 @@ const PaymentInstruction = () => {
                   type="button"
                   onClick={handleCancel}
                   disabled={step === 2}
-                  className="w-full py-3 bg-gray-100 text-gray-600 rounded-2xl font-mono font-bold text-sm hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 border border-gray-200 text-gray-500 font-mono font-bold text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 disabled:opacity-40"
                 >
-                  <FaArrowLeft /> Back to Cart
+                  <FaArrowLeft size={10} /> Back to Cart
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

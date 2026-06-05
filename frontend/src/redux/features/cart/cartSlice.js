@@ -2,24 +2,47 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { updateCart } from "../../../Utils/cart";
 
-const initialState = localStorage.getItem("cart")
-  ? JSON.parse(localStorage.getItem("cart"))
-  : {
-      cartItems: [],
-      shippingAddress: {},
-      paymentMethod: "Cash on Delivery",
-      itemsPrice: 0,
-      shippingPrice: 0,
-      taxPrice: 0,
-      totalPrice: 0,
-      totalSavings: 0,
-    };
+// ✅ বাগ ফিক্স: Duplicate keys এরর সমাধান করে ক্লিন কোড
+const getInitialState = () => {
+  try {
+    const cartData = localStorage.getItem("cart");
+    if (cartData) {
+      const parsedCart = JSON.parse(cartData);
+      return {
+        cartItems: Array.isArray(parsedCart.cartItems)
+          ? parsedCart.cartItems
+          : [],
+        shippingAddress: parsedCart.shippingAddress || {},
+        paymentMethod: parsedCart.paymentMethod || "Cash on Delivery",
+        itemsPrice: parsedCart.itemsPrice || 0,
+        shippingPrice: 0, // ✅ No longer managed by Redux, always 0 here
+        taxPrice: parsedCart.taxPrice || 0,
+        totalPrice: parsedCart.itemsPrice || 0, // ✅ totalPrice = Subtotal only (items + tax)
+        totalSavings: parsedCart.totalSavings || 0,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to parse cart from localStorage:", error);
+  }
+
+  return {
+    cartItems: [],
+    shippingAddress: {},
+    paymentMethod: "Cash on Delivery",
+    itemsPrice: 0,
+    shippingPrice: 0,
+    taxPrice: 0,
+    totalPrice: 0,
+    totalSavings: 0,
+  };
+};
+
+const initialState = getInitialState();
 
 // Helper to check if two items are the same (including variants)
 const isSameItem = (item1, item2) => {
   if (item1._id !== item2._id) return false;
 
-  // If both have variants, check variant indices
   if (item1.variantInfo?.hasVariants && item2.variantInfo?.hasVariants) {
     return (
       item1.variantInfo.colorIndex === item2.variantInfo.colorIndex &&
@@ -27,71 +50,29 @@ const isSameItem = (item1, item2) => {
     );
   }
 
-  // If neither has variants, they're the same
   if (!item1.variantInfo?.hasVariants && !item2.variantInfo?.hasVariants) {
     return true;
   }
 
-  // One has variant, other doesn't - different items
   return false;
 };
 
-// Flash Sale check helper
-const isFlashSaleActive = (flashSale) => {
-  if (!flashSale || !flashSale.isActive) return false;
-  const now = new Date();
-  const startTime = new Date(flashSale.startTime);
-  const endTime = new Date(flashSale.endTime);
-  return now >= startTime && now <= endTime;
-};
-
-// ✅ FIXED: Remove calculatedCharges from shipping details
+// Simplified item price normalizer (Standard discount only)
 const normalizeItemPrices = (item) => {
   if (!item) return null;
 
   const price = Number(item.price) || 0;
   const basePrice = Number(item.basePrice) || price || 0;
 
-  const flashSaleIsActive =
-    isFlashSaleActive(item.flashSale) ||
-    item._flashSaleActive ||
-    item.flashSaleActive ||
-    false;
-
-  let finalPrice = basePrice;
+  let finalPrice = price || basePrice;
   let appliedDiscountPercent = 0;
   let savings = 0;
 
-  if (flashSaleIsActive && item.flashSale?.discountPercentage) {
-    // ✅ Flash Sale থাকলে শুধু Flash Sale apply হবে, regular discount না
-    appliedDiscountPercent = Number(item.flashSale.discountPercentage) || 0;
-    finalPrice = basePrice - (basePrice * appliedDiscountPercent) / 100;
-    savings = (basePrice * appliedDiscountPercent) / 100;
-  } else if (item.discountPercentage) {
-    // ✅ Flash Sale না থাকলে regular discount
+  if (item.discountPercentage) {
     appliedDiscountPercent = Number(item.discountPercentage) || 0;
     finalPrice = basePrice - (basePrice * appliedDiscountPercent) / 100;
     savings = (basePrice * appliedDiscountPercent) / 100;
-  } else {
-    finalPrice = price || basePrice;
   }
-
-  // ✅ FIXED: Remove calculatedCharges from shippingDetails
-  const { calculatedCharges, ...restShippingDetails } =
-    item.shippingDetails || {};
-
-  const shippingDetails = {
-    shippingType: restShippingDetails.shippingType || "weight-based",
-    insideDhakaCharge: Number(restShippingDetails.insideDhakaCharge) || 80,
-    outsideDhakaCharge: Number(restShippingDetails.outsideDhakaCharge) || 150,
-    fixedShippingCharge: Number(restShippingDetails.fixedShippingCharge) || 0,
-    isFreeShippingActive: restShippingDetails.isFreeShippingActive || false,
-    freeShippingThreshold:
-      Number(restShippingDetails.freeShippingThreshold) || 0,
-    // ❌ NO calculatedCharges here - calculated dynamically in components
-  };
-
-  const weight = Number(item.weight) || 0.5;
 
   return {
     ...item,
@@ -101,15 +82,11 @@ const normalizeItemPrices = (item) => {
     finalPrice: finalPrice,
     _effectivePrice: finalPrice,
     effectivePrice: finalPrice,
-    _flashSaleActive: flashSaleIsActive,
-    flashSaleActive: flashSaleIsActive,
     _savings: savings,
     savings: savings,
-    // ✅ Only one discount percentage should be active
-    discountPercentage: flashSaleIsActive ? 0 : appliedDiscountPercent,
+    discountPercentage: appliedDiscountPercent,
     appliedDiscountPercent: appliedDiscountPercent,
-    shippingDetails: shippingDetails, // ✅ Clean shipping details
-    weight: weight,
+    weight: Number(item.weight) || 0.5,
   };
 };
 
@@ -125,41 +102,33 @@ const cartSlice = createSlice({
         return state;
       }
 
-      // Normalize item prices and shipping details (removes calculatedCharges)
       const normalizedItem = normalizeItemPrices(item);
 
-      // Find existing item with same ID and variant
       const existItemIndex = state.cartItems.findIndex((x) =>
         isSameItem(x, normalizedItem),
       );
 
       if (existItemIndex !== -1) {
-        // Update existing item quantity
         state.cartItems[existItemIndex].qty = normalizedItem.qty;
-        // Update all normalized fields
         state.cartItems[existItemIndex] = {
           ...state.cartItems[existItemIndex],
           _finalPrice: normalizedItem._finalPrice,
           finalPrice: normalizedItem.finalPrice,
           _effectivePrice: normalizedItem._effectivePrice,
           effectivePrice: normalizedItem.effectivePrice,
-          _flashSaleActive: normalizedItem._flashSaleActive,
-          flashSaleActive: normalizedItem.flashSaleActive,
           basePrice: normalizedItem.basePrice,
           _savings: normalizedItem._savings,
           savings: normalizedItem.savings,
-          flashSale: normalizedItem.flashSale,
           discountPercentage: normalizedItem.discountPercentage,
-          // ✅ Update clean shipping details
-          shippingDetails: normalizedItem.shippingDetails,
+          appliedDiscountPercent: normalizedItem.appliedDiscountPercent,
           weight: normalizedItem.weight,
         };
       } else {
-        // Add new item with all normalized data
         state.cartItems.push(normalizedItem);
       }
 
-      return updateCart(state, state.shippingAddress);
+      // ✅ Removed state.shippingAddress parameter, no longer needed for price calc
+      return updateCart(state);
     },
 
     removeFromCart: (state, action) => {
@@ -169,8 +138,6 @@ const cartSlice = createSlice({
         console.error("Invalid item ID provided for removal", action.payload);
         return state;
       }
-
-      console.log("Removing item:", _id, "Variant:", variantInfo);
 
       state.cartItems = state.cartItems.filter((item) => {
         if (item._id !== _id) return true;
@@ -190,14 +157,15 @@ const cartSlice = createSlice({
         return false;
       });
 
-      console.log("Cart after removal:", state.cartItems);
-
-      return updateCart(state, state.shippingAddress);
+      // ✅ Removed state.shippingAddress parameter
+      return updateCart(state);
     },
 
     saveShippingAddress: (state, action) => {
       state.shippingAddress = action.payload;
-      return updateCart(state, action.payload);
+      // ✅ Shipping address saves, but DOES NOT trigger shipping price calculation here anymore
+      localStorage.setItem("cart", JSON.stringify(state));
+      return state;
     },
 
     savePaymentMethod: (state, action) => {
@@ -221,6 +189,11 @@ const cartSlice = createSlice({
         cartItems: [],
         shippingAddress: {},
         paymentMethod: "Cash on Delivery",
+        itemsPrice: 0,
+        shippingPrice: 0,
+        taxPrice: 0,
+        totalPrice: 0,
+        totalSavings: 0,
       };
     },
   },

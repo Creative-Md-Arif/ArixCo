@@ -16,6 +16,8 @@ import orderRoutes from "./routes/orderRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import cupponRoutes from "./routes/cupponRoutes.js";
+import shippingRoutes from "./routes/shippingRoutes.js";
 
 // utils
 import connectDB from "./config/db.js";
@@ -124,6 +126,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/cuppons", cupponRoutes);
+app.use("/api/shipping", shippingRoutes);
 
 // static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

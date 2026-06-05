@@ -3,8 +3,6 @@ import { apiSlice } from "./apiSlice";
 
 export const productApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // productApiSlice.js - getProducts update
-    // productApiSlice.js
     getProducts: builder.query({
       query: ({
         keyword = "",
@@ -98,28 +96,18 @@ export const productApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 5,
     }),
 
-    // 🆕 New Arrivals Query
     getNewArrivals: builder.query({
       query: (limit = 8) => `${PRODUCT_URL}/new-arrivals?limit=${limit}`,
       keepUnusedDataFor: 5,
       providesTags: ["NewArrivals"],
     }),
 
-    // 🆕 Best Sellers Query
     getBestSellers: builder.query({
       query: (limit = 8) => `${PRODUCT_URL}/best-sellers?limit=${limit}`,
       keepUnusedDataFor: 5,
       providesTags: ["BestSellers"],
     }),
 
-    // 🆕 Flash Sale Query
-    getFlashSaleProducts: builder.query({
-      query: (limit = 8) => `${PRODUCT_URL}/flash-sale?limit=${limit}`,
-      keepUnusedDataFor: 5,
-      providesTags: ["FlashSale"],
-    }),
-
-    // 🆕 Update Sales Count Mutation
     updateSalesCount: builder.mutation({
       query: (data) => ({
         url: `${PRODUCT_URL}/update-sales`,
@@ -129,7 +117,6 @@ export const productApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ["BestSellers"],
     }),
 
-    // ✅ UPDATED: getFilteredProducts with keyword support
     getFilteredProducts: builder.query({
       query: ({ checked, radio }) => ({
         url: `${PRODUCT_URL}/filtered-products`,
@@ -137,6 +124,7 @@ export const productApiSlice = apiSlice.injectEndpoints({
         body: { checked, radio },
       }),
     }),
+
     getRelatedProducts: builder.query({
       query: ({ productId, limit = 4 }) => ({
         url: `${PRODUCT_URL}/related/${productId}?limit=${limit}`,
@@ -164,7 +152,6 @@ export const {
   useGetFilteredProductsQuery,
   useGetNewArrivalsQuery,
   useGetBestSellersQuery,
-  useGetFlashSaleProductsQuery,
   useUpdateSalesCountMutation,
   useGetRelatedProductsQuery,
 } = productApiSlice;

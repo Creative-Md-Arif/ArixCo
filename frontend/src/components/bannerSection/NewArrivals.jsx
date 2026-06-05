@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { Link } from "react-router-dom";
 import { useGetNewArrivalsQuery } from "../../redux/api/productApiSlice";
 import Product from "../../pages/Products/Product";
@@ -10,89 +9,42 @@ import {
   FaShoppingBag,
 } from "react-icons/fa";
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
-// 🎯 Product Skeleton Component
-const ProductSkeleton = ({ isNew = true }) => {
-  return (
-    <div className="relative bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm h-full flex flex-col">
-      {/* New Badge Skeleton */}
-      {isNew && (
-        <div className="absolute top-2 left-2 z-10">
-          <div className="bg-amber-100 text-amber-600 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-            <div className="w-2 h-2 bg-amber-300 rounded-full animate-pulse" />
-            <div className="w-8 h-2 bg-amber-200 rounded animate-pulse" />
-          </div>
-        </div>
-      )}
-
-      {/* Image Skeleton */}
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <FaShoppingBag className="text-gray-300 text-4xl" />
-        </div>
-
-        {/* Discount Badge Skeleton */}
-        <div className="absolute top-2 right-2 w-12 h-5 bg-gray-200 rounded-full animate-pulse" />
-      </div>
-
-      {/* Content Skeleton */}
-      <div className="p-3 flex flex-col flex-grow space-y-2">
-        {/* Brand */}
-        <div className="w-16 h-3 bg-gray-200 rounded animate-pulse" />
-
-        {/* Title */}
-        <div className="w-full h-4 bg-gray-300 rounded animate-pulse" />
-        <div className="w-3/4 h-4 bg-gray-300 rounded animate-pulse" />
-
-        {/* Rating */}
-        <div className="flex items-center gap-1 mt-1">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="w-3 h-3 bg-gray-200 rounded-full animate-pulse"
-            />
-          ))}
-          <div className="w-8 h-3 bg-gray-200 rounded ml-1 animate-pulse" />
-        </div>
-
-        {/* Price Section */}
-        <div className="flex items-center gap-2 mt-auto pt-2">
-          <div className="w-20 h-5 bg-gray-300 rounded animate-pulse" />
-          <div className="w-16 h-4 bg-gray-200 rounded animate-pulse" />
-        </div>
-
-        {/* Date Badge */}
-        <div className="w-20 h-3 bg-amber-100 rounded mt-1 animate-pulse" />
-      </div>
-    </div>
-  );
+/*
+  SECTION IDENTITY: New Arrivals
+  BG: Pure White #FFFFFF
+  PATTERN: Ultra-subtle geometric grid — modern, clean, editorial
+  Feel: Clean editorial / fashion magazine optimized for white
+*/
+const BG = {
+  backgroundColor: "#FFFFFF",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='none'/%3E%3Crect x='2' y='2' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.04' stroke-width='1'/%3E%3Crect x='32' y='32' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.04' stroke-width='1'/%3E%3Crect x='32' y='2' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.025' stroke-width='1'/%3E%3Crect x='2' y='32' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.025' stroke-width='1'/%3E%3C/svg%3E")`,
+  backgroundSize: "60px 60px",
 };
 
-// 🎯 Section Header Skeleton
-const HeaderSkeleton = () => (
-  <div className="flex flex-col items-center mb-10">
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-4 h-4 bg-amber-200 rounded-full animate-pulse" />
-      <div className="w-24 h-4 bg-amber-200 rounded animate-pulse" />
-      <div className="w-4 h-4 bg-amber-200 rounded-full animate-pulse" />
+const ProductSkeleton = () => (
+  <div
+    className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col h-full"
+    aria-hidden="true"
+  >
+    <div className="aspect-square bg-gray-50 flex items-center justify-center animate-pulse">
+      <FaShoppingBag className="text-gray-200 text-3xl" />
     </div>
-
-    <div className="w-40 h-8 bg-gray-300 rounded-lg mb-4 animate-pulse" />
-
-    <div className="flex items-center gap-2 mb-4 bg-gray-50 px-4 py-2 rounded-full border border-gray-200">
-      <FaClock className="text-gray-300" />
-      <div className="w-32 h-3 bg-gray-200 rounded animate-pulse" />
+    <div className="p-3 space-y-2 flex-1">
+      <div className="w-14 h-2.5 bg-gray-200 rounded animate-pulse" />
+      <div className="w-full h-3.5 bg-gray-200 rounded animate-pulse" />
+      <div className="w-3/4 h-3.5 bg-gray-200 rounded animate-pulse" />
+      <div className="w-20 h-4 bg-gray-200 rounded animate-pulse mt-2" />
     </div>
-
-    <div className="w-20 h-1 bg-amber-200 rounded-full animate-pulse" />
   </div>
 );
 
-// 🎯 View All Button Skeleton
-const ButtonSkeleton = () => (
-  <div className="flex justify-center mt-10">
-    <div className="w-52 h-12 bg-gray-300 rounded-lg animate-pulse border-2 border-gray-200" />
+const HeaderSkeleton = () => (
+  <div className="flex flex-col items-center mb-8 gap-2.5">
+    <div className="w-16 h-3 bg-gray-200 rounded animate-pulse" />
+    <div className="w-40 h-7 bg-gray-200 rounded animate-pulse" />
+    <div className="w-12 h-[2px] bg-gray-200 rounded animate-pulse" />
   </div>
 );
 
@@ -122,23 +74,21 @@ const NewArrivals = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // 🎯 Skeleton Loading State
   if (isLoading) {
     return (
       <section
-        className="py-10 bg-white"
+        className="py-12 sm:py-16 font-figtree"
+        style={BG}
         aria-busy="true"
         aria-live="polite"
-        style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
       >
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <HeaderSkeleton />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {[...Array(10)].map((_, index) => (
-              <ProductSkeleton key={index} isNew={true} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <ProductSkeleton key={i} />
             ))}
           </div>
-          <ButtonSkeleton />
         </div>
       </section>
     );
@@ -146,80 +96,93 @@ const NewArrivals = () => {
 
   return (
     <section
-      className="py-10 bg-white"
-      style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
+      className="py-10 sm:py-14 font-figtree"
+      style={BG}
       aria-labelledby="new-arrivals-heading"
     >
-      <div className="container mx-auto px-4">
-        {/* SEO Header Section */}
-        <header className="flex flex-col items-center mb-10 text-center">
-          <div className="flex items-center gap-2 mb-3">
-            <FaStar className="text-amber-500 text-lg" aria-hidden="true" />
-            <span className="text-amber-600 font-bold text-sm uppercase tracking-wider">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2"
+        >
+          <div className="flex items-center gap-1.5">
+            <FaStar
+              className="w-[10px] h-[10px] sm:w-[11px] sm:h-[11px] text-[#B88E2F]"
+              aria-hidden="true"
+            />
+            <span className="text-[10px] sm:text-[11px] font-black text-[#B88E2F] uppercase tracking-[0.3em]">
               Latest Collections
             </span>
-            <FaStar className="text-amber-500 text-lg" aria-hidden="true" />
+            <FaStar
+              className="w-[10px] h-[10px] sm:w-[11px] sm:h-[11px] text-[#B88E2F]"
+              aria-hidden="true"
+            />
           </div>
-
-          {/* Main SEO Heading */}
           <h2
             id="new-arrivals-heading"
-            className="text-3xl font-bold text-gray-900 mb-4"
+            className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-[0.1em] leading-tight"
           >
-            New Arrivals - Just Landed
+            New <span className="text-[#B88E2F]">Arrivals</span>
           </h2>
-
-          {/* SEO Description Paragraph */}
-          <p className="text-gray-600 text-sm mb-4 max-w-lg">
-            Discover our newest products and latest trends. Shop the freshest
-            styles and premium items just added to our collection.
+          <p className="text-[10px] sm:text-[11px] text-gray-600 max-w-xs sm:max-w-sm leading-relaxed">
+            Discover our newest products and latest trends — freshest styles
+            just added.
           </p>
+          {bdTime && (
+            <div className="flex items-center gap-1.5 border border-gray-200 bg-gray-50/80 px-3 py-1.5 rounded-md">
+              <FaClock
+                className="w-[10px] h-[10px] shrink-0 text-[#B88E2F] opacity-70"
+                aria-hidden="true"
+              />
+              <span className="text-[9px] sm:text-[10px] font-bold text-gray-600 tracking-wide">
+                Last Updated: {bdTime} (BD Time)
+              </span>
+            </div>
+          )}
+          <div
+            className="h-[2px] w-12 bg-[#B88E2F] rounded-full"
+            aria-hidden="true"
+          />
+        </motion.header>
 
-          {/* BD Time */}
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 bg-gray-50 px-4 py-2 rounded-full border border-gray-200">
-            <FaClock className="text-gray-400" aria-hidden="true" />
-            <span>Last Updated: {bdTime} (BD Time)</span>
-          </div>
-
-          <div className="w-20 h-1 bg-amber-500 rounded-full" />
-        </header>
-
-        {/* 5 Column Grid */}
         {isError ? (
           <Message variant="danger">
             {isError?.data?.message ||
               "Failed to load new arrivals. Please try again."}
           </Message>
         ) : (
-          <article>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {products?.slice(0, 10).map((product) => (
-                <Product key={product._id} product={product} />
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5">
+              {products?.slice(0, 10).map((product, i) => (
+                <motion.div
+                  key={product._id}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.04, duration: 0.25 }}
+                >
+                  <Product product={product} />
+                </motion.div>
               ))}
             </div>
-
-            {/* View All CTA - SEO Friendly Link */}
             <div className="flex justify-center mt-10">
               <Link
                 to="/shop?sort=newest"
                 title="Browse all our new arrival products"
-                aria-label="View All New Arrivals"
-                className="no-underline"
+                aria-label="View all new arrivals"
+                className="group inline-flex items-center gap-2 px-6 py-2.5 border border-gray-300 rounded-md text-[11px] font-black uppercase tracking-widest text-gray-800 hover:border-[#B88E2F] hover:text-[#B88E2F] transition-colors duration-200 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B88E2F]/30"
               >
-                <button
-                  style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
-                  className="group flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold text-gray-900 bg-white border border-gray-900 rounded-full hover:bg-gray-900 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:ring-offset-white"
-                  aria-label="View all new arrivals"
-                >
-                  View All New Arrivals
-                  <FaLongArrowAltRight
-                    className="transform group-hover:translate-x-1 transition-transform duration-300"
-                    aria-hidden="true"
-                  />
-                </button>
+                View All New Arrivals
+                <FaLongArrowAltRight
+                  className="w-[12px] h-[12px] shrink-0 group-hover:translate-x-1 transition-transform duration-200"
+                  aria-hidden="true"
+                />
               </Link>
             </div>
-          </article>
+          </>
         )}
       </div>
     </section>

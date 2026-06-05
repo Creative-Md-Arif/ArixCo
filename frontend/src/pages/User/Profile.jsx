@@ -7,7 +7,6 @@ import { Link, useNavigate } from "react-router-dom";
 
 import Swal from "sweetalert2";
 import Sidebar from "../../components/Sidebar";
-import { motion } from "framer-motion";
 import { BsPersonCircle, BsShieldLock } from "react-icons/bs";
 
 const Profile = () => {
@@ -134,70 +133,68 @@ const Profile = () => {
       }
     }
   };
+  
   return (
-    <div className="mt-[100px] bg-[#F8FAFC] min-h-screen">
-      <div className="py-6 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-widest">
+    <div className="mt-[10px] bg-white min-h-screen">
+      <div className="py-4 md:py-6 bg-white border-b border-gray-100">
+        <div className="container mx-auto px-4 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider">
           <Link
             to="/"
-            className="text-gray-400 hover:text-blue-600 transition-all"
+            className="text-gray-500 hover:text-blue-600 transition-all"
           >
             Home
           </Link>
-          <span className="text-gray-200">/</span>
+          <span className="text-gray-300">/</span>
           <span className="text-blue-600">My Profile</span>
         </div>
       </div>
 
-      <div className="container mx-auto py-10 px-4">
-        <div className="flex flex-col lg:flex-row gap-10">
+      <div className="container mx-auto py-8 md:py-10 px-4">
+        <div className="flex flex-col lg:flex-row gap-6 md:gap-10">
           <Sidebar />
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex-1"
-          >
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-gray-50 bg-gradient-to-r from-blue-50/30 to-transparent">
-                <h2 className="text-2xl font-mono font-black text-gray-900 uppercase tracking-tighter flex items-center gap-3">
+          {/* ✅ CHANGED: Removed motion.div and used regular div to prevent jumping/flickering */}
+          <div className="flex-1">
+            <div className="bg-white rounded-2xl md:rounded-[2rem] border border-gray-200 hover:border-gray-300 transition-all duration-300 overflow-hidden">
+              <div className="p-5 md:p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50/30 to-transparent">
+                <h2 className="text-xl md:text-2xl font-mono font-black text-gray-900 uppercase tracking-tighter flex items-center gap-3">
                   <BsPersonCircle className="text-blue-600" />
                   Account <span className="text-blue-600">Settings</span>
                 </h2>
-                <p className="text-gray-400 text-[10px] font-mono mt-1 uppercase tracking-widest">
+                <p className="text-gray-500 text-xs font-mono mt-1 uppercase tracking-wider">
                   Update your personal information and security
                 </p>
               </div>
 
-              <form onSubmit={submitHandler} className="p-8 space-y-8">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={submitHandler} className="p-5 md:p-8 space-y-6 md:space-y-8">
+                <div className="space-y-5 md:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-mono font-black text-gray-400 uppercase tracking-wider ml-1">
+                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
                         Full Name
                       </label>
                       <input
                         type="text"
                         placeholder="e.g. John Doe"
-                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-mono text-sm text-gray-800"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
                         value={username}
                         onChange={(e) => setUserName(e.target.value)}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[11px] font-mono font-black text-gray-400 uppercase tracking-wider ml-1">
+                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
                         Email Address
                       </label>
                       <input
                         type="email"
                         placeholder="email@example.com"
-                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-mono text-sm text-gray-800"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
                       {userInfo?.pendingEmail && (
-                        <p className="text-[10px] text-orange-500 font-mono font-bold">
+                        <p className="text-xs text-orange-500 font-mono font-bold">
                           ⚠️ This email is pending verification.
                         </p>
                       )}
@@ -205,51 +202,51 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <hr className="border-gray-50" />
+                <hr className="border-gray-100" />
 
-                <div className="space-y-6">
-                  <h3 className="text-xs font-mono font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                <div className="space-y-5 md:space-y-6">
+                  <h3 className="text-sm font-mono font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
                     <BsShieldLock /> Password Security
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                      <label className="text-[11px] font-mono font-black text-gray-400 uppercase tracking-wider ml-1">
+                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
                         Current Password *
                       </label>
                       <input
                         type="password"
                         placeholder="••••••••"
-                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-mono text-sm"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                       />
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-xs text-gray-500 font-mono">
                         Required for email or password changes
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[11px] font-mono font-black text-gray-400 uppercase tracking-wider ml-1">
+                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
                         New Password
                       </label>
                       <input
                         type="password"
                         placeholder="••••••••"
-                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-mono text-sm"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                       />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-[11px] font-mono font-black text-gray-400 uppercase tracking-wider ml-1">
+                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
                         Confirm New Password
                       </label>
                       <input
                         type="password"
                         placeholder="••••••••"
-                        className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all outline-none font-mono text-sm"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                       />
@@ -257,8 +254,8 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-[10px] text-gray-400 font-mono italic">
+                <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <p className="text-xs text-gray-500 font-mono italic text-center md:text-left">
                     * Current password required for email/password changes.
                     Leave new password blank to keep current.
                   </p>
@@ -266,14 +263,14 @@ const Profile = () => {
                   <button
                     disabled={loadingUpdateProfile}
                     type="submit"
-                    className="w-full md:w-auto bg-gray-900 text-white px-10 py-4 rounded-2xl text-[12px] font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-gray-200"
+                    className="w-full md:w-auto bg-gray-900 text-white px-6 md:px-10 py-3 md:py-3.5 rounded-xl text-sm font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
                   >
                     {loadingUpdateProfile ? "Processing..." : "Update Profile"}
                   </button>
                 </div>
               </form>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

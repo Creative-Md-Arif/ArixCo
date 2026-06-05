@@ -20,71 +20,72 @@ const ProductTabs = ({
   }, [product]);
 
   const [activeTab, setActiveTab] = useState(1);
-
   const sanitizedDescription = DOMPurify.sanitize(product.description);
+  const tabs = ["Description", "Write Review", "Reviews"];
 
   return (
-    <div className="flex flex-col space-y-12 mt-10">
-      {/* 🟢 ১. আধুনিক ট্যাব ডিজাইন */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex flex-wrap justify-center bg-gray-50/50 border-b border-gray-100">
-          {["Description", "Write Review", "Reviews"].map((tab, index) => (
+    <div className="flex flex-col space-y-6 sm:space-y-8">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* ── Tab Headers ── */}
+        <div className="flex justify-center bg-gray-50 border-b border-gray-200">
+          {tabs.map((tab, index) => (
             <button
               key={index}
-              className={`px-8 py-5 text-sm font-mono font-bold uppercase tracking-widest transition-all relative ${
+              className={`relative px-5 sm:px-8 py-3 sm:py-4 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-200 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B88E2F]/50 ${
                 activeTab === index + 1
-                  ? "text-blue-600"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-[#B88E2F]"
+                  : "text-gray-500 hover:text-gray-800"
               }`}
               onClick={() => setActiveTab(index + 1)}
             >
               {tab}
               {activeTab === index + 1 && (
                 <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600"
+                  layoutId="activeProductTabIndicator"
+                  className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[#B88E2F] rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
             </button>
           ))}
         </div>
 
-        {/* 🟢 ২. ট্যাব কন্টেন্ট (অ্যানিমেশন সহ) */}
-        <div className="p-6 md:p-10">
+        {/* ── Tab Content ── */}
+        <div className="p-5 sm:p-8 md:p-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
             >
-              {/* Description */}
+              {/* 1. Description */}
               {activeTab === 1 && (
-                <div className="prose prose-blue max-w-full font-mono text-gray-600 leading-relaxed">
+                <div className="prose max-w-none text-gray-700 leading-relaxed text-sm sm:text-base font-medium">
                   <div
                     dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />
                 </div>
               )}
 
-              {/* Write Review */}
+              {/* 2. Write Review */}
               {activeTab === 2 && (
                 <div className="max-w-2xl mx-auto">
                   {userInfo ? (
                     <form
                       onSubmit={submitHandler}
-                      className="space-y-6 bg-gray-50 p-6 rounded-2xl border border-gray-100"
+                      className="space-y-5 bg-[#FFFBF4] p-5 sm:p-6 rounded-xl border border-[#EDE4D4] shadow-sm"
                     >
                       <div>
-                        <label className="block text-sm font-black uppercase tracking-widest text-gray-700 mb-3 font-mono">
+                        <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-800 mb-2">
                           Select Rating
                         </label>
                         <select
                           required
                           value={rating}
                           onChange={(e) => setRating(e.target.value)}
-                          className="w-full md:w-64 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                          className="w-full sm:w-64 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B88E2F]/30 focus:border-[#B88E2F] outline-none text-sm transition-colors text-gray-800"
                         >
                           <option value="">Choose...</option>
                           <option value="1">1 - Inferior</option>
@@ -96,7 +97,7 @@ const ProductTabs = ({
                       </div>
 
                       <div>
-                        <label className="block text-sm font-black uppercase tracking-widest text-gray-700 mb-3 font-mono">
+                        <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-800 mb-2">
                           Your Experience
                         </label>
                         <textarea
@@ -105,14 +106,14 @@ const ProductTabs = ({
                           value={comment}
                           onChange={(e) => setComment(e.target.value)}
                           placeholder="What did you like or dislike?"
-                          className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                          className="w-full p-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B88E2F]/30 focus:border-[#B88E2F] outline-none text-sm transition-colors resize-none text-gray-800 placeholder:text-gray-400"
                         ></textarea>
                       </div>
 
                       <button
                         type="submit"
                         disabled={loadingProductReview}
-                        className="bg-blue-600 hover:bg-black text-white px-10 py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-lg shadow-blue-200"
+                        className="bg-[#1A1A1A] hover:bg-[#B88E2F] text-white px-8 py-3 rounded-lg font-bold uppercase tracking-wider text-xs transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1A1A1A]"
                       >
                         {loadingProductReview
                           ? "Submitting..."
@@ -120,12 +121,12 @@ const ProductTabs = ({
                       </button>
                     </form>
                   ) : (
-                    <div className="text-center py-10">
-                      <p className="font-mono text-gray-500">
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                      <p className="text-gray-700 text-sm font-medium">
                         Please{" "}
                         <Link
                           to="/login"
-                          className="text-blue-600 font-bold underline"
+                          className="text-[#B88E2F] font-bold hover:underline underline-offset-4"
                         >
                           Login
                         </Link>{" "}
@@ -136,33 +137,33 @@ const ProductTabs = ({
                 </div>
               )}
 
-              {/* All Reviews */}
+              {/* 3. All Reviews */}
               {activeTab === 3 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {!product.reviews || product.reviews.length === 0 ? (
-                    <div className="text-center py-10 border-2 border-dashed rounded-3xl text-gray-400 font-mono">
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-sm font-medium">
                       No reviews yet. Be the first one!
                     </div>
                   ) : (
                     product.reviews?.map((review) => (
                       <div
                         key={review._id}
-                        className="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        className="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
                       >
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="font-mono font-black text-gray-900">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1.5">
+                            <span className="font-bold text-[#1A1A1A] text-sm">
                               {review.name}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-mono">
+                            <span className="text-[10px] text-gray-500 font-medium">
                               {review.createdAt.substring(0, 10)}
                             </span>
                           </div>
-                          <p className="text-gray-600 font-mono text-sm">
+                          <p className="text-gray-700 text-sm leading-relaxed">
                             {review.comment}
                           </p>
                         </div>
-                        <div className="bg-blue-50 px-4 py-2 rounded-xl">
+                        <div className="bg-[#B88E2F]/5 px-3 py-1.5 rounded-lg border border-[#B88E2F]/10 self-start sm:self-center">
                           <Ratings value={review.rating} />
                         </div>
                       </div>

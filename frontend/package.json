@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bd-geo-data/bd-location-data": "^1.0.0",
     "@paypal/react-paypal-js": "^8.7.0",
     "@react-pdf/renderer": "^4.2.2",
     "@reduxjs/toolkit": "^2.3.0",
@@ -17,6 +18,8 @@
     "antd": "^6.3.0",
     "apexcharts": "^3.54.1",
     "axios": "^1.7.7",
+    "baseline-browser-mapping": "^2.10.33",
+    "caniuse-lite": "^1.0.30001793",
     "date-fns": "^4.1.0",
     "dompurify": "^3.2.4",
     "e-commerce": "file:..",
@@ -34,7 +37,7 @@
     "react-dom": "^18.3.1",
     "react-helmet-async": "^3.0.0",
     "react-hot-toast": "^2.6.0",
-    "react-icons": "^5.3.0",
+    "react-icons": "^5.6.0",
     "react-intersection-observer": "^9.16.0",
     "react-query": "^3.39.3",
     "react-quill": "^2.0.0",

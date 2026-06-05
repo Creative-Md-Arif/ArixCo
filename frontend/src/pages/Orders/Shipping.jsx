@@ -1,599 +1,515 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   saveShippingAddress,
   savePaymentMethod,
 } from "../../redux/features/cart/cartSlice";
 import PlaceOrder from "./PlaceOrder";
-import { BsPersonVcard, BsCreditCard } from "react-icons/bs";
-import { GiVibratingSmartphone } from "react-icons/gi";
-import { TfiLocationPin } from "react-icons/tfi";
-import { MdOutlineLocalPostOffice, MdOutlinePayments } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { FaGlobe, FaMoneyBillWave, FaBolt } from "react-icons/fa6";
 import { toast } from "react-toastify";
-import { motion } from "framer-motion";
-import { FaMoneyBillWaveAlt, FaUniversity } from "react-icons/fa";
+import {
+  FaMoneyBillWave,
+  FaMoneyBillWaveAlt,
+  FaUniversity,
+  FaSpinner,
+} from "react-icons/fa";
 
-// ✅ হেল্পার: আইটেমের জন্য সঠিক ফাইনাল প্রাইস
-const getItemFinalPrice = (item) => {
-  return (
-    Number(item._finalPrice) ||
-    Number(item._effectivePrice) ||
-    Number(item.finalPrice) ||
-    Number(item.price) ||
-    0
-  );
-};
+// ✅ BD Location Data Import
+import bd from "@bd-geo-data/bd-location-data";
+// ✅ Dynamic Shipping API Import
+import { useCalculateShippingMutation } from "@redux/api/shippingApiSlice";
 
-const getItemBasePrice = (item) => {
-  return Number(item.basePrice) || Number(item.price) || 0;
-};
+/* ─── helpers ─────────────────────────────────────────────── */
+const getItemFinalPrice = (item) =>
+  Number(item._finalPrice) ||
+  Number(item._effectivePrice) ||
+  Number(item.finalPrice) ||
+  Number(item.price) ||
+  0;
 
-// ✅ হেল্পার: ফ্লাশ সেল চেক
-const isFlashSaleActive = (item) => {
-  return (
-    item._flashSaleActive ||
-    item.flashSaleActive ||
-    (item.flashSale?.isActive &&
-      new Date() >= new Date(item.flashSale.startTime) &&
-      new Date() <= new Date(item.flashSale.endTime))
-  );
-};
+const getItemBasePrice = (item) =>
+  Number(item.basePrice) || Number(item.price) || 0;
 
+/* ─── Field ───────────────────────────────────────────────── */
+const Field = ({ label, error, touched, children }) => (
+  <div>
+    <label className="block text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.25em] text-gray-400 mb-2">
+      {label}
+    </label>
+    {children}
+    {error && touched && (
+      <p className="mt-1.5 text-[11px] sm:text-xs font-mono text-red-500 uppercase tracking-wide">
+        ⚠ {error}
+      </p>
+    )}
+  </div>
+);
+
+const inputBase =
+  "w-full px-4 py-3 bg-white border font-mono text-sm text-black placeholder-gray-300 outline-none focus:border-black transition-colors";
+
+const inputStyle = (fieldName, errors, touched) =>
+  `${inputBase} ${
+    errors[fieldName] && touched[fieldName]
+      ? "border-red-400"
+      : "border-gray-200 focus:border-black"
+  }`;
+
+/* ─── Shipping ─────────────────────────────────────────────── */
 const Shipping = () => {
   const cart = useSelector((state) => state.cart);
   const { cartItems, shippingAddress } = cart;
+  const dispatch = useDispatch();
 
-  // ✅ localStorage থেকে saved address লোড করুন
-  const getSavedShippingAddress = () => {
+  // ✅ Dynamic Shipping Hook
+  const [calculateShipping, { isLoading: isCalculating }] =
+    useCalculateShippingMutation();
+
+  // ✅ Debounce ref to avoid excessive API calls
+  const shippingDebounceRef = useRef(null);
+
+  const getSaved = () => {
     try {
-      const saved = localStorage.getItem("shippingAddress");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Error parsing shipping address:", e);
+      const s = localStorage.getItem("shippingAddress");
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
     }
-    return null;
   };
 
-  const savedAddress = getSavedShippingAddress();
+  const init = shippingAddress || getSaved() || {};
 
-  // ✅ Redux state অথবা localStorage থেকে initial value নিন
-  const initialAddress = shippingAddress || savedAddress || {};
+  const [name, setName] = useState(init.name || "");
+  const [address, setAddress] = useState(init.address || "");
 
-  const [name, setName] = useState(initialAddress.name || "");
-  const [address, setAddress] = useState(initialAddress.address || "");
-  const [city, setCity] = useState(initialAddress.city || "");
-  const [postalCode, setPostalCode] = useState(initialAddress.postalCode || "");
-  const [country, setCountry] = useState(initialAddress.country || "");
-  const [phoneNumber, setPhoneNumber] = useState(
-    initialAddress.phoneNumber || "",
-  );
+  // ✅ Location States
+  const [division, setDivision] = useState(init.division || "");
+  const [district, setDistrict] = useState(init.district || "");
+  const [thana, setThana] = useState(init.thana || "");
 
+  const [postalCode, setPostalCode] = useState(init.postalCode || "");
+  const [country, setCountry] = useState(init.country || "Bangladesh");
+  const [phoneNumber, setPhoneNumber] = useState(init.phoneNumber || "");
   const [paymentMethod, setPaymentMethod] = useState(
-    initialAddress.paymentMethod || "Cash on Delivery",
+    init.paymentMethod || "Cash on Delivery",
   );
 
-  // ✅ ভ্যালিডেশন এরর স্টেট
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-
-  // ✅ ORDER SUMMARY STATE - এটি যোগ করুন
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,
     shippingCharge: 0,
     totalPrice: 0,
     totalSavings: 0,
+    shippingMethodName: "",
+    estimatedDays: "",
+    isFreeShipping: false,
   });
 
-  const dispatch = useDispatch();
+  // ✅ BD Location Data
+  const divisionsEn = bd.allDivisions("en");
+  const divisionsBn = bd.allDivisions("bn");
 
-  // ✅ Clean old cart data that has calculatedCharges (one-time cleanup)
+  const [districtsList, setDistrictsList] = useState([]);
+  const [thanasList, setThanasList] = useState([]);
+
+  // ✅ Fetch Districts based on Division
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        const parsed = JSON.parse(savedCart);
-        let needsUpdate = false;
-
-        parsed.cartItems = parsed.cartItems.map((item) => {
-          if (item.shippingDetails?.calculatedCharges) {
-            needsUpdate = true;
-            const { calculatedCharges: _, ...restShippingDetails } =
-              item.shippingDetails;
-            return { ...item, shippingDetails: restShippingDetails };
-          }
-          return item;
-        });
-
-        if (needsUpdate) {
-          localStorage.setItem("cart", JSON.stringify(parsed));
-          window.location.reload();
-        }
-      } catch (e) {
-        console.error("Error cleaning cart:", e);
-      }
+    if (division) {
+      const dEn = bd.districtsOf(division, "en");
+      const dBn = bd.districtsOf(division, "bn");
+      setDistrictsList(dEn.map((en, i) => ({ en, bn: dBn[i] })));
+      setDistrict("");
+      setThana("");
+      setThanasList([]);
+    } else {
+      setDistrictsList([]);
+      setDistrict("");
+      setThana("");
+      setThanasList([]);
     }
-  }, []);
+  }, [division]);
 
-  // ✅ ভ্যালিডেশন ফাংশন
-  const validateField = (fieldName, value) => {
-    let error = "";
+  // ✅ Fetch Thanas based on District
+  useEffect(() => {
+    if (district) {
+      const tEn = bd.thanasOf(district, "en");
+      const tBn = bd.thanasOf(district, "bn");
+      setThanasList(tEn.map((en, i) => ({ en, bn: tBn[i] })));
+      setThana("");
+    } else {
+      setThanasList([]);
+      setThana("");
+    }
+  }, [district]);
 
-    switch (fieldName) {
+  /* ── Validation ── */
+  const validateField = (field, value) => {
+    switch (field) {
       case "name":
-        if (!value.trim()) {
-          error = "Full name is required";
-        } else if (value.trim().length < 3) {
-          error = "Name must be at least 3 characters";
-        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-          error = "Name can only contain letters and spaces";
-        }
-        break;
-
+        if (!value.trim()) return "Full name is required";
+        if (value.trim().length < 3) return "Min 3 characters";
+        if (!/^[a-zA-Z\s]+$/.test(value)) return "Letters and spaces only";
+        return "";
       case "phoneNumber":
-        if (!value.trim()) {
-          error = "Phone number is required";
-        } else if (!/^01[3-9]\d{8}$/.test(value)) {
-          error = "Enter valid Bangladeshi number (01XXXXXXXXX)";
-        }
-        break;
-
+        if (!value.trim()) return "Phone number is required";
+        if (!/^01[3-9]\d{8}$/.test(value))
+          return "Valid Bangladeshi number required (01XXXXXXXXX)";
+        return "";
       case "address":
-        if (!value.trim()) {
-          error = "Full address is required";
-        } else if (value.trim().length < 10) {
-          error = "Address must be at least 10 characters";
-        }
-        break;
-
-      case "city":
-        if (!value) {
-          error = "Please select a division";
-        }
-        break;
-
+        if (!value.trim()) return "Full address is required";
+        if (value.trim().length < 10) return "Min 10 characters";
+        return "";
+      case "division":
+        if (!value) return "Please select a division";
+        return "";
+      case "district":
+        if (!value) return "Please select a district";
+        return "";
+      case "thana":
+        if (!value) return "Please select a thana";
+        return "";
       case "postalCode":
-        if (!value.trim()) {
-          error = "Postal code is required";
-        } else if (!/^\d{4}$/.test(value)) {
-          error = "Enter valid 4-digit postal code";
-        }
-        break;
-
+        if (!value.trim()) return "Postal code is required";
+        if (!/^\d{4}$/.test(value)) return "4-digit code required";
+        return "";
       case "country":
-        if (!value.trim()) {
-          error = "Country is required";
-        }
-        break;
-
+        if (!value.trim()) return "Country is required";
+        return "";
       case "paymentMethod":
-        if (!value) {
-          error = "Please select a payment method";
-        }
-        break;
-
+        if (!value) return "Select a payment method";
+        return "";
       default:
-        break;
+        return "";
     }
-
-    return error;
   };
 
-  // ✅ রিয়েল-টাইম ভ্যালিডেশন
-  const handleChange = (field, value) => {
-    switch (field) {
-      case "name": {
-        setName(value);
-        break;
-      }
-      case "phoneNumber": {
-        const digitsOnly = value.replace(/\D/g, "").slice(0, 11);
-        setPhoneNumber(digitsOnly);
-        break;
-      }
-      case "address": {
-        setAddress(value);
-        break;
-      }
-      case "city": {
-        setCity(value);
-        break;
-      }
-      case "postalCode": {
-        const postalDigits = value.replace(/\D/g, "").slice(0, 4);
-        setPostalCode(postalDigits);
-        break;
-      }
-      case "country": {
-        setCountry(value);
-        break;
-      }
-      case "paymentMethod": {
-        setPaymentMethod(value);
-        dispatch(savePaymentMethod(value));
-        break;
-      }
-      default: {
-        break;
-      }
-    }
+  const handleChange = (field, raw) => {
+    let value = raw;
+    if (field === "phoneNumber") value = raw.replace(/\D/g, "").slice(0, 11);
+    if (field === "postalCode") value = raw.replace(/\D/g, "").slice(0, 4);
+
+    const setters = {
+      name: setName,
+      address: setAddress,
+      division: setDivision,
+      district: setDistrict,
+      thana: setThana,
+      postalCode: setPostalCode,
+      country: setCountry,
+      phoneNumber: setPhoneNumber,
+    };
+
+    if (setters[field]) setters[field](value);
 
     if (touched[field]) {
-      const error = validateField(field, value);
-      setErrors((prev) => ({ ...prev, [field]: error }));
+      setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
     }
   };
 
-  // ✅ ফিল্ড ব্লার হলে টাচ মার্ক করুন এবং ভ্যালিডেট করুন
-  const handleBlur = (field, value) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const error = validateField(field, value);
-    setErrors((prev) => ({ ...prev, [field]: error }));
+  const handlePaymentChange = (id) => {
+    setPaymentMethod(id);
+    dispatch(savePaymentMethod(id));
+    if (touched.paymentMethod) {
+      setErrors((p) => ({
+        ...p,
+        paymentMethod: validateField("paymentMethod", id),
+      }));
+    }
+    const pending = localStorage.getItem("pendingOrderData");
+    if (pending) {
+      try {
+        localStorage.setItem(
+          "pendingOrderData",
+          JSON.stringify({ ...JSON.parse(pending), paymentMethod: id }),
+        );
+        // eslint-disable-next-line no-empty
+      } catch {}
+    }
   };
 
-  // ✅ সম্পূর্ণ ফর্ম ভ্যালিডেশন
-  const validateAllFields = () => {
-    const newErrors = {};
+  const handleBlur = (field, value) => {
+    setTouched((p) => ({ ...p, [field]: true }));
+    setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
+  };
+
+  const validateAll = () => {
     const fields = {
       name,
       phoneNumber,
       address,
-      city,
+      division,
+      district,
+      thana,
       postalCode,
       country,
       paymentMethod,
     };
-
-    Object.keys(fields).forEach((field) => {
-      const error = validateField(field, fields[field]);
-      if (error) {
-        newErrors[field] = error;
-      }
+    const newErrors = {};
+    Object.keys(fields).forEach((f) => {
+      const e = validateField(f, fields[f]);
+      if (e) newErrors[f] = e;
     });
-
     setErrors(newErrors);
-    setTouched({
-      name: true,
-      phoneNumber: true,
-      address: true,
-      city: true,
-      postalCode: true,
-      country: true,
-      paymentMethod: true,
-    });
-
+    setTouched(Object.fromEntries(Object.keys(fields).map((f) => [f, true])));
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ localStorage এ persist করুন
+  /* ── Persist to localStorage ── */
   useEffect(() => {
-    const addressData = {
-      name,
-      address,
-      city,
-      postalCode,
-      country,
-      phoneNumber,
-      paymentMethod,
-    };
-
-    if (name || phoneNumber || address || city || postalCode || country) {
-      localStorage.setItem("shippingAddress", JSON.stringify(addressData));
-    }
-  }, [name, address, city, postalCode, country, phoneNumber, paymentMethod]);
-
-  // ✅ Redux state sync
-  useEffect(() => {
-    if (savedAddress && !shippingAddress) {
-      dispatch(
-        saveShippingAddress({
-          ...savedAddress,
-          shippingCharge: calculateShippingCharge(savedAddress.city),
+    if (name || phoneNumber || address || division || postalCode || country) {
+      localStorage.setItem(
+        "shippingAddress",
+        JSON.stringify({
+          name,
+          address,
+          division,
+          district,
+          thana,
+          postalCode,
+          country,
+          phoneNumber,
+          paymentMethod,
         }),
       );
-      dispatch(
-        savePaymentMethod(savedAddress.paymentMethod || "Cash on Delivery"),
-      );
+    }
+  }, [
+    name,
+    address,
+    division,
+    district,
+    thana,
+    postalCode,
+    country,
+    phoneNumber,
+    paymentMethod,
+  ]);
+
+  useEffect(() => {
+    const saved = getSaved();
+    if (saved && !shippingAddress?.name) {
+      dispatch(saveShippingAddress(saved));
+      dispatch(savePaymentMethod(saved.paymentMethod || "Cash on Delivery"));
     }
   }, []);
 
-  const hasFlashSaleItems = cartItems.some((item) => isFlashSaleActive(item));
+  // ✅ Dynamic Shipping Calculation Effect
+  useEffect(() => {
+    const subtotal = cartItems.reduce(
+      (a, item) => a + getItemFinalPrice(item) * (Number(item.qty) || 1),
+      0,
+    );
+    const savings = cartItems.reduce(
+      (a, item) =>
+        a +
+        (getItemBasePrice(item) - getItemFinalPrice(item)) *
+          (Number(item.qty) || 1),
+      0,
+    );
 
-  const calculateTotals = () => {
-    return cartItems.reduce((acc, item) => {
-      const finalPrice = getItemFinalPrice(item);
-      const qty = Number(item.qty) || 1;
-      return acc + finalPrice * qty;
-    }, 0);
-  };
-
-  // ✅ FIXED: Dynamic shipping calculation
-  const calculateShippingCharge = (selectedCity) => {
-    if (cartItems.length === 0) {
-      return 0;
-    }
-
-    const isInsideDhaka = selectedCity?.toLowerCase().includes("dhaka");
-
-    const itemsPrice = calculateTotals();
-
-    const freeThresholds = cartItems
-      .filter((i) => i.shippingDetails?.isFreeShippingActive)
-      .map((i) => Number(i.shippingDetails?.freeShippingThreshold))
-      .filter((t) => t > 0);
-
-    const minFreeThreshold =
-      freeThresholds.length > 0 ? Math.min(...freeThresholds) : Infinity;
-
-    if (itemsPrice >= minFreeThreshold) {
-      return 0;
-    }
-
-    let charges = [];
-
-    cartItems.forEach((item, index) => {
-      const s = item.shippingDetails || {};
-      const type = s.shippingType?.toLowerCase();
-      const qty = Number(item.qty) || 1;
-      const weight = Number(item.weight) || 0.5;
-
-      const getBaseRate = () => {
-        const rate = isInsideDhaka
-          ? Number(s.insideDhakaCharge) || 80
-          : Number(s.outsideDhakaCharge) || 150;
-
-        return rate;
-      };
-
-      let itemCharge = 0;
-
-      switch (type) {
-        case "free": {
-          itemCharge = 0;
-
-          break;
-        }
-
-        case "fixed": {
-          const fixedCharge = Number(s.fixedShippingCharge);
-
-          if (fixedCharge > 0) {
-            itemCharge = fixedCharge;
-          } else {
-            itemCharge = getBaseRate();
-          }
-          break;
-        }
-
-        case "inside-outside": {
-          itemCharge = getBaseRate();
-
-          break;
-        }
-
-        case "weight-based":
-        default: {
-          const totalWeight = weight * qty;
-          const baseRate = getBaseRate();
-
-          if (totalWeight <= 1) {
-            itemCharge = baseRate;
-          } else {
-            const extra = Math.ceil(totalWeight - 1);
-            itemCharge = baseRate + extra * 20;
-          }
-
-          break;
-        }
+    if (thana && district && division && cartItems.length > 0) {
+      if (shippingDebounceRef.current) {
+        clearTimeout(shippingDebounceRef.current);
       }
 
-      charges.push(itemCharge);
-    });
+      shippingDebounceRef.current = setTimeout(async () => {
+        try {
+          const orderItemsData = cartItems.map((item) => ({
+            product: item._id || item.product,
+            category: item.category,
+            qty: Number(item.qty) || 1,
+            weight: Number(item.weight) || 0,
+            shippingDetails: item.shippingDetails || {},
+          }));
 
-    const maxCharge = Math.max(...charges, 0);
+          const res = await calculateShipping({
+            thana: thana.trim(),
+            district: district.trim(),
+            division: division.trim(),
+            orderItems: orderItemsData,
+            subtotal,
+          }).unwrap();
 
-    return maxCharge;
-  };
-
-  // ✅ KEY FIX: city বা cartItems change হলে orderSummary update করুন
-  useEffect(() => {
-    const subtotal = calculateTotals();
-    const shipping = calculateShippingCharge(city);
-    const savings = cartItems.reduce((acc, item) => {
-      const basePrice = getItemBasePrice(item);
-      const finalPrice = getItemFinalPrice(item);
-      return acc + (basePrice - finalPrice) * (Number(item.qty) || 1);
-    }, 0);
-
-    setOrderSummary({
-      subtotal,
-      shippingCharge: shipping,
-      totalPrice: subtotal + shipping,
-      totalSavings: savings,
-    });
-  }, [city, cartItems]);
-
-  const handlePaymentMethodChange = (newMethodId) => {
-    setPaymentMethod(newMethodId);
-    dispatch(savePaymentMethod(newMethodId));
-    handleChange("paymentMethod", newMethodId);
-
-    const pendingOrderData = localStorage.getItem("pendingOrderData");
-    if (pendingOrderData) {
-      const parsedOrder = JSON.parse(pendingOrderData);
-      const updatedOrder = {
-        ...parsedOrder,
-        paymentMethod: newMethodId,
-      };
-      localStorage.setItem("pendingOrderData", JSON.stringify(updatedOrder));
+          setOrderSummary({
+            subtotal,
+            shippingCharge: res.shippingCost,
+            totalPrice: subtotal + res.shippingCost,
+            totalSavings: savings,
+            shippingMethodName: res.zoneName || "Standard Delivery",
+            estimatedDays: res.estimatedDays || "3-5 Days",
+            isFreeShipping: res.isFreeShipping || false,
+          });
+        } catch (err) {
+          console.error("Shipping Calculation API Error:", err);
+          toast.error(
+            err?.data?.error || "Could not calculate shipping. Using default.",
+          );
+          setOrderSummary({
+            subtotal,
+            shippingCharge: 150,
+            totalPrice: subtotal + 150,
+            totalSavings: savings,
+            shippingMethodName: "Standard Delivery",
+            estimatedDays: "3-5 Days",
+            isFreeShipping: false,
+          });
+        }
+      }, 400);
+    } else {
+      setOrderSummary({
+        subtotal,
+        shippingCharge: 0,
+        totalPrice: subtotal,
+        totalSavings: savings,
+        shippingMethodName: "",
+        estimatedDays: "",
+        isFreeShipping: false,
+      });
     }
-  };
+
+    return () => {
+      if (shippingDebounceRef.current) {
+        clearTimeout(shippingDebounceRef.current);
+      }
+    };
+  }, [division, district, thana, cartItems]);
 
   const handleShippingDetails = () => {
-    if (!validateAllFields()) {
+    if (!validateAll()) {
       toast.error("Please fill all required fields correctly!");
-      return false;
+      return null;
     }
-
-    const calculatedShippingCharge = calculateShippingCharge(city);
-
-    const shippingData = {
+    const data = {
       name,
       address,
-      city,
+      division: division.trim(),
+      district: district.trim(),
+      thana: thana.trim(),
+      city: thana.trim(),
       postalCode: postalCode.trim(),
       country: country.trim() || "Bangladesh",
       phoneNumber,
-      shippingCharge: calculatedShippingCharge,
+      shippingCharge: orderSummary.shippingCharge,
       paymentMethod,
     };
-
-    dispatch(saveShippingAddress(shippingData));
+    dispatch(saveShippingAddress(data));
     dispatch(savePaymentMethod(paymentMethod));
-    localStorage.setItem("shippingAddress", JSON.stringify(shippingData));
-    return true;
+    localStorage.setItem("shippingAddress", JSON.stringify(data));
+    return data;
   };
-
-  const divisions = [
-    "Dhaka",
-    "Chittagong",
-    "Rajshahi",
-    "Khulna",
-    "Barisal",
-    "Sylhet",
-    "Rangpur",
-    "Mymensingh",
-  ];
 
   const paymentMethods = [
     {
       id: "Cash on Delivery",
       label: "Cash on Delivery",
+      sub: "Pay when received",
       icon: <FaMoneyBillWave />,
-      color: "bg-green-50 border-green-200 text-green-700",
     },
     {
       id: "bKash",
       label: "bKash",
+      sub: "Pay now",
       icon: <FaMoneyBillWaveAlt />,
-      color: "bg-pink-50 border-pink-200 text-pink-700",
     },
     {
       id: "Nagad",
       label: "Nagad",
+      sub: "Pay now",
       icon: <FaMoneyBillWaveAlt />,
-      color: "bg-orange-50 border-orange-200 text-orange-700",
     },
     {
       id: "Rocket",
       label: "Rocket",
+      sub: "Pay now",
       icon: <FaMoneyBillWaveAlt />,
-      color: "bg-purple-50 border-purple-200 text-purple-700",
     },
     {
       id: "Bank",
       label: "Bank Transfer",
+      sub: "Pay now",
       icon: <FaUniversity />,
-      color: "bg-blue-50 border-blue-200 text-blue-700",
     },
   ];
 
-  const getInputStyle = (fieldName) => {
-    const baseStyle =
-      "w-full p-4 border rounded-2xl bg-gray-50/50 focus:bg-white focus:ring-2 outline-none transition-all font-mono text-sm";
-    if (errors[fieldName] && touched[fieldName]) {
-      return `${baseStyle} border-red-500 focus:ring-red-500 bg-red-50/30`;
-    }
-    return `${baseStyle} border-gray-200 focus:ring-blue-500`;
-  };
-
-  const labelStyle =
-    "flex items-center gap-2 mb-2 font-mono font-black uppercase text-[11px] tracking-widest text-gray-500";
+  console.log(cart);
 
   return (
-    <div className="bg-[#FDFDFD] min-h-screen">
-      <div className="py-8 bg-[#F9F1E7]/30 mt-[100px] border-b border-gray-100">
-        <div className="container mx-auto px-4 flex items-center gap-3 font-mono text-sm">
-          <Link to="/" className="text-gray-400 hover:text-blue-600 font-bold">
+    <div className="bg-white min-h-screen">
+      {/* ── Breadcrumb ── */}
+      <div className="border-b border-gray-100">
+        <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.2em]">
+          <Link
+            to="/"
+            className="text-gray-400 hover:text-black transition-colors"
+          >
             Home
           </Link>
-          <span className="text-gray-300">/</span>
+          <span className="text-gray-200">/</span>
           <Link
             to="/cart"
-            className="text-gray-400 hover:text-blue-600 font-bold"
+            className="text-gray-400 hover:text-black transition-colors"
           >
             Cart
           </Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-blue-600 font-black tracking-tighter uppercase">
-            Checkout
-          </span>
+          <span className="text-gray-200">/</span>
+          <span className="text-black font-bold">Checkout</span>
         </div>
       </div>
 
-      <div className="container mx-auto py-12 px-4">
-        {hasFlashSaleItems && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 bg-gradient-to-r from-red-500 to-pink-600 text-white p-4 rounded-2xl shadow-lg flex items-center gap-3"
-          >
-            <FaBolt className="text-2xl animate-pulse" />
-            <div>
-              <p className="font-bold">⚡ Flash Sale Active on Some Items!</p>
-              <p className="text-sm text-white/80">
-                You are saving ৳{orderSummary.totalSavings.toFixed(2)} total!
-              </p>
-            </div>
-          </motion.div>
-        )}
+      <div className="container mx-auto py-8 sm:py-10 px-4 sm:px-6">
+        {/* ── Page Header ── */}
+        <div className="mb-8 sm:mb-10 border-b-2 border-black pb-4">
+          <p className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.35em] text-gray-400 mb-1">
+            Step 1 of 2
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-mono font-black text-black uppercase tracking-tight">
+            Checkout
+          </h1>
+        </div>
 
-        <div className="flex flex-col xl:flex-row gap-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full xl:w-7/12"
-          >
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm mb-8">
-              <h1 className="text-3xl font-mono font-black text-gray-900 tracking-tighter uppercase mb-10">
-                Delivery <span className="text-blue-600">Details</span>
-              </h1>
+        <div className="flex flex-col xl:flex-row gap-10 xl:gap-12">
+          {/* ── Left Column ── */}
+          <div className="w-full xl:w-7/12 space-y-8">
+            {/* ── Section 01: Delivery Details ── */}
+            <section>
+              <div className="flex items-center gap-4 mb-6">
+                <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-white bg-black px-2 py-1">
+                  01
+                </span>
+                <h2 className="text-lg sm:text-xl font-mono font-black text-black uppercase tracking-tight">
+                  Delivery Details
+                </h2>
+              </div>
 
-              <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                {/* Name Field */}
-                <div>
-                  <label className={labelStyle}>
-                    <BsPersonVcard /> Full Name
-                  </label>
+              <div className="space-y-5">
+                {/* Full Name */}
+                <Field
+                  label="Full Name"
+                  error={errors.name}
+                  touched={touched.name}
+                >
                   <input
                     type="text"
-                    className={getInputStyle("name")}
+                    className={inputStyle("name", errors, touched)}
                     value={name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     onBlur={(e) => handleBlur("name", e.target.value)}
-                    placeholder="Receiver Name"
+                    placeholder="Receiver's full name"
                   />
-                  {errors.name && touched.name && (
-                    <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                      <span>⚠</span> {errors.name}
-                    </p>
-                  )}
-                </div>
+                </Field>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Phone Field */}
-                  <div>
-                    <label className={labelStyle}>
-                      <GiVibratingSmartphone /> Phone Number
-                    </label>
+                {/* Phone + Division */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Field
+                    label="Phone Number"
+                    error={errors.phoneNumber}
+                    touched={touched.phoneNumber}
+                  >
                     <input
                       type="tel"
-                      className={getInputStyle("phoneNumber")}
+                      className={inputStyle("phoneNumber", errors, touched)}
                       value={phoneNumber}
                       onChange={(e) =>
                         handleChange("phoneNumber", e.target.value)
@@ -601,68 +517,117 @@ const Shipping = () => {
                       onBlur={(e) => handleBlur("phoneNumber", e.target.value)}
                       placeholder="01XXX-XXXXXX"
                     />
-                    {errors.phoneNumber && touched.phoneNumber && (
-                      <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                        <span>⚠</span> {errors.phoneNumber}
-                      </p>
-                    )}
-                  </div>
+                  </Field>
 
-                  {/* City/Division Field */}
-                  <div>
-                    <label className={labelStyle}>
-                      <TfiLocationPin /> Division
-                    </label>
+                  {/* ✅ Division Select */}
+                  <Field
+                    label="Division"
+                    error={errors.division}
+                    touched={touched.division}
+                  >
                     <select
-                      value={city}
-                      onChange={(e) => handleChange("city", e.target.value)}
-                      onBlur={(e) => handleBlur("city", e.target.value)}
-                      className={getInputStyle("city")}
+                      value={division}
+                      onChange={(e) => handleChange("division", e.target.value)}
+                      onBlur={(e) => handleBlur("division", e.target.value)}
+                      className={inputStyle("division", errors, touched)}
                     >
-                      <option value="">Choose Area</option>
-                      {divisions.map((div) => (
+                      <option value="">Select division</option>
+                      {divisionsEn.map((div, i) => (
                         <option key={div} value={div}>
-                          {div}
+                          {divisionsBn[i]} ({div})
                         </option>
                       ))}
                     </select>
-                    {errors.city && touched.city && (
-                      <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                        <span>⚠</span> {errors.city}
-                      </p>
-                    )}
-                  </div>
+                  </Field>
                 </div>
 
-                {/* Address Field */}
-                <div>
-                  <label className={labelStyle}>
-                    <TfiLocationPin /> Full Address
-                  </label>
+                {/* District + Thana */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Field
+                    label="District"
+                    error={errors.district}
+                    touched={touched.district}
+                  >
+                    <select
+                      value={district}
+                      onChange={(e) => handleChange("district", e.target.value)}
+                      onBlur={(e) => handleBlur("district", e.target.value)}
+                      className={inputStyle("district", errors, touched)}
+                      disabled={!division}
+                    >
+                      <option value="">Select district</option>
+                      {districtsList.map((dist) => (
+                        <option key={dist.en} value={dist.en}>
+                          {dist.bn} ({dist.en})
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field
+                    label="Thana / Upazila"
+                    error={errors.thana}
+                    touched={touched.thana}
+                  >
+                    <div className="relative">
+                      <select
+                        value={thana}
+                        onChange={(e) => handleChange("thana", e.target.value)}
+                        onBlur={(e) => handleBlur("thana", e.target.value)}
+                        className={inputStyle("thana", errors, touched)}
+                        disabled={!district}
+                      >
+                        <option value="">Select thana</option>
+                        {thanasList.map((t) => (
+                          <option key={t.en} value={t.en}>
+                            {t.bn} ({t.en})
+                          </option>
+                        ))}
+                      </select>
+                      {/* ✅ Shipping calculating indicator */}
+                      {isCalculating && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <FaSpinner className="animate-spin text-gray-400 text-sm" />
+                        </div>
+                      )}
+                    </div>
+                    {/* ✅ Shipping calculation status */}
+                    {thana && district && division && (
+                      <p className="mt-1.5 text-[11px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
+                        {isCalculating
+                          ? "⟳ Calculating shipping..."
+                          : `✓ Shipping: ৳${orderSummary.shippingCharge}`}
+                      </p>
+                    )}
+                  </Field>
+                </div>
+
+                {/* Full Address */}
+                <Field
+                  label="Full Address"
+                  error={errors.address}
+                  touched={touched.address}
+                >
                   <input
                     type="text"
-                    className={getInputStyle("address")}
+                    className={inputStyle("address", errors, touched)}
                     value={address}
                     onChange={(e) => handleChange("address", e.target.value)}
                     onBlur={(e) => handleBlur("address", e.target.value)}
-                    placeholder="House/Road/Area/Police Station"
+                    placeholder="House / Road / Area"
                   />
-                  {errors.address && touched.address && (
-                    <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                      <span>⚠</span> {errors.address}
-                    </p>
-                  )}
-                </div>
+                </Field>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Postal Code Field */}
-                  <div>
-                    <label className={labelStyle}>
-                      <MdOutlineLocalPostOffice /> Zip Code
-                    </label>
+                {/* Postal Code + Country */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Field
+                    label="Postal Code"
+                    error={errors.postalCode}
+                    touched={touched.postalCode}
+                  >
                     <input
                       type="text"
-                      className={getInputStyle("postalCode")}
+                      className={inputStyle("postalCode", errors, touched)}
                       value={postalCode}
                       onChange={(e) =>
                         handleChange("postalCode", e.target.value)
@@ -670,155 +635,107 @@ const Shipping = () => {
                       onBlur={(e) => handleBlur("postalCode", e.target.value)}
                       placeholder="1200"
                     />
-                    {errors.postalCode && touched.postalCode && (
-                      <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                        <span>⚠</span> {errors.postalCode}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Country Field */}
-                  <div>
-                    <label className={labelStyle}>
-                      <FaGlobe /> Country
-                    </label>
+                  </Field>
+                  <Field
+                    label="Country"
+                    error={errors.country}
+                    touched={touched.country}
+                  >
                     <input
                       type="text"
-                      className={getInputStyle("country")}
+                      className={inputStyle("country", errors, touched)}
                       value={country}
                       onChange={(e) => handleChange("country", e.target.value)}
                       onBlur={(e) => handleBlur("country", e.target.value)}
-                      placeholder="Country"
+                      placeholder="Bangladesh"
                     />
-                    {errors.country && touched.country && (
-                      <p className="text-red-500 text-xs font-mono mt-1 flex items-center gap-1">
-                        <span>⚠</span> {errors.country}
-                      </p>
-                    )}
-                  </div>
+                  </Field>
                 </div>
-              </form>
-            </div>
+              </div>
+            </section>
 
-            {/* Payment Method Selection */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm">
-              <h2 className="text-2xl font-mono font-black text-gray-900 tracking-tighter uppercase mb-6 flex items-center gap-3">
-                <MdOutlinePayments className="text-blue-600" />
-                Payment <span className="text-blue-600">Method</span>
-              </h2>
+            <div className="border-t border-gray-100" />
+
+            {/* ── Section 02: Payment Method ── */}
+            <section>
+              <div className="flex items-center gap-4 mb-6">
+                <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-white bg-black px-2 py-1">
+                  02
+                </span>
+                <h2 className="text-lg sm:text-xl font-mono font-black text-black uppercase tracking-tight">
+                  Payment Method
+                </h2>
+              </div>
 
               {errors.paymentMethod && touched.paymentMethod && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-600 text-sm font-mono">
-                  <span>⚠</span> {errors.paymentMethod}
-                </div>
+                <p className="mb-4 text-[11px] sm:text-xs font-mono text-red-500 uppercase tracking-wide">
+                  ⚠ {errors.paymentMethod}
+                </p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {paymentMethods.map((method) => (
-                  <motion.div
-                    key={method.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handlePaymentMethodChange(method.id)}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4 ${
-                      paymentMethod === method.id
-                        ? `${method.color} border-current ring-2 ring-offset-2 ring-blue-100`
-                        : errors.paymentMethod && touched.paymentMethod
-                          ? "bg-red-50 border-red-300"
-                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`text-2xl ${paymentMethod === method.id ? "scale-110" : "text-gray-400"}`}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {paymentMethods.map((m) => {
+                  const active = paymentMethod === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => handlePaymentChange(m.id)}
+                      className={`flex items-center gap-4 px-4 py-4 border-2 text-left transition-none ${active ? "border-black bg-black text-white" : "border-gray-200 bg-white text-black"}`}
                     >
-                      {method.icon}
-                    </div>
-                    <div className="flex-1">
-                      <p
-                        className={`font-mono font-black text-sm uppercase tracking-tight ${
-                          paymentMethod === method.id
-                            ? "text-current"
-                            : "text-gray-600"
-                        }`}
+                      <span
+                        className={`text-xl sm:text-2xl ${active ? "text-white" : "text-gray-400"}`}
                       >
-                        {method.label}
-                      </p>
-                      {method.id === "Cash on Delivery" && (
-                        <p className="text-[10px] text-gray-400 font-mono mt-1">
-                          Pay when you receive
+                        {m.icon}
+                      </span>
+                      <div>
+                        <p className="text-xs sm:text-sm font-mono font-black uppercase tracking-tight">
+                          {m.label}
                         </p>
-                      )}
-                      {method.id !== "Cash on Delivery" && (
-                        <p className="text-[10px] text-gray-400 font-mono mt-1">
-                          Pay now via {method.label}
+                        <p
+                          className={`text-[11px] sm:text-xs font-mono uppercase tracking-wide mt-0.5 ${active ? "text-gray-300" : "text-gray-400"}`}
+                        >
+                          {m.sub}
                         </p>
-                      )}
-                    </div>
-                    {paymentMethod === method.id && (
-                      <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                       </div>
-                    )}
-                  </motion.div>
-                ))}
+                      {active && (
+                        <div className="ml-auto w-4 h-4 border-2 border-white rounded-full flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Selected Payment Info */}
-              <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                <div className="flex items-start gap-3">
-                  <BsCreditCard className="text-blue-600 mt-1" />
-                  <div>
-                    <p className="text-xs font-mono font-black uppercase text-gray-500 mb-1">
-                      Selected Method
-                    </p>
-                    <p className="font-mono font-bold text-gray-900">
-                      {
-                        paymentMethods.find((m) => m.id === paymentMethod)
-                          ?.label
-                      }
-                    </p>
-                    {paymentMethod === "Cash on Delivery" ? (
-                      <p className="text-[11px] text-gray-500 font-mono mt-1">
-                        You will pay ৳{orderSummary.totalPrice.toFixed(2)} when
-                        the product is delivered.
-                        {orderSummary.totalSavings > 0 && (
-                          <span className="text-green-600 block mt-1">
-                            💰 You saved ৳{orderSummary.totalSavings.toFixed(2)}
-                            !
-                          </span>
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-gray-500 font-mono mt-1">
-                        You will be redirected to payment instructions after
-                        placing the order.
-                        {orderSummary.totalSavings > 0 && (
-                          <span className="text-green-600 block mt-1">
-                            💰 Pay ৳{orderSummary.totalPrice.toFixed(2)} (Saved
-                            ৳{orderSummary.totalSavings.toFixed(2)}!)
-                          </span>
-                        )}
-                      </p>
-                    )}
-                  </div>
+              {/* Selected Payment Summary */}
+              <div className="mt-4 p-4 bg-gray-50 border border-gray-100 flex items-center gap-3">
+                <div className="w-1 h-8 bg-black flex-shrink-0" />
+                <div>
+                  <p className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.2em] text-gray-400 mb-0.5">
+                    Selected
+                  </p>
+                  <p className="text-sm sm:text-base font-mono font-black text-black uppercase">
+                    {paymentMethods.find((m) => m.id === paymentMethod)?.label}
+                  </p>
+                  <p className="text-[11px] sm:text-xs font-mono text-gray-500 mt-0.5">
+                    {paymentMethod === "Cash on Delivery"
+                      ? `Pay ৳${orderSummary.totalPrice.toFixed(2)} on delivery`
+                      : "You will be redirected to payment instructions"}
+                  </p>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </section>
+          </div>
 
+          {/* ── Right Column: Order Summary ── */}
           <div className="w-full xl:w-5/12">
             <div className="sticky top-[120px]">
-              {/* ✅ KEY FIX: orderSummary pass করুন */}
+              {/* ✅ Pass isCalculating so PlaceOrder can disable button during calculation */}
               <PlaceOrder
                 orderSummary={orderSummary}
                 onPlaceOrder={handleShippingDetails}
-                validateFields={() => {
-                  const isValid = validateAllFields();
-                  if (!isValid) {
-                    toast.error("Please fill all required fields correctly!");
-                  }
-                  return isValid;
-                }}
+                isShippingCalculating={isCalculating}
               />
             </div>
           </div>

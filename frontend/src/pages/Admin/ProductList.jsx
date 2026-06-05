@@ -1,9 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-
 import { useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   useCreateProductMutation,
   useUploadProductImageMutation,
@@ -20,13 +17,12 @@ import {
   FaArrowRight,
   FaPalette,
   FaRuler,
-  FaBolt,
 } from "react-icons/fa";
 import Quill from "quill";
 import ReactQuill from "react-quill";
 import ImageResize from "quill-image-resize-module-react";
 import "react-quill/dist/quill.snow.css";
-import React from "react";
+
 import { TreeSelect } from "antd";
 
 Quill.register("modules/imageResize", ImageResize);
@@ -48,33 +44,15 @@ const ProductList = () => {
   const [warranty, setWarranty] = useState("");
   const [discountedAmount, setDiscountedAmount] = useState(0);
 
-  const [keyFeatures, setKeyFeatures] = useState([""]); // Array of strings
+  const [keyFeatures, setKeyFeatures] = useState([""]);
   const [specifications, setSpecifications] = useState([
     { label: "", value: "" },
   ]);
-
-  // --- SHIPPING STATES
-  const [weight, setWeight] = useState(0.5);
-  const [shippingType, setShippingType] = useState("weight-based");
-  const [insideDhakaCharge, setInsideDhakaCharge] = useState(80);
-  const [outsideDhakaCharge, setOutsideDhakaCharge] = useState(150);
-  const [fixedShippingCharge, setFixedShippingCharge] = useState(0);
-  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
-  const [isFreeShippingActive, setIsFreeShippingActive] = useState(false);
 
   // --- VARIANT STATES ---
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState([]);
   const [activeVariantTab, setActiveVariantTab] = useState("basic");
-
-  // 🆕 FLASH SALE STATES - NEW ADDITION
-
-  const [flashSale, setFlashSale] = useState({
-    isActive: false,
-    discountPercentage: 0,
-    startTime: "",
-    endTime: "",
-  });
 
   const navigate = useNavigate();
   const [uploadProductImage] = useUploadProductImageMutation();
@@ -112,7 +90,6 @@ const ProductList = () => {
           [{ header: [1, 2, 3, 4, 5, 6, false] }],
           [{ size: ["small", false, "large", "huge"] }],
           ["bold", "italic", "underline", "strike", "blockquote"],
-
           [{ color: [] }, { background: [] }],
           [{ align: [] }],
           [{ script: "sub" }, { script: "super" }],
@@ -128,6 +105,7 @@ const ProductList = () => {
         modules: ["Resize", "DisplaySize", "Toolbar"],
       },
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -151,7 +129,6 @@ const ProductList = () => {
     "video",
   ];
 
-  // --- Specifications Logic ---
   const addSpec = () =>
     setSpecifications([...specifications, { label: "", value: "" }]);
   const removeSpec = (index) =>
@@ -251,58 +228,6 @@ const ProductList = () => {
     setVariants(newVariants);
   };
 
-  // 🆕 FLASH SALE HANDLERS - NEW ADDITION
-
-  const handleFlashSaleToggle = (e) => {
-    setFlashSale({
-      ...flashSale,
-      isActive: e.target.checked,
-    });
-  };
-
-  const handleFlashSaleChange = (field, value) => {
-    setFlashSale({
-      ...flashSale,
-      [field]: value,
-    });
-  };
-
-  // ✅ আপডেটেড: Shipping Type Change Handler
-  const handleShippingTypeChange = (e) => {
-    const newType = e.target.value;
-    setShippingType(newType);
-
-    // স্বয়ংক্রিয়ভাবে ডিফল্ট ভ্যালু সেট করো
-    switch (newType) {
-      case "free":
-        setInsideDhakaCharge(0);
-        setOutsideDhakaCharge(0);
-        setFixedShippingCharge(0);
-        setIsFreeShippingActive(true);
-        setFreeShippingThreshold(0);
-        break;
-      case "fixed":
-        setInsideDhakaCharge(0);
-        setOutsideDhakaCharge(0);
-        setFixedShippingCharge(fixedShippingCharge || 100); // ডিফল্ট 100
-        setIsFreeShippingActive(false);
-        break;
-      case "inside-outside":
-        setInsideDhakaCharge(insideDhakaCharge || 80);
-        setOutsideDhakaCharge(outsideDhakaCharge || 150);
-        setFixedShippingCharge(0);
-        setIsFreeShippingActive(false);
-        break;
-      case "weight-based":
-      default:
-        setInsideDhakaCharge(insideDhakaCharge || 80);
-        setOutsideDhakaCharge(outsideDhakaCharge || 150);
-        setFixedShippingCharge(0);
-        setIsFreeShippingActive(false);
-        break;
-    }
-  };
-
   const moveImage = (index, direction) => {
     const updatedImages = [...images];
     const newIndex = direction === "left" ? index - 1 : index + 1;
@@ -317,30 +242,30 @@ const ProductList = () => {
   const organizedCategories = useMemo(() => {
     if (!categories || categories.length === 0) return [];
 
-    const buildTree = (parentId = null, parentPath = "") => {
-      return categories
-        .filter((c) => {
-          const currentParentId =
-            c.parent && typeof c.parent === "object" ? c.parent._id : c.parent;
-          return parentId === null
-            ? !currentParentId
-            : currentParentId === parentId;
-        })
-        .map((category) => {
-          const currentPath = parentPath
-            ? `${parentPath} > ${category.name}`
-            : category.name;
-          return {
-            title: category.name,
-            label: currentPath,
-            value: category._id,
-            key: category._id,
-            children: buildTree(category._id, currentPath),
-          };
-        });
+    // Recursive function to map nested categories for Ant Design TreeSelect
+    const buildTree = (cats, parentPath = "") => {
+      return cats.map((cat) => {
+        const currentPath = parentPath
+          ? `${parentPath} > ${cat.name}`
+          : cat.name;
+
+        const node = {
+          title: cat.name, // Dropdown এ শুধু নাম দেখাবে
+          label: currentPath, // সিলেক্ট করলে ফুল পাথ দেখাবে (যেমন: MEN > Casual Shirts)
+          value: cat._id,
+          key: cat._id,
+        };
+
+        // যদি চাইল্ড ক্যাটাগরি থাকে, তাহলে রিকার্সিভলি বিল্ড করবে
+        if (cat.children && cat.children.length > 0) {
+          node.children = buildTree(cat.children, currentPath);
+        }
+
+        return node;
+      });
     };
 
-    return buildTree(null);
+    return buildTree(categories);
   }, [categories]);
 
   const handleSubmit = async (e) => {
@@ -351,7 +276,6 @@ const ProductList = () => {
     if (!price || price <= 0) return toast.error("Valid price is required.");
     if (!category) return toast.error("Category is required.");
 
-    // Validate variants if enabled
     if (hasVariants) {
       if (variants.length === 0) {
         return toast.error("At least one color variant is required.");
@@ -380,27 +304,10 @@ const ProductList = () => {
       }
     }
 
-    // 🆕 FLASH SALE VALIDATION - NEW ADDITION
-    if (flashSale.isActive) {
-      if (!flashSale.startTime || !flashSale.endTime) {
-        return toast.error("Flash Sale start and end time are required.");
-      }
-      if (
-        flashSale.discountPercentage <= 0 ||
-        flashSale.discountPercentage > 100
-      ) {
-        return toast.error("Flash Sale discount must be between 1 and 100.");
-      }
-      if (new Date(flashSale.startTime) >= new Date(flashSale.endTime)) {
-        return toast.error("Flash Sale end time must be after start time.");
-      }
-    }
-
     try {
       setLoading(true);
       const productData = new FormData();
 
-      // Basic Info Append
       productData.append("images", JSON.stringify(images));
       productData.append("name", name);
       productData.append("description", description);
@@ -424,15 +331,6 @@ const ProductList = () => {
         JSON.stringify(specifications.filter((s) => s.label.trim() !== "")),
       );
 
-      // Shipping Data Append
-      productData.append("weight", weight);
-      productData.append("shippingType", shippingType);
-      productData.append("insideDhakaCharge", insideDhakaCharge);
-      productData.append("outsideDhakaCharge", outsideDhakaCharge);
-      productData.append("fixedShippingCharge", fixedShippingCharge);
-      productData.append("freeShippingThreshold", freeShippingThreshold);
-      productData.append("isFreeShippingActive", isFreeShippingActive);
-
       // Variant Data
       productData.append("hasVariants", hasVariants);
       if (hasVariants) {
@@ -440,10 +338,6 @@ const ProductList = () => {
         productData.append("defaultColorIndex", 0);
         productData.append("defaultSizeIndex", 0);
       }
-
-      // 🆕 FLASH SALE DATA APPEND - NEW ADDITION
-
-      productData.append("flashSale", JSON.stringify(flashSale));
 
       const res = await createProduct(productData).unwrap();
 
@@ -515,26 +409,6 @@ const ProductList = () => {
               >
                 <FaPalette />
                 Variants {hasVariants && `(${variants.length} Colors)`}
-              </button>
-              <button
-                onClick={() => setActiveVariantTab("flashsale")}
-                className={`px-6 py-3 font-black uppercase text-[12px] tracking-widest transition-all flex items-center gap-2 ${
-                  activeVariantTab === "flashsale"
-                    ? "border-b-2 border-red-600 text-red-600"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <FaBolt
-                  className={
-                    flashSale.isActive ? "text-red-500 animate-pulse" : ""
-                  }
-                />
-                Flash Sale
-                {flashSale.isActive && (
-                  <span className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full">
-                    ON
-                  </span>
-                )}
               </button>
             </div>
 
@@ -704,16 +578,19 @@ const ProductList = () => {
                       <TreeSelect
                         showSearch
                         style={{ width: "100%" }}
-                        value={category}
+                        value={category || undefined} // undefined দিলে placeholder শো করে
                         dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
                         placeholder="SELECT_CATEGORY"
                         allowClear
-                        treeDefaultExpandAll
+                        treeDefaultExpandAll={false} // ড্রপডাউন ওপেন হলে সব এক্সপ্যান্ড করতে true করুন
                         onChange={(newValue) => setCategory(newValue)}
                         treeData={organizedCategories}
-                        treeNodeLabelProp="label"
+                        treeNodeLabelProp="label" // সিলেক্ট করার পর ফুল পাথ দেখাবে
                         className="w-full border-b-2 border-gray-100 font-bold text-black custom-treeselect"
                         variant="borderless"
+                        filterTreeNode={(input, node) =>
+                          node.title.toLowerCase().includes(input.toLowerCase())
+                        }
                       />
                     </div>
 
@@ -830,248 +707,6 @@ const ProductList = () => {
                     </button>
                   </div>
 
-                  {/* SHIPPING CONFIGURATION SECTION */}
-                  {/* SHIPPING CONFIGURATION SECTION */}
-                  <div className="mb-12 border-t border-gray-100 pt-10">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-red-600 mb-8 flex items-center gap-2">
-                      <span className="w-8 h-[2px] bg-red-600"></span>
-                      Shipping_Configuration_Node
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-                      {/* ✅ আপডেটেড: Shipping Type with auto-update */}
-                      <div className="group relative">
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          Shipping_Logic_Type
-                        </label>
-                        <select
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all cursor-pointer appearance-none"
-                          onChange={handleShippingTypeChange} // ✅ নতুন হ্যান্ডলার
-                          value={shippingType}
-                        >
-                          <option value="weight-based">
-                            WEIGHT_BASED (Default)
-                          </option>
-                          <option value="fixed">FIXED_RATE</option>
-                          <option value="inside-outside">
-                            INSIDE_OUTSIDE_DHAKA
-                          </option>
-                          <option value="free">ALWAYS_FREE</option>
-                        </select>
-                        <p className="text-[9px] text-gray-400 mt-1">
-                          {shippingType === "weight-based" &&
-                            "Charges based on product weight"}
-                          {shippingType === "fixed" &&
-                            "Flat rate regardless of location"}
-                          {shippingType === "inside-outside" &&
-                            "Different rates for Dhaka vs Outside"}
-                          {shippingType === "free" && "No shipping charges"}
-                        </p>
-                      </div>
-
-                      {/* Weight - শুধু weight-based এর জন্য */}
-                      <div
-                        className={`group relative transition-all duration-500 ${
-                          shippingType !== "weight-based" &&
-                          shippingType !== "inside-outside"
-                            ? "opacity-30"
-                            : "opacity-100"
-                        }`}
-                      >
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          Item_Weight_(KG)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={weight}
-                          disabled={
-                            shippingType !== "weight-based" &&
-                            shippingType !== "inside-outside"
-                          }
-                          onChange={(e) => setWeight(e.target.value)}
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all placeholder:text-gray-300"
-                        />
-                        {shippingType === "weight-based" && (
-                          <p className="text-[9px] text-orange-400 mt-1">
-                            Extra ৳20/kg after 1kg
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Free Shipping Toggle */}
-                      <div className="bg-gray-50 p-4 border border-gray-100 rounded-sm flex items-center justify-between group hover:border-red-200 transition-all">
-                        <div>
-                          <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase block mb-1">
-                            Free_Shipping_Logic
-                          </label>
-                          <span className="text-[12px] font-bold text-black uppercase">
-                            Enable Threshold?
-                          </span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isFreeShippingActive}
-                          onChange={(e) =>
-                            setIsFreeShippingActive(e.target.checked)
-                          }
-                          className="w-6 h-6 accent-red-600 cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Free Shipping Threshold */}
-                      <div
-                        className={`group relative transition-all duration-500 ${
-                          !isFreeShippingActive ? "opacity-30" : "opacity-100"
-                        }`}
-                      >
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          Free_Shipping_Threshold (৳)
-                        </label>
-                        <input
-                          type="number"
-                          value={freeShippingThreshold}
-                          disabled={!isFreeShippingActive}
-                          onChange={(e) =>
-                            setFreeShippingThreshold(e.target.value)
-                          }
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all placeholder:text-gray-300"
-                        />
-                      </div>
-
-                      {/* Inside Dhaka Charge - weight-based & inside-outside এর জন্য */}
-                      <div
-                        className={`group relative transition-all duration-500 ${
-                          shippingType === "fixed" || shippingType === "free"
-                            ? "opacity-30"
-                            : "opacity-100"
-                        }`}
-                      >
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          {shippingType === "inside-outside"
-                            ? "Inside Dhaka Charge"
-                            : "Base Charge (Inside Dhaka)"}
-                        </label>
-                        <input
-                          type="number"
-                          value={insideDhakaCharge}
-                          disabled={
-                            shippingType === "fixed" || shippingType === "free"
-                          }
-                          onChange={(e) => setInsideDhakaCharge(e.target.value)}
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all"
-                        />
-                      </div>
-
-                      {/* Outside Dhaka Charge - weight-based & inside-outside এর জন্য */}
-                      <div
-                        className={`group relative transition-all duration-500 ${
-                          shippingType === "fixed" || shippingType === "free"
-                            ? "opacity-30"
-                            : "opacity-100"
-                        }`}
-                      >
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          {shippingType === "inside-outside"
-                            ? "Outside Dhaka Charge"
-                            : "Base Charge (Outside Dhaka)"}
-                        </label>
-                        <input
-                          type="number"
-                          value={outsideDhakaCharge}
-                          disabled={
-                            shippingType === "fixed" || shippingType === "free"
-                          }
-                          onChange={(e) =>
-                            setOutsideDhakaCharge(e.target.value)
-                          }
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all"
-                        />
-                      </div>
-
-                      {/* Fixed Shipping Charge - শুধু fixed এর জন্য */}
-                      <div
-                        className={`group relative transition-all duration-500 ${
-                          shippingType !== "fixed"
-                            ? "opacity-30"
-                            : "opacity-100"
-                        }`}
-                      >
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
-                          Fixed_Shipping_Charge (৳)
-                        </label>
-                        <input
-                          type="number"
-                          value={fixedShippingCharge}
-                          disabled={shippingType !== "fixed"}
-                          onChange={(e) =>
-                            setFixedShippingCharge(e.target.value)
-                          }
-                          placeholder={
-                            shippingType === "fixed" ? "Enter fixed amount" : ""
-                          }
-                          className="w-full bg-transparent border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all"
-                        />
-                        {shippingType === "fixed" && (
-                          <p className="text-[9px] text-blue-400 mt-1">
-                            Same charge for all locations
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ✅ নতুন: Preview Section */}
-                    <div className="mt-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
-                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-4">
-                        Shipping Preview
-                      </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white p-3 rounded-lg border border-gray-100">
-                          <p className="text-[9px] text-gray-400 uppercase">
-                            Type
-                          </p>
-                          <p className="text-sm font-bold text-black uppercase">
-                            {shippingType.replace("-", " ")}
-                          </p>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-gray-100">
-                          <p className="text-[9px] text-gray-400 uppercase">
-                            Inside Dhaka
-                          </p>
-                          <p className="text-sm font-bold text-black">
-                            ৳
-                            {shippingType === "free"
-                              ? "0"
-                              : insideDhakaCharge || 0}
-                          </p>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-gray-100">
-                          <p className="text-[9px] text-gray-400 uppercase">
-                            Outside Dhaka
-                          </p>
-                          <p className="text-sm font-bold text-black">
-                            ৳
-                            {shippingType === "free"
-                              ? "0"
-                              : shippingType === "fixed"
-                                ? fixedShippingCharge || 0
-                                : outsideDhakaCharge || 0}
-                          </p>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-gray-100">
-                          <p className="text-[9px] text-gray-400 uppercase">
-                            Free Shipping
-                          </p>
-                          <p className="text-sm font-bold text-black">
-                            {isFreeShippingActive
-                              ? `Above ৳${freeShippingThreshold || 0}`
-                              : "Disabled"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Rich Text Editor Section */}
                   <div className="mb-12">
                     <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
@@ -1129,7 +764,6 @@ const ProductList = () => {
                       key={colorIndex}
                       className="bg-gray-50 rounded-2xl p-6 border border-gray-200"
                     >
-                      {/* Color Header */}
                       <div className="flex items-start gap-6 mb-6 pb-6 border-b border-gray-200">
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
@@ -1228,7 +862,6 @@ const ProductList = () => {
                         </button>
                       </div>
 
-                      {/* Sizes Section */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -1341,174 +974,6 @@ const ProductList = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* ============================================================
-                  🆕 FLASH SALE TAB - NEW ADDITION
-              ============================================================ */}
-              {activeVariantTab === "flashsale" && (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-xl font-black text-black tracking-tighter uppercase flex items-center gap-2">
-                        <FaBolt className="text-red-500" />
-                        Flash Sale Configuration
-                      </h2>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Set up limited-time discounts to boost sales urgency
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Flash Sale Toggle */}
-                  <div
-                    className={`p-6 rounded-2xl border-2 transition-all ${
-                      flashSale.isActive
-                        ? "bg-red-50 border-red-200"
-                        : "bg-gray-50 border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                            flashSale.isActive ? "bg-red-500" : "bg-gray-300"
-                          }`}
-                        >
-                          <FaBolt className="text-white text-2xl" />
-                        </div>
-                        <div>
-                          <h3 className="font-black text-black tracking-tight">
-                            Enable Flash Sale
-                          </h3>
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            {flashSale.isActive
-                              ? "Flash Sale is ACTIVE - Product will appear in Flash Sale section"
-                              : "Toggle to enable flash sale for this product"}
-                          </p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={flashSale.isActive}
-                          onChange={handleFlashSaleToggle}
-                          className="sr-only peer"
-                        />
-                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-500"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Flash Sale Settings */}
-                  {flashSale.isActive && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-6"
-                    >
-                      {/* Discount Percentage */}
-                      <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
-                          Flash Sale Discount (%)
-                        </label>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="1"
-                            max="99"
-                            value={flashSale.discountPercentage}
-                            onChange={(e) =>
-                              handleFlashSaleChange(
-                                "discountPercentage",
-                                parseInt(e.target.value),
-                              )
-                            }
-                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
-                          />
-                          <div className="w-20 h-12 bg-red-500 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-black text-lg">
-                              {flashSale.discountPercentage}%
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-2">
-                          Regular Price: ৳{price || 0} → Flash Sale Price:
-                          <span className="text-red-500 font-bold ml-1">
-                            ৳
-                            {price
-                              ? Math.round(
-                                  price *
-                                    (1 - flashSale.discountPercentage / 100),
-                                )
-                              : 0}
-                          </span>
-                        </p>
-                      </div>
-
-                      {/* Date & Time */}
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                          <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
-                            Sale Start Time
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={flashSale.startTime}
-                            onChange={(e) =>
-                              handleFlashSaleChange("startTime", e.target.value)
-                            }
-                            className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-4 font-mono text-black focus:border-red-500 focus:outline-none transition-all"
-                          />
-                        </div>
-
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                          <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
-                            Sale End Time
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={flashSale.endTime}
-                            onChange={(e) =>
-                              handleFlashSaleChange("endTime", e.target.value)
-                            }
-                            className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-4 font-mono text-black focus:border-red-500 focus:outline-none transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Preview Card */}
-                      <div className="bg-gradient-to-r from-red-500 to-orange-500 p-6 rounded-2xl text-white">
-                        <div className="flex items-center gap-3 mb-4">
-                          <FaBolt className="text-2xl animate-pulse" />
-                          <h4 className="font-black uppercase tracking-wider">
-                            Flash Sale Preview
-                          </h4>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-white/80 text-sm">
-                              Product will appear in Flash Sale section
-                            </p>
-                            <p className="text-white/60 text-xs mt-1">
-                              {flashSale.startTime && flashSale.endTime
-                                ? `${new Date(flashSale.startTime).toLocaleString()} - ${new Date(flashSale.endTime).toLocaleString()}`
-                                : "Set start and end time to activate"}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-3xl font-black">
-                              {flashSale.discountPercentage}%
-                            </p>
-                            <p className="text-white/80 text-xs uppercase tracking-wider">
-                              OFF
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
               )}
 

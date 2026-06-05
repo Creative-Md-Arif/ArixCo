@@ -1,312 +1,320 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetHeroBannersQuery,
   useIncrementBannerClicksMutation,
 } from "@redux/api/bannerApiSlice";
-import { FaArrowRight, FaArrowLeft, FaSpinner } from "react-icons/fa";
+import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
-// 🎯 Advanced Hero Banner Skeleton
-const HeroBannerSkeleton = () => {
-  return (
-    <div className="mx-auto mt-10 md:mt-6 lg:mt-5 xl:mt-10">
-      <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-gray-100">
-        {/* Background Gradient Animation */}
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-        
-        {/* Content Skeleton */}
-        <div className="absolute inset-0 flex items-center">
-          <div className="container mx-auto px-6 md:px-12 lg:px-24">
-            <div className="max-w-xl space-y-6">
-              {/* Sale Badge Skeleton */}
-              <div className="w-32 h-8 bg-white/50 rounded-md animate-pulse" />
-              
-              {/* Headline Skeleton */}
-              <div className="space-y-3">
-                <div className="w-3/4 h-12 md:h-16 bg-white/40 rounded-lg animate-pulse" />
-                <div className="w-1/2 h-12 md:h-16 bg-white/40 rounded-lg animate-pulse" />
-              </div>
-              
-              {/* Subheadline Skeleton */}
-              <div className="w-2/3 h-6 bg-white/30 rounded animate-pulse" />
-              
-              {/* CTA Button Skeleton */}
-              <div className="w-40 h-14 bg-white/50 rounded-xl animate-pulse flex items-center justify-center gap-2">
-                <div className="w-20 h-4 bg-white/30 rounded" />
-                <FaArrowRight className="text-white/30" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Arrows Skeleton */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 rounded-full animate-pulse" />
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 rounded-full animate-pulse" />
-
-        {/* Dots Skeleton */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-          {[1, 2, 3].map((i) => (
-            <div 
-              key={i} 
-              className={`h-2 rounded-full animate-pulse ${i === 1 ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} 
-            />
-          ))}
-        </div>
-
-        {/* Loading Indicator */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full">
-          <FaSpinner className="animate-spin text-blue-600" size={14} />
-          <span className="text-xs font-medium text-gray-600">Loading banners...</span>
-        </div>
-      </div>
-    </div>
-  );
+/* ─── Badge config ───────────────────────────────────────── */
+const BADGE = {
+  default: { text: "SHOP NOW", icon: "" },
+  "weekend-deal": { text: "WEEKEND DEAL", icon: "🔥" },
+  "flash-sale": { text: "FLASH SALE", icon: "⚡" },
+  "big-sale": { text: "BIG SALE", icon: "💥" },
+  "limited-offer": { text: "LIMITED OFFER", icon: "⏰" },
+  "special-offer": { text: "SPECIAL OFFER", icon: "🎁" },
+  clearance: { text: "CLEARANCE", icon: "🏷️" },
+  "new-arrival": { text: "NEW ARRIVAL", icon: "✨" },
+  "best-seller": { text: "BEST SELLER", icon: "⭐" },
+  "trending-now": { text: "TRENDING NOW", icon: "📈" },
+  "hot-deal": { text: "HOT DEAL", icon: "🌶️" },
+  "mega-sale": { text: "MEGA SALE", icon: "🎉" },
+  "seasonal-offer": { text: "SEASONAL OFFER", icon: "🌸" },
+  exclusive: { text: "EXCLUSIVE", icon: "💎" },
+  "last-chance": { text: "LAST CHANCE", icon: "⚠️" },
+  doorbuster: { text: "DOORBUSTER", icon: "🚪" },
+  "early-bird": { text: "EARLY BIRD", icon: "🐦" },
+  "member-exclusive": { text: "MEMBER EXCLUSIVE", icon: "👤" },
+  "bundle-deal": { text: "BUNDLE DEAL", icon: "📦" },
+  "buy-one-get-one": { text: "BUY 1 GET 1", icon: "🎊" },
 };
 
+/* ─── Offer badge text ───────────────────────────────────── */
+function offerLabel(offerSettings) {
+  if (!offerSettings || offerSettings.offerValue <= 0) return null;
+  const { offerType, offerValue } = offerSettings;
+  if (offerType === "percentage") return `${offerValue}% OFF`;
+  if (offerType === "bogo") return "BUY 1 GET 1 FREE";
+  if (offerType === "fixed") return `৳${offerValue} OFF`;
+  if (offerType === "free-shipping") return "FREE SHIPPING";
+  return null;
+}
+
+/* ─── Simple & Fixed Skeleton ────────────────────────────── */
+const Skeleton = () => (
+  <div className="w-full h-[240px] sm:h-[340px] md:h-[440px] lg:h-[540px] xl:h-[580px] bg-gray-100 animate-pulse flex items-center px-6 md:px-16 lg:px-24">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-sm">
+      <div className="h-3 w-20 bg-gray-200/80 rounded" />
+      <div className="h-7 w-3/4 bg-gray-200/80 rounded" />
+      <div className="h-9 w-1/3 bg-gray-200/80 rounded-md" />
+    </div>
+  </div>
+);
+
+/* ─── Main Component ─────────────────────────────────────── */
 const HeroBanner = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
 
   const { data: banners, isLoading, error } = useGetHeroBannersQuery();
   const [incrementClicks] = useIncrementBannerClicksMutation();
 
-  // Auto slide
+  /* auto-advance */
   useEffect(() => {
-    if (!isAutoPlaying || !banners?.length) return;
-
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length);
+    if (!autoPlay || !banners?.length) return;
+    const t = setInterval(() => {
+      setDirection(1);
+      setCurrent((p) => (p + 1) % banners.length);
     }, 5000);
+    return () => clearInterval(t);
+  }, [autoPlay, banners]);
 
-    return () => clearInterval(timer);
-  }, [isAutoPlaying, banners]);
+  const prev = useCallback(() => {
+    if (!banners?.length) return;
+    setAutoPlay(false);
+    setDirection(-1);
+    setCurrent((p) => (p - 1 + banners.length) % banners.length);
+  }, [banners]);
+
+  const next = useCallback(() => {
+    if (!banners?.length) return;
+    setAutoPlay(false);
+    setDirection(1);
+    setCurrent((p) => (p + 1) % banners.length);
+  }, [banners]);
+
+  const goTo = useCallback(
+    (i) => {
+      setAutoPlay(false);
+      setDirection(i > current ? 1 : -1);
+      setCurrent(i);
+    },
+    [current]
+  );
+
+  const handleClick = async (banner) => {
+    try {
+      await incrementClicks(banner._id);
+    } catch {
+      /* silent */
+    }
+  };
+
+  /* keyboard navigation */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prev, next]);
 
   if (error) {
-    console.error("Banner fetch error:", error);
+    console.error(error);
     return null;
   }
-
-  const buttonTypeStyles = {
-    default: { bg: "bg-gray-600", text: "SHOP NOW", icon: "" },
-    "weekend-deal": { bg: "bg-purple-600", text: "WEEKEND DEAL", icon: "🔥" },
-    "flash-sale": { bg: "bg-yellow-500", text: "FLASH SALE", icon: "⚡" },
-    "big-sale": { bg: "bg-red-600", text: "BIG SALE", icon: "💥" },
-    "limited-offer": { bg: "bg-orange-500", text: "LIMITED OFFER", icon: "⏰" },
-    "special-offer": { bg: "bg-pink-500", text: "SPECIAL OFFER", icon: "🎁" },
-    clearance: { bg: "bg-green-600", text: "CLEARANCE", icon: "🏷️" },
-    "new-arrival": { bg: "bg-blue-500", text: "NEW ARRIVAL", icon: "✨" },
-    "best-seller": { bg: "bg-amber-500", text: "BEST SELLER", icon: "⭐" },
-    "trending-now": { bg: "bg-indigo-600", text: "TRENDING NOW", icon: "📈" },
-    "hot-deal": { bg: "bg-red-700", text: "HOT DEAL", icon: "🌶️" },
-    "mega-sale": { bg: "bg-violet-600", text: "MEGA SALE", icon: "🎉" },
-    "seasonal-offer": {
-      bg: "bg-emerald-500",
-      text: "SEASONAL OFFER",
-      icon: "🌸",
-    },
-    exclusive: { bg: "bg-slate-700", text: "EXCLUSIVE", icon: "💎" },
-    "last-chance": { bg: "bg-rose-600", text: "LAST CHANCE", icon: "⚠️" },
-    doorbuster: { bg: "bg-cyan-600", text: "DOORBUSTER", icon: "🚪" },
-    "early-bird": { bg: "bg-sky-500", text: "EARLY BIRD", icon: "🐦" },
-    "member-exclusive": {
-      bg: "bg-teal-600",
-      text: "MEMBER EXCLUSIVE",
-      icon: "👤",
-    },
-    "bundle-deal": { bg: "bg-lime-600", text: "BUNDLE DEAL", icon: "📦" },
-    "buy-one-get-one": {
-      bg: "bg-fuchsia-600",
-      text: "BUY 1 GET 1",
-      icon: "🎊",
-    },
-  };
-
-  const handlePrev = () => {
-    setIsAutoPlaying(false);
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
-  };
-
-  const handleNext = () => {
-    setIsAutoPlaying(false);
-    setCurrentSlide((prev) => (prev + 1) % banners.length);
-  };
-
-  const handleDotClick = (index) => {
-    setIsAutoPlaying(false);
-    setCurrentSlide(index);
-  };
-
-  const handleBannerClick = async (banner) => {
-    await incrementClicks(banner._id);
-  };
-
-  // 🎯 Advanced Skeleton Loading State
-  if (isLoading) {
-    return <HeroBannerSkeleton />;
-  }
-
+  if (isLoading) return <Skeleton />;
   if (!banners?.length) return null;
 
-  const currentBanner = banners[currentSlide];
+  const b = banners[current];
+  const badge = BADGE[b.buttonType] ?? BADGE.default;
+  const offer = offerLabel(b.offerSettings);
+  const multi = banners.length > 1;
+
+  /* slide variants */
+  const variants = {
+    enter: (d) => ({ opacity: 0, x: d > 0 ? 40 : -40 }),
+    center: { opacity: 1, x: 0 },
+    exit: (d) => ({ opacity: 0, x: d > 0 ? -40 : 40 }),
+  };
 
   return (
-    <div className="mx-auto mt-10 md:mt-6 lg:mt-5 xl:mt-10">
-      <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        <AnimatePresence mode="wait" initial={false}>
+    <section
+      aria-label="Hero banner"
+      className="font-figtree"
+    >
+      {/* Height matches the Skeleton perfectly to prevent layout shift */}
+      <div className="relative w-full h-[240px] sm:h-[340px] md:h-[440px] lg:h-[540px] xl:h-[580px] overflow-hidden bg-gray-100">
+        
+        {/* ── Slide ── */}
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
-            key={currentSlide}
-            initial={{ opacity: currentSlide === 0 ? 1 : 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            key={current}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            {/* Background Image */}
+            {/* Image with responsive src */}
             <picture>
               <source
-                media="(max-width: 768px)"
-                srcSet={currentBanner.mobileImage || currentBanner.image}
+                media="(max-width: 640px)"
+                srcSet={b.mobileImage || b.image}
               />
               <img
-                src={currentBanner.image}
+                src={b.image}
+                alt={b.headline}
                 fetchPriority="high"
-                alt={currentBanner.headline}
-                className="w-full h-full object-cover"
                 loading="eager"
                 decoding="async"
+                className="w-full h-full object-cover"
               />
             </picture>
 
-            {/* Overlay */}
+            {/* Gradient overlay */}
             <div
+              aria-hidden="true"
               className="absolute inset-0"
               style={{
-                background: `linear-gradient(to right, ${currentBanner.backgroundColor}dd 0%, ${currentBanner.backgroundColor}10 20%, transparent 100%)`,
+                background: `linear-gradient(to right, ${b.backgroundColor}e0 0%, ${b.backgroundColor}60 35%, ${b.backgroundColor}10 65%, transparent 100%)`,
               }}
             />
 
-            {/* Content */}
-            <div className="absolute inset-0 flex items-center">
-              <div className="container mx-auto px-6 md:px-12 lg:px-24">
-                <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3, duration: 0.6 }}
-                  className="max-w-xl"
-                >
-                  {/* Sale Badge */}
-                  {currentBanner.buttonType &&
-                    currentBanner.buttonType !== "default" && (
-                      <motion.span
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`inline-block px-4 py-2 ${buttonTypeStyles[currentBanner.buttonType]?.bg || "bg-red-600"} text-white text-[10px] md:text-xs font-black uppercase tracking-[0.2em] rounded-md mb-4`}
-                      >
-                        {buttonTypeStyles[currentBanner.buttonType]?.icon}{" "}
-                        {buttonTypeStyles[currentBanner.buttonType]?.text}
-                      </motion.span>
-                    )}
-                  {currentBanner.offerSettings?.offerValue > 0 && (
+            {/* Content container - Responsive padding and width */}
+            <div className="absolute inset-0 flex items-center px-4 sm:px-8 md:px-16 lg:px-24">
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.4 }}
+                className="max-w-[90%] sm:max-w-[450px] md:max-w-[480px] lg:max-w-[520px] space-y-2 sm:space-y-3 md:space-y-4"
+              >
+                {/* Badges row */}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {b.buttonType && b.buttonType !== "default" && (
                     <motion.span
-                      initial={{ opacity: 0, y: -20 }}
+                      initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="inline-block px-4 py-2 bg-red-600 text-white text-[10px] md:text-xs font-black uppercase tracking-[0.2em] rounded-md mb-4"
+                      transition={{ delay: 0.2 }}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 border border-white/40 bg-white/15 backdrop-blur-sm text-black text-[7px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] sm:tracking-[0.18em] rounded"
                     >
-                      {currentBanner.offerSettings.offerType === "percentage" &&
-                        `${currentBanner.offerSettings.offerValue}% OFF`}
-                      {currentBanner.offerSettings.offerType === "bogo" &&
-                        "BUY 1 GET 1 FREE"}
-                      {currentBanner.offerSettings.offerType === "fixed" &&
-                        `৳${currentBanner.offerSettings.offerValue} OFF`}
-                      {currentBanner.offerSettings.offerType ===
-                        "free-shipping" && "FREE SHIPPING"}
+                      <span>{badge.icon}</span>
+                      {badge.text}
                     </motion.span>
                   )}
-
-                  {/* Headline */}
-                  <motion.h2
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-3xl md:text-5xl lg:text-6xl font-black leading-tight mb-4"
-                    style={{ color: currentBanner.textColor }}
-                  >
-                    {currentBanner.headline}
-                  </motion.h2>
-
-                  {/* Sub Headline */}
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="text-sm md:text-lg mb-6"
-                    style={{ color: currentBanner.textColor, opacity: 0.8 }}
-                  >
-                    {currentBanner.subHeadline}
-                  </motion.p>
-
-                  {/* CTA Button */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <Link
-                      to={currentBanner.link || "/shop"}
-                      onClick={() => handleBannerClick(currentBanner)}
-                      className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all duration-300 hover:scale-105"
-                      style={{
-                        backgroundColor: currentBanner.buttonColor,
-                        color: currentBanner.buttonTextColor,
-                      }}
+                  {offer && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.25 }}
+                      className="inline-flex items-center px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-white/90 text-gray-900 text-[7px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-[0.14em] sm:tracking-[0.18em] rounded"
                     >
-                      {currentBanner.buttonText}
-                      <FaArrowRight />
-                    </Link>
-                  </motion.div>
+                      {offer}
+                    </motion.span>
+                  )}
+                </div>
+
+                {/* Headline */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="text-xl sm:text-3xl md:text-5xl lg:text-[3.25rem] font-black leading-[1.1] tracking-tight"
+                  style={{ color: b.textColor }}
+                >
+                  {b.headline}
+                </motion.h2>
+
+                {/* Sub-headline */}
+                {b.subHeadline && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.32 }}
+                    className="text-[10px] sm:text-sm md:text-base leading-relaxed line-clamp-2 sm:line-clamp-3"
+                    style={{ color: b.textColor, opacity: 0.8 }}
+                  >
+                    {b.subHeadline}
+                  </motion.p>
+                )}
+
+                {/* CTA Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.38 }}
+                >
+                  <Link
+                    to={b.link || "/shop"}
+                    onClick={() => handleClick(b)}
+                    aria-label={`${b.buttonText} — ${b.headline}`}
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 md:px-7 md:py-3 text-[8px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.14em] sm:tracking-[0.18em] rounded transition-opacity hover:opacity-80"
+                    style={{
+                      backgroundColor: b.buttonColor,
+                      color: b.buttonTextColor,
+                    }}
+                  >
+                    {b.buttonText}
+                    <FaArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3" />
+                  </Link>
                 </motion.div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation Arrows */}
-        {banners.length > 1 && (
+        {/* ── Arrow buttons ── */}
+        {multi && (
           <>
             <button
-              onClick={handlePrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all z-10"
+              onClick={prev}
+              aria-label="Previous banner"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white/20 hover:bg-white/40 border border-white/20 text-white rounded-full backdrop-blur-sm transition-colors"
             >
-              <FaArrowLeft />
+              <FaArrowLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
             </button>
             <button
-              onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all z-10"
+              onClick={next}
+              aria-label="Next banner"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white/20 hover:bg-white/40 border border-white/20 text-white rounded-full backdrop-blur-sm transition-colors"
             >
-              <FaArrowRight />
+              <FaArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
             </button>
           </>
         )}
 
-        {/* Dots */}
-        {banners.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {banners.map((_, index) => (
+        {/* ── Progress dots ── */}
+        {multi && (
+          <div
+            role="tablist"
+            aria-label="Banner navigation"
+            className="absolute bottom-3 sm:bottom-4 md:bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 sm:gap-2"
+          >
+            {banners.map((_, i) => (
               <button
-                key={index}
-                onClick={() => handleDotClick(index)}
-                className={`transition-all duration-300 rounded-full ${
-                  index === currentSlide
-                    ? "w-8 h-2 bg-white"
-                    : "w-2 h-2 bg-white/50 hover:bg-white/70"
+                key={i}
+                role="tab"
+                aria-selected={i === current}
+                aria-label={`Go to banner ${i + 1}`}
+                onClick={() => goTo(i)}
+                className={`h-[3px] sm:h-[4px] rounded-full transition-all duration-300 ${
+                  i === current
+                    ? "w-5 sm:w-7 md:w-8 bg-white"
+                    : "w-1.5 sm:w-2 bg-white/40 hover:bg-white/60"
                 }`}
               />
             ))}
           </div>
         )}
+
+        {/* ── Slide counter (top-right) ── */}
+        {multi && (
+          <div
+            aria-hidden="true"
+            className="absolute top-2 right-3 sm:top-3 sm:right-4 z-10 text-white/60 text-[8px] sm:text-[10px] md:text-[11px] font-bold tracking-widest select-none"
+          >
+            {String(current + 1).padStart(2, "0")} /{" "}
+            {String(banners.length).padStart(2, "0")}
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 };
 

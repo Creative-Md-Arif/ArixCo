@@ -19,10 +19,6 @@ import {
 const AllProducts = () => {
   const { data: products, isLoading, isError, refetch } = useAllProductsQuery();
 
-
-  console.log('====================================');
-  console.log(products);
-  console.log('====================================');
   const [searchTerm, setSearchTerm] = useState("");
 
   const [sortConfig, setSortConfig] = useState({

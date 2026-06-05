@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
@@ -14,14 +14,19 @@ import { CiEdit } from "react-icons/ci";
 import { MdDeleteOutline, MdOutlineCloudUpload } from "react-icons/md";
 import React from "react";
 
-// --- UPDATE START: Adding Icons for TreeView ---
+// Icons for TreeView
 import {
   FaFolder,
   FaFolderOpen,
   FaChevronRight,
   FaChevronDown,
+  FaPlus,
 } from "react-icons/fa";
-// --- UPDATE END ---
+
+// Custom Loading Spinner Component
+const ButtonSpinner = () => (
+  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+);
 
 const CategoryList = () => {
   const { data: categories, refetch } = useFetchCategoriesQuery();
@@ -36,75 +41,85 @@ const CategoryList = () => {
   const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
   const [deleteCategory, { isLoading: deleting }] = useDeleteCategoryMutation();
 
-  console.log(categories);
+  // Flatten nested categories for the Table view
+  const flatCategories = useMemo(() => {
+    const flat = [];
+    const flattenTree = (cats, isSub = false) => {
+      if (!cats) return;
+      for (const cat of cats) {
+        flat.push({ ...cat, isSubCategory: isSub });
+        if (cat.children && cat.children.length > 0) {
+          flattenTree(cat.children, true);
+        }
+      }
+    };
+    flattenTree(categories);
+    return flat;
+  }, [categories]);
 
-  const renderTreeOptions = (allCategories, parentId = null, depth = 0) => {
-    return allCategories
-      .filter((c) => {
-        const currentParentId =
-          c.parent && typeof c.parent === "object" ? c.parent._id : c.parent;
-        return parentId === null
-          ? !currentParentId
-          : currentParentId === parentId;
-      })
-      .map((c) => (
-        <React.Fragment key={c._id}>
-          <option value={c._id} className={`ml-${depth * 4}`}>
-            {"\u00A0\u00A0".repeat(depth * 2)} {depth > 0 ? "↳ " : ""} {c.name}
-          </option>
-          {renderTreeOptions(allCategories, c._id, depth + 1)}
-        </React.Fragment>
-      ));
+  // Recursive function for Select Dropdown (Now uses nested children)
+  const renderTreeOptions = (cats, depth = 0) => {
+    if (!cats || cats.length === 0) return null;
+    return cats.map((c) => (
+      <React.Fragment key={c._id}>
+        <option value={c._id}>
+          {"\u00A0\u00A0".repeat(depth * 2)} {depth > 0 ? "↳ " : ""} {c.name}
+        </option>
+        {c.children &&
+          c.children.length > 0 &&
+          renderTreeOptions(c.children, depth + 1)}
+      </React.Fragment>
+    ));
   };
 
-  // --- UPDATE START: Recursive TreeView Component ---
-  const TreeItem = ({ category, allCategories, depth = 0 }) => {
+  // Recursive TreeView Component (Now uses nested children)
+  const TreeItem = ({ category }) => {
     const [isOpen, setIsOpen] = useState(true);
-    // --- UPDATE START: Child filtering with Deep Populate ---
-    const children = allCategories.filter((c) => {
-      const currentParentId =
-        c.parent && typeof c.parent === "object" ? c.parent._id : c.parent;
-      return currentParentId === category._id;
-    });
-    // --- UPDATE END ---
+    const children = category.children || [];
     const hasChildren = children.length > 0;
 
     return (
-      <div className="ml-4 border-l border-slate-200 pl-4 my-1">
-        <div className="flex items-center gap-2 group py-1">
-          {hasChildren ? (
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-400"
+      <div className="ml-2 md:ml-4 border-l border-gray-200 pl-3 md:pl-4 my-0.5">
+        <div className="flex items-center justify-between group py-1.5 px-2 rounded-md hover:bg-gray-50 transition-colors">
+          <div className="flex items-center gap-2">
+            {hasChildren ? (
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {isOpen ? (
+                  <FaChevronDown size={10} />
+                ) : (
+                  <FaChevronRight size={10} />
+                )}
+              </button>
+            ) : (
+              <span className="w-[10px]" />
+            )}
+
+            <span
+              className={`text-sm ${hasChildren ? "text-gray-800 font-semibold" : "text-gray-600 font-medium"}`}
             >
-              {isOpen ? (
-                <FaChevronDown size={12} />
+              {isOpen && hasChildren ? (
+                <FaFolderOpen className="inline mr-1.5 text-blue-500" />
               ) : (
-                <FaChevronRight size={12} />
+                <FaFolder className="inline mr-1.5 text-gray-400" />
               )}
-            </button>
-          ) : (
-            <span className="w-3" />
-          )}
+              {category.name}
+            </span>
+          </div>
 
-          <span className={hasChildren ? "text-blue-600" : "text-slate-600"}>
-            {isOpen && hasChildren ? <FaFolderOpen /> : <FaFolder />}
-          </span>
-
-          <span className="font-medium text-slate-800 group-hover:text-blue-600 cursor-default">
-            {category.name}
-          </span>
-
-          <div className="hidden group-hover:flex gap-2 ml-4">
+          {/* Opacity used instead of hidden to prevent jumping */}
+          <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
             <button
               onClick={() => {
                 setSelectedCategory(category);
                 setUpdatingName(category.name);
                 setModalVisible(true);
               }}
-              className="text-blue-500 hover:text-blue-700 text-xs font-bold"
+              className="p-1 text-blue-500 hover:bg-blue-50 rounded-md"
             >
-              EDIT
+              <CiEdit size={16} />
             </button>
           </div>
         </div>
@@ -112,21 +127,15 @@ const CategoryList = () => {
         {isOpen && hasChildren && (
           <div>
             {children.map((child) => (
-              <TreeItem
-                key={child._id}
-                category={child}
-                allCategories={allCategories}
-                depth={depth + 1}
-              />
+              <TreeItem key={child._id} category={child} />
             ))}
           </div>
         )}
       </div>
     );
   };
-  // --- UPDATE END ---
 
-  // Handle Image Upload to Cloudinary
+  // Handle Image Upload
   const uploadImage = async () => {
     if (!image) return null;
     const formData = new FormData();
@@ -180,7 +189,6 @@ const CategoryList = () => {
     }
 
     let imageUrl = selectedCategory.image;
-
     if (image) {
       const uploadedUrl = await uploadImage();
       if (uploadedUrl) imageUrl = uploadedUrl;
@@ -228,62 +236,65 @@ const CategoryList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white font-sans">
       <AdminMenu />
-      <div className="max-w-6xl mx-auto py-12 pt-32 px-4 sm:px-6">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-slate-900">
-            Manage Categories
+
+      {/* Main Container - Reduced padding */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
+        {/* Header - Reduced margin */}
+        <header className="mb-6 border-b border-gray-100 pb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            Category Management
           </h1>
-          <p className="text-slate-500">
-            Create infinite sub-categories for your store.
+          <p className="text-gray-500 mt-1 text-sm">
+            Organize your store with infinite sub-categories.
           </p>
         </header>
 
-        {/* --- Form --- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-12 transition-all hover:border-blue-200">
-          <form onSubmit={handleCreateCategory} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-[14px] font-bold text-slate-700 font-figtree uppercase tracking-wider">
+        {/* Create Form Card - Reduced padding and margin */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 mb-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
+            <FaPlus className="text-blue-500" /> Create New Category
+          </h2>
+          <form onSubmit={handleCreateCategory} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Category Name
                 </label>
                 <input
                   type="text"
-                  className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Category Name"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                  placeholder="e.g. Electronics, Clothes"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-slate-700">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Select Parent
                 </label>
                 <select
                   value={parent}
                   onChange={(e) => setParent(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-sm"
                 >
                   <option value="">None (Main Category)</option>
                   {categories && renderTreeOptions(categories)}
                 </select>
               </div>
 
-              {/* --- UPDATE START: Now showing image upload for ALL categories --- */}
-              <div className="space-y-2">
-                <label className="text-[14px] font-bold text-slate-700 font-figtree uppercase tracking-wider">
-                  Image (Optional for sub)
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Category Image
                 </label>
-                <label className="flex flex-col items-center justify-center w-full h-[60px] border-2 border-dashed border-slate-200 rounded-xl hover:bg-slate-50 hover:border-blue-400 transition-all cursor-pointer group">
-                  <div className="flex items-center gap-2 text-slate-500 group-hover:text-blue-600 transition-colors">
-                    <MdOutlineCloudUpload size={20} />
-                    <span className="text-sm font-medium">
-                      {image ? image.name : "Upload"}
-                    </span>
-                  </div>
+                <label className="flex items-center gap-2 w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                  <MdOutlineCloudUpload className="text-gray-400 text-lg" />
+                  <span className="text-sm text-gray-500 truncate">
+                    {image ? image.name : "Choose an image"}
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -292,145 +303,143 @@ const CategoryList = () => {
                   />
                 </label>
               </div>
-              {/* --- UPDATE END --- */}
             </div>
 
-            {image && (
-              <div className="flex justify-center border-t border-slate-100 pt-6">
-                <div className="relative">
+            {/* Fixed height container to prevent jumping */}
+            <div className="h-[80px] flex justify-start items-center">
+              {image && (
+                <div className="relative inline-block">
                   <img
                     src={URL.createObjectURL(image)}
                     alt="Preview"
-                    className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-sm ring-1 ring-slate-200"
+                    className="w-16 h-16 rounded-lg object-cover border border-gray-200"
                   />
-                  <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] px-2 py-1 rounded-full uppercase font-bold">
-                    New Preview
-                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <button
               type="submit"
-              className="w-full py-4 bg-slate-900 hover:bg-blue-700 text-white text-[16px] font-bold font-figtree rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:bg-slate-400"
+              className="w-full md:w-auto min-w-[160px] flex justify-center items-center px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
               disabled={creating}
             >
-              {creating ? "Processing..." : "Create Category"}
+              {creating && <ButtonSpinner />}
+              {creating ? "Processing" : "Create Category"}
             </button>
           </form>
         </div>
 
-        {/* --- UPDATE START: TreeView Visual Structure --- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-12 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <FaFolderOpen className="text-blue-500" /> Category Tree View
-          </h2>
-          <div className="max-h-[400px] overflow-y-auto pr-4">
-            {categories
-              ?.filter((c) => {
-                const currentParentId =
-                  c.parent && typeof c.parent === "object"
-                    ? c.parent._id
-                    : c.parent;
-                return !currentParentId;
-              })
-              .map((mainCat) => (
-                <TreeItem
-                  key={mainCat._id}
-                  category={mainCat}
-                  allCategories={categories}
-                />
-              ))}
+        {/* Tree View & Table Layout - Reduced gap */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Tree View Section - Reduced padding */}
+          <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-4 md:p-5 h-fit lg:sticky lg:top-28">
+            <h2 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <FaFolderOpen className="text-blue-500" /> Hierarchy View
+            </h2>
+            <div className="max-h-[500px] overflow-y-auto pr-1">
+              {categories?.length > 0 ? (
+                categories.map((mainCat) => (
+                  <TreeItem key={mainCat._id} category={mainCat} />
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 py-4 text-center">
+                  No categories found.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-        {/* --- UPDATE END --- */}
 
-        {/* --- Table --- */}
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-8 py-5 text-left text-[11px] font-bold text-slate-500 uppercase">
-                    Icon
-                  </th>
-                  <th className="px-8 py-5 text-left text-[11px] font-bold text-slate-500 uppercase">
-                    Name
-                  </th>
-                  <th className="px-8 py-5 text-center text-[11px] font-bold text-slate-500 uppercase">
-                    Type
-                  </th>
-                  <th className="px-8 py-5 text-right text-[11px] font-bold text-slate-500 uppercase">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {categories?.map((category) => (
-                  <tr
-                    key={category._id}
-                    className="hover:bg-blue-50/30 transition-all"
-                  >
-                    <td className="px-8 py-4">
-                      {category.image ? (
-                        <img
-                          src={category.image}
-                          alt={category.name}
-                          className="w-12 h-12 rounded-lg object-cover border border-slate-200"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                          <FaFolder size={20} />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-8 py-4">
-                      <span className="font-medium text-slate-800">
-                        {category.name}
-                      </span>
-                    </td>
-                    <td className="px-8 py-4 text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${category.parent ? "bg-purple-100 text-purple-600" : "bg-green-100 text-green-600"}`}
-                      >
-                        {category.parent
-                          ? `Sub (${typeof category.parent === "object" ? category.parent.name : "Category"})`
-                          : "Main"}
-                      </span>
-                    </td>
-                    <td className="px-8 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          title="Edit"
-                          className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-all active:scale-90"
-                          onClick={() => {
-                            setModalVisible(true);
-                            setSelectedCategory(category);
-                            setUpdatingName(category.name);
-                          }}
-                        >
-                          <CiEdit size={20} />
-                        </button>
-                        <button
-                          title="Delete"
-                          className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:border-red-500 hover:text-red-600 transition-all active:scale-90"
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <MdDeleteOutline size={20} />
-                        </button>
-                      </div>
-                    </td>
+          {/* Table Section - Reduced padding */}
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="p-4 md:p-5 border-b border-gray-100">
+              <h2 className="text-base font-semibold text-gray-800">
+                All Categories
+              </h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Image
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {flatCategories.map((category) => (
+                    <tr
+                      key={category._id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-5 py-3">
+                        {category.image ? (
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="w-9 h-9 rounded-md object-cover border border-gray-100"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center text-gray-400">
+                            <FaFolder size={14} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="text-sm font-medium text-gray-800">
+                          {category.name}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${category.isSubCategory ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-600"}`}
+                        >
+                          {category.isSubCategory ? "Sub" : "Main"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            title="Edit"
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            onClick={() => {
+                              setModalVisible(true);
+                              setSelectedCategory(category);
+                              setUpdatingName(category.name);
+                            }}
+                          >
+                            <CiEdit size={16} />
+                          </button>
+                          <button
+                            title="Delete"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setModalVisible(true);
+                            }}
+                          >
+                            <MdDeleteOutline size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        {/* --- Modal with Dynamic Context --- */}
+        {/* Modal Component */}
         <Modal
           isOpen={modalVisible}
           onClose={() => {
@@ -438,26 +447,22 @@ const CategoryList = () => {
             setImage(null);
           }}
         >
-          <div className="bg-white p-2">
-            <header className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 font-figtree">
-                {selectedCategory && updatingName === selectedCategory.name
-                  ? "Edit Category"
-                  : "Category Actions"}
-              </h2>
-              <p className="text-slate-500 text-sm">
+          <div className="bg-white p-5 md:p-6">
+            <header className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Edit Category</h2>
+              <p className="text-gray-500 text-xs mt-1">
                 Update details or remove this category permanently.
               </p>
             </header>
 
-            <form onSubmit={handleUpdateCategory} className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 font-figtree uppercase">
+            <form onSubmit={handleUpdateCategory} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Update Name
                 </label>
                 <input
                   type="text"
-                  className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-figtree"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
                   placeholder="New category name"
                   value={updatingName}
                   onChange={(e) => setUpdatingName(e.target.value)}
@@ -465,45 +470,69 @@ const CategoryList = () => {
                 />
               </div>
 
-              {/* --- UPDATE START: Always show image edit --- */}
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 font-figtree uppercase">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Change Image
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-blue-100 hover:file:text-blue-700 transition-all"
-                  onChange={(e) => setImage(e.target.files[0])}
-                />
-              </div>
-              {/* --- UPDATE END --- */}
-
-              {image && (
-                <div className="bg-slate-50 p-3 rounded-xl inline-block border border-blue-100">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt="Preview"
-                    className="w-20 h-20 rounded-lg object-cover"
+                <label className="flex items-center gap-2 w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                  <MdOutlineCloudUpload className="text-gray-400 text-lg" />
+                  <span className="text-sm text-gray-500 truncate">
+                    {image ? image.name : "Choose new image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImage(e.target.files[0])} // Fixed files[1] to files[0]
+                    className="hidden"
                   />
-                </div>
-              )}
+                </label>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4">
+              {/* Fixed height container for image preview to prevent jumping */}
+              <div className="h-[90px] flex gap-4 items-center">
+                {selectedCategory?.image && !image && (
+                  <div>
+                    <p className="text-[9px] uppercase font-semibold text-gray-400 mb-1">
+                      Current
+                    </p>
+                    <img
+                      src={selectedCategory.image}
+                      alt="Current"
+                      className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                    />
+                  </div>
+                )}
+                {image && (
+                  <div>
+                    <p className="text-[9px] uppercase font-semibold text-blue-400 mb-1">
+                      New Preview
+                    </p>
+                    <img
+                      src={URL.createObjectURL(image)}
+                      alt="Preview"
+                      className="w-16 h-16 rounded-lg object-cover border border-blue-200"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:bg-slate-300"
+                  className="min-w-[120px] flex justify-center items-center bg-gray-900 text-white py-2.5 rounded-lg font-semibold hover:bg-black transition-all text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
                   disabled={updating}
                 >
-                  {updating ? "Updating..." : "Save Changes"}
+                  {updating && <ButtonSpinner />}
+                  {updating ? "Updating" : "Save Changes"}
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteCategory}
-                  className="bg-white text-red-600 border border-red-200 py-4 rounded-xl font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+                  className="min-w-[120px] flex justify-center items-center bg-white text-red-600 border border-gray-200 py-2.5 rounded-lg font-semibold hover:bg-red-50 hover:border-red-200 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={deleting}
                 >
-                  {deleting ? "Deleting..." : "Delete Category"}
+                  {deleting && <ButtonSpinner />}
+                  {deleting ? "Deleting" : "Delete"}
                 </button>
               </div>
             </form>

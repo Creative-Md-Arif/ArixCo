@@ -4,9 +4,7 @@ const initialState = {
   categories: [],
   products: [],
   checked: [],
-  radio: [],
-  brandCheckboxes: {},
-  checkedBrands: [],
+  selectedBrand: "", // 'radio' এর বদলে 'selectedBrand' ব্যবহার করা হলো
 };
 
 const shopSlice = createSlice({
@@ -23,20 +21,12 @@ const shopSlice = createSlice({
       state.checked = action.payload;
     },
     setRadio: (state, action) => {
-      state.radio = action.payload;
-    },
-    setSelectedBrand: (state, action) => {
+      // অ্যাকশন নেম একই রাখতে পারেন, কিন্তু স্টেট চেঞ্জ হবে selectedBrand এ
       state.selectedBrand = action.payload;
     },
   },
 });
 
-export const {
-  setCategories,
-  setProducts,
-  setChecked,
-  setRadio,
-  setSelectedBrand,
-} = shopSlice.actions;
-
+export const { setCategories, setProducts, setChecked, setRadio } =
+  shopSlice.actions;
 export default shopSlice.reducer;

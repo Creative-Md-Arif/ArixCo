@@ -19,14 +19,6 @@ const orderSchema = mongoose.Schema(
         discountPercentage: { type: Number, default: 0 },
         offer: { type: String, default: "" },
         weight: { type: Number, default: 0 },
-        shippingDetails: {
-          shippingType: { type: String },
-          fixedShippingCharge: { type: Number },
-          freeShippingThreshold: { type: Number },
-          insideDhakaCharge: { type: Number },
-          outsideDhakaCharge: { type: Number },
-          isFreeShippingActive: { type: Boolean, default: false },
-        },
         product: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,
@@ -39,7 +31,7 @@ const orderSchema = mongoose.Schema(
           colorHex: { type: String, default: "" },
           sizeIndex: { type: Number, default: null },
           sizeName: { type: String, default: "" },
-          variantPrice: { type: Number, default: null }, // Price at time of order
+          variantPrice: { type: Number, default: null },
           sku: { type: String, default: "" },
         },
       },
@@ -52,7 +44,6 @@ const orderSchema = mongoose.Schema(
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
       phoneNumber: { type: String, required: true },
-      // shippingCharge: { type: Number, default: 0 },
     },
 
     paymentMethod: {
@@ -65,12 +56,12 @@ const orderSchema = mongoose.Schema(
       transactionId: {
         type: String,
         unique: true,
-        sparse: true, // অন্যান্য পেমেন্ট মেথডের জন্য null allow করবে
+        sparse: true,
         trim: true,
         uppercase: true,
       },
       senderNumber: { type: String, trim: true },
-      paymentScreenshot: { type: String }, // Cloudinary URL
+      paymentScreenshot: { type: String },
       selectedPaymentMethod: {
         type: String,
         enum: ["bKash", "Nagad", "Rocket", "Bank"],
@@ -132,6 +123,24 @@ const orderSchema = mongoose.Schema(
       type: Number,
       required: true,
       default: 0.0,
+    },
+
+    totalSavings: {
+      type: Number,
+      default: 0.0,
+    },
+
+    // ====== NEW: Coupon Fields ======
+    appliedCuppon: {
+      cupponId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Cuppon",
+        default: null,
+      },
+      code: { type: String, default: null },
+      discountType: { type: String, default: null },
+      discountValue: { type: Number, default: 0 },
+      discountAmount: { type: Number, default: 0 },
     },
 
     isPaid: {

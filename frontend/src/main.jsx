@@ -14,14 +14,15 @@ import store from "./redux/store";
 import React, { Suspense, lazy } from "react";
 import Loader from "./components/Loader";
 import AllNotifications from "./components/AllNotifications";
-import { HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider } from "react-helmet-async";
+
 
 // Lazy Loading Components
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
-const VerifyOtp = lazy (() => import("./components/VerifyOtp"))
+const VerifyOtp = lazy(() => import("./components/VerifyOtp"));
 const Profile = lazy(() => import("./pages/User/Profile"));
 const PrivateRoute = lazy(() => import("./components/PrivateRoute"));
 const AdminRoute = lazy(() => import("./pages/Admin/AdminRoute"));
@@ -47,6 +48,8 @@ const VerifyResetOtp = lazy(() => import("./pages/Auth/VerifyResetOtp"));
 const PaymentInstruction = lazy(
   () => import("./pages/Orders/PaymentInstruction"),
 );
+const CupponManage = lazy(() => import("./pages/Admin/CupponManage"));
+const ShippingManage = lazy(() => import("./pages/Admin/ShippingManage"));
 const PaymentSettings = lazy(() => import("./pages/Admin/PaymentSettings"));
 
 // 🆕 BANNER COMPONENTS
@@ -91,7 +94,15 @@ const router = createBrowserRouter(
           </Suspense>
         }
       />
-      <Route path="/verify-otp" element={ <Suspense fallback={<Loader />}> <VerifyOtp /> </Suspense> } /> 
+      <Route
+        path="/verify-otp"
+        element={
+          <Suspense fallback={<Loader />}>
+            {" "}
+            <VerifyOtp />{" "}
+          </Suspense>
+        }
+      />
       <Route
         path="/forgot-password"
         element={
@@ -317,6 +328,24 @@ const router = createBrowserRouter(
           }
         />
         <Route
+          path="cuppon-manage"
+          element={
+            <Suspense fallback={<Loader />}>
+              <CupponManage />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="shipping-manage"
+          element={
+            <Suspense fallback={<Loader />}>
+              <ShippingManage />
+            </Suspense>
+          }
+        />
+
+        <Route
           path="payment-settings"
           element={
             <Suspense fallback={<Loader />}>
@@ -381,13 +410,12 @@ preconnectDomains.forEach((domain) => {
   document.head.appendChild(link);
 });
 
-
 const preloadCriticalResources = () => {
   // Preload logo or critical images
   const criticalImages = ["/logo.png", "/hero-banner.jpg"];
 
   preloadCriticalResources();
-  
+
   criticalImages.forEach((src) => {
     const link = document.createElement("link");
     link.rel = "preload";
@@ -397,11 +425,10 @@ const preloadCriticalResources = () => {
   });
 };
 
-
 createRoot(document.getElementById("root")).render(
-   <HelmetProvider>
+  <HelmetProvider>
     <Provider store={store}>
       <RouterProvider router={router} />
     </Provider>
-  </HelmetProvider>
+  </HelmetProvider>,
 );

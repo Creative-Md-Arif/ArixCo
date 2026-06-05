@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { LuBell, LuBellRing, LuTrash2, LuInbox, LuCheckCircle } from "react-icons/lu"; // মডার্ন আইকন
+import {
+  LuBell,
+  LuBellRing,
+  LuTrash2,
+  LuInbox,
+
+} from "react-icons/lu";
+import { FiCheckCircle } from "react-icons/fi";
+
+
 import {
   useGetNotificationsQuery,
   useMarkAsReadMutation,
@@ -9,7 +18,7 @@ import {
 
 import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion"; // অ্যানিমেশনের জন্য
+import { motion, AnimatePresence } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
 
 const NotificationBell = () => {
@@ -53,55 +62,65 @@ const NotificationBell = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* 🟢 ১. বেল আইকন ডিজাইন (Premium Look) */}
+      {/* 🔔 ১. বেল আইকন (Matches Dark Navbar & Golden Accent) */}
       <button
-        className={`relative p-2.5 rounded-xl transition-all duration-500 group border ${
-          isOpen ? "bg-black border-black text-white" : "bg-white border-gray-100 text-gray-600 hover:border-red-200"
-        }`}
+        className="relative group block p-1"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {unreadCount > 0 ? (
-          <LuBellRing className={`text-xl ${isOpen ? "text-red-500" : "text-gray-800 animate-swing"}`} />
-        ) : (
-          <LuBell className="text-xl" />
-        )}
+        <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-300 group-hover:bg-white/10">
+          {unreadCount > 0 ? (
+            <LuBellRing
+              className="text-gray-400 group-hover:text-[#D4A843] transition-colors"
+              size={18}
+            />
+          ) : (
+            <LuBell
+              className="text-gray-400 group-hover:text-[#D4A843] transition-colors"
+              size={18}
+            />
+          )}
+        </div>
 
+        {/* গোল্ডেন ব্যাজ (Matches Cart & Favorite Icons) */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex items-center justify-center h-5 w-5 text-[9px] font-black text-white bg-red-600 rounded-full border-2 border-white">
-              {unreadCount > 99 ? "9" : unreadCount}
+          <span className="absolute top-0 right-0 flex h-4 w-4 sm:h-[18px] sm:w-[18px]">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A843] opacity-50"></span>
+            <span className="relative inline-flex items-center justify-center h-4 w-4 sm:h-[18px] sm:w-[18px] text-[8px] sm:text-[9px] font-bold text-[#1A1A1A] bg-[#D4A843] rounded-full border-2 border-[#1A1A1A]">
+              {unreadCount > 99 ? "99" : unreadCount}
             </span>
           </span>
         )}
       </button>
 
-      {/* 🟢 ২. ড্রপডাউন মেনু (With Framer Motion) */}
+      {/* 🔔 ২. ড্রপডাউন মেনু (Premium Dark Theme) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-x-4 top-[70px] mx-auto sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-4 w-auto sm:w-[380px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 z-[999] overflow-hidden"
+            className="fixed inset-x-4 top-[60px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 w-auto sm:w-[360px] bg-[#252525] border border-white/10 rounded-2xl shadow-2xl z-[999] overflow-hidden"
           >
             {/* হেডার */}
-            <div className="flex items-center justify-between px-6 py-5 bg-white border-b border-gray-50">
-              <h3 className="font-mono font-black text-xs uppercase tracking-[0.2em] text-gray-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <h3 className="text-xs font-extrabold tracking-wider uppercase text-gray-300">
                 Notifications
               </h3>
               <div className="flex items-center gap-4">
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllRead()}
-                    className="text-[10px] font-mono font-black uppercase text-red-600 hover:text-black transition-colors"
+                    className="text-[10px] font-extrabold uppercase text-[#D4A843] hover:text-white transition-colors"
                   >
-                    Clear All
+                    Mark all read
                   </button>
                 )}
-                <button onClick={() => setIsOpen(false)} className="sm:hidden text-gray-400">
-                  <FaTimes />
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="sm:hidden text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaTimes size={14} />
                 </button>
               </div>
             </div>
@@ -109,28 +128,32 @@ const NotificationBell = () => {
             {/* লিস্ট */}
             <div className="max-h-[60vh] sm:max-h-[420px] overflow-y-auto scrollbar-hide">
               {isLoading ? (
-                <div className="p-12 text-center font-mono text-[10px] text-gray-400 uppercase tracking-widest">
-                  Decrypting Data...
+                <div className="p-10 text-center text-xs text-gray-500 uppercase tracking-widest font-bold">
+                  Loading...
                 </div>
               ) : notifications.length > 0 ? (
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-white/5">
                   {notifications.map((n) => (
                     <motion.div
                       key={n._id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className={`group relative p-5 flex flex-col gap-1 transition-all cursor-pointer ${
-                        !n.isRead ? "bg-red-50/40 hover:bg-red-50/70" : "hover:bg-gray-50"
+                      className={`group relative p-4 flex flex-col gap-1.5 transition-all cursor-pointer ${
+                        !n.isRead
+                          ? "bg-white/5 hover:bg-white/10"
+                          : "hover:bg-white/5"
                       }`}
                       onClick={() => handleMarkAsRead(n)}
                     >
-                      {/* আনরিড ডট */}
+                      {/* আনরিড গোল্ডেন ডট */}
                       {!n.isRead && (
-                        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-red-600 rounded-full" />
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#D4A843] rounded-full" />
                       )}
 
-                      <div className="flex justify-between items-start pr-6">
-                        <h5 className={`text-sm tracking-tight ${!n.isRead ? "font-black text-gray-900" : "font-bold text-gray-500"}`}>
+                      <div className="flex justify-between items-start pl-3 pr-6">
+                        <h5
+                          className={`text-sm tracking-tight ${!n.isRead ? "font-extrabold text-white" : "font-bold text-gray-400"}`}
+                        >
                           {n.title}
                         </h5>
                         <button
@@ -138,29 +161,39 @@ const NotificationBell = () => {
                             e.stopPropagation();
                             deleteNotif(n._id);
                           }}
-                          className="absolute top-5 right-4 p-1.5 text-gray-300 hover:text-red-600 hover:bg-white rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                          className="absolute top-4 right-3 p-1.5 text-gray-600 hover:text-red-500 hover:bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <LuTrash2 size={14} />
                         </button>
                       </div>
-                      
-                      <p className={`text-xs leading-relaxed line-clamp-2 ${!n.isRead ? "text-gray-700 font-medium" : "text-gray-400"}`}>
+
+                      <p
+                        className={`text-xs leading-relaxed line-clamp-2 pl-3 ${!n.isRead ? "text-gray-300 font-medium" : "text-gray-500"}`}
+                      >
                         {n.message}
                       </p>
-                      
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-tighter">
-                          {n.createdAt ? formatDistanceToNow(new Date(n.createdAt), { addSuffix: true }) : ""}
+
+                      <div className="flex items-center gap-2 mt-1 pl-3">
+                        <span className="text-[9px] font-bold text-gray-600 uppercase tracking-tighter">
+                          {n.createdAt
+                            ? formatDistanceToNow(new Date(n.createdAt), {
+                                addSuffix: true,
+                              })
+                            : ""}
                         </span>
-                        {!n.isRead && <span className="w-1 h-1 bg-red-600 rounded-full animate-pulse" />}
+                        {!n.isRead && (
+                          <span className="w-1 h-1 bg-[#D4A843] rounded-full animate-pulse" />
+                        )}
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="py-20 flex flex-col items-center justify-center">
-                  <LuInbox className="text-gray-100 w-16 h-16 mb-4" />
-                  <p className="text-[10px] font-mono font-black text-gray-300 uppercase tracking-[0.2em]">Zero Alerts Found</p>
+                <div className="py-16 flex flex-col items-center justify-center">
+                  <LuInbox className="text-gray-700 w-12 h-12 mb-3" />
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    No notifications yet
+                  </p>
                 </div>
               )}
             </div>
@@ -168,11 +201,11 @@ const NotificationBell = () => {
             {/* ফুটার */}
             <Link
               to="/all-notifications"
-              className="group block w-full py-5 text-center bg-black text-white hover:bg-red-600 transition-all duration-500"
+              className="block w-full py-4 text-center bg-[#D4A843] text-[#1A1A1A] hover:bg-[#B88E2F] transition-colors duration-300"
               onClick={() => setIsOpen(false)}
             >
-              <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-                Open Command Center <LuCheckCircle className="group-hover:translate-x-1 transition-transform" />
+              <span className="text-[11px] font-extrabold uppercase tracking-wider flex items-center justify-center gap-2">
+                View All Notifications <FiCheckCircle size={14} />
               </span>
             </Link>
           </motion.div>

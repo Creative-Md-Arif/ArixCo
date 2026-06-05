@@ -15,7 +15,6 @@ import {
   fetchNewProducts,
   fetchNewArrivals,
   fetchBestSellers,
-  fetchFlashSaleProducts,
   updateProductSalesCount,
   filterProducts,
   fetchRelatedProducts,
@@ -38,7 +37,6 @@ router
   // 🆕 New routes for New Arrivals, Best Sellers, Flash Sale
 router.get("/new-arrivals", fetchNewArrivals);
 router.get("/best-sellers", fetchBestSellers);
-router.get("/flash-sale", fetchFlashSaleProducts);
 router.post("/update-sales", authenticate, authorizeAdmin, updateProductSalesCount);
 
 router

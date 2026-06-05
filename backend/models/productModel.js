@@ -20,30 +20,21 @@ const reviewSchema = mongoose.Schema(
 // Variant Schema - For Color/Size combinations
 const variantSchema = mongoose.Schema({
   color: {
-    name: { type: String, required: true }, // e.g., "Red", "Blue"
-    hexCode: { type: String, default: "" }, // e.g., "#FF0000"
-    image: { type: String, required: true }, // Main image for this color
-    images: [{ type: String }], // Additional images for this color
+    name: { type: String, required: true },
+    hexCode: { type: String, default: "" },
+    image: { type: String, required: true },
+    images: [{ type: String }],
   },
   sizes: [
     {
-      size: { type: String, required: true }, // e.g., "S", "M", "L", "XL"
-      price: { type: Number, required: true }, // Variant specific price
+      size: { type: String, required: true },
+      price: { type: Number, required: true },
       countInStock: { type: Number, required: true, default: 0 },
-      sku: { type: String, default: "" }, // Optional SKU for this variant
+      sku: { type: String, default: "" },
       isAvailable: { type: Boolean, default: true },
     },
   ],
   isActive: { type: Boolean, default: true },
-});
-
-// Flash Sale Schema
-const flashSaleSchema = mongoose.Schema({
-  isActive: { type: Boolean, default: false },
-  discountPercentage: { type: Number, default: 0 },
-  startTime: { type: Date },
-  endTime: { type: Date },
-  flashSalePrice: { type: Number, default: 0 },
 });
 
 // Product Schema
@@ -76,33 +67,22 @@ const productSchema = mongoose.Schema(
     discountedAmount: { type: Number, default: 0 },
     weight: { type: Number, default: 0.5 },
 
+    // ====== NEW: Product Wise Shipping Details ======
+    shippingDetails: {
+      isFreeShipping: { type: Boolean, default: false },
+      isIndividualShipping: { type: Boolean, default: false },
+      individualShippingCost: { type: Number, default: 0 }, 
+      extraShippingCost: { type: Number, default: 0 }, 
+    },
+
     hasVariants: { type: Boolean, default: false },
     variants: [variantSchema],
 
-    // Default variant selection (for display purposes)
     defaultColorIndex: { type: Number, default: 0 },
     defaultSizeIndex: { type: Number, default: 0 },
 
-    // Flash Sale
-    flashSale: flashSaleSchema,
-
-    // Best Sellers - sales count
     salesCount: { type: Number, default: 0 },
-
-    shippingDetails: {
-      shippingType: {
-        type: String,
-        enum: ["weight-based", "fixed", "free", "inside-outside"],
-        default: "weight-based",
-      },
-      fixedShippingCharge: { type: Number, default: 0 },
-      freeShippingThreshold: { type: Number, default: 99999 },
-      insideDhakaCharge: { type: Number, default: 80 },
-      outsideDhakaCharge: { type: Number, default: 150 },
-      isFreeShippingActive: { type: Boolean, default: false },
-    },
   },
-
   { timestamps: true },
 );
 
@@ -111,31 +91,21 @@ productSchema.pre("save", function (next) {
     this.slug = slugify(this.name, { lower: true, strict: true });
   }
 
-  // Auto-calculate total stock from variants if hasVariants is true
   if (this.hasVariants && this.variants && this.variants.length > 0) {
     let totalStock = 0;
     this.variants.forEach((variant) => {
       if (variant.sizes && variant.sizes.length > 0) {
         variant.sizes.forEach((size) => {
-          totalStock += size.countInStock || 0; 
+          totalStock += size.countInStock || 0;
         });
       }
     });
     this.countInStock = totalStock;
   }
-  if (
-    this.flashSale &&
-    this.flashSale.isActive &&
-    this.flashSale.discountPercentage > 0
-  ) {
-    this.flashSale.flashSalePrice =
-      this.price - (this.price * this.flashSale.discountPercentage) / 100;
-  }
 
   next();
 });
 
-// Method to get price for specific variant
 productSchema.methods.getVariantPrice = function (colorIndex, sizeIndex) {
   if (!this.hasVariants || !this.variants[colorIndex]) {
     return this.price;
@@ -147,7 +117,6 @@ productSchema.methods.getVariantPrice = function (colorIndex, sizeIndex) {
   return variant.sizes[sizeIndex].price;
 };
 
-// Method to check stock for specific variant
 productSchema.methods.getVariantStock = function (colorIndex, sizeIndex) {
   if (!this.hasVariants || !this.variants[colorIndex]) {
     return this.countInStock;
@@ -159,7 +128,6 @@ productSchema.methods.getVariantStock = function (colorIndex, sizeIndex) {
   return variant.sizes[sizeIndex].countInStock;
 };
 
-// Method to get images for specific color
 productSchema.methods.getColorImages = function (colorIndex) {
   if (!this.hasVariants || !this.variants[colorIndex]) {
     return this.images;
@@ -170,60 +138,20 @@ productSchema.methods.getColorImages = function (colorIndex) {
     : [variant.color.image];
 };
 
-// Method to get effective price (considering flash sale)
 productSchema.methods.getEffectivePrice = function () {
-  const now = new Date();
-  if (this.flashSale && 
-      this.flashSale.isActive && 
-      this.flashSale.startTime <= now && 
-      this.flashSale.endTime >= now) {
-    return this.flashSale.flashSalePrice;
-  }
   if (this.discountPercentage > 0) {
     return this.price - (this.price * this.discountPercentage) / 100;
   }
   return this.price;
 };
 
+productSchema.index({
+  name: "text",
+  brand: "text",
+  description: "text",
+});
 
-productSchema.methods.getShippingCharge = function (
-  isInsideDhaka = true,
-  orderTotal = 0,
-) {
-  const shipping = this.shippingDetails;
 
-  // 👇 Free shipping threshold check - অর্ডার টোটাল চেক করা হচ্ছে
-  if (
-    shipping.freeShippingThreshold &&
-    orderTotal >= shipping.freeShippingThreshold
-  ) {
-    return 0;
-  }
-
-  // 👇 isFreeShippingActive ফ্ল্যাগ চেক
-  if (shipping.isFreeShippingActive) {
-    return 0;
-  }
-
-  switch (shipping.shippingType) {
-    case "free":
-      return 0;
-
-    case "fixed":
-      return shipping.fixedShippingCharge || 0;
-
-    case "inside-outside":
-      return isInsideDhaka
-        ? shipping.insideDhakaCharge || 80
-        : shipping.outsideDhakaCharge || 150;
-
-    case "weight-based":
-    default:
-      return this.weight * 10;
-  }
-};
-
-// Creating Product Model
 const Product = mongoose.model("Product", productSchema);
 
 export default Product;

@@ -12,6 +12,8 @@ export const ORDERS_URL = "/api/orders";
 export const NOTIFICATIONS_URL = "/api/notifications";
 export const BANNER_URL = "/api/banners";
 export const PAYMENTS_URL = "/api/payments";
+export const CUPPON_URL = "/api/cuppons";
+export const SHIPPING_URL = "/api/shipping";
 export const ORDER_PAY_URL = (orderId) => `/api/orders/${orderId}/pay`;
 
 export const SOCKET_URL = isDevelopment
