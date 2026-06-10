@@ -8,7 +8,7 @@ import { useFetchCategoriesQuery } from "@redux/api/categoryApiSlice";
 import { useGetProductsQuery } from "@redux/api/productApiSlice";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { UPLOAD_URL } from "../../redux/constants";
+import { API_URL, UPLOAD_URL } from "../../redux/constants"; 
 import {
   FaPlus,
   FaCloudUploadAlt,
@@ -105,7 +105,8 @@ const BannerCreate = () => {
     const uploadFormData = new FormData();
     uploadFormData.append("image", file);
     try {
-      const { data } = await axios.post(`${UPLOAD_URL}/banner`, uploadFormData, { headers: { "Content-Type": "multipart/form-data" } });
+      // এখানে API_URL যোগ করা হয়েছে
+      const { data } = await axios.post(`${API_URL}${UPLOAD_URL}/banner`, uploadFormData, { headers: { "Content-Type": "multipart/form-data" } });
       setFormData((prev) => ({ ...prev, [isMobile ? "mobileImage" : "image"]: data.image }));
       toast.success(`${isMobile ? "Mobile" : "Desktop"} image uploaded!`);
     } catch (error) { toast.error("Upload failed"); } finally { setUploading(false); }
@@ -119,7 +120,8 @@ const BannerCreate = () => {
     uploadFormData.append("desktop", files[0]);
     if (files[1]) uploadFormData.append("mobile", files[1]);
     try {
-      const { data } = await axios.post(`${UPLOAD_URL}/banner/dual`, uploadFormData, { headers: { "Content-Type": "multipart/form-data" } });
+      // এখানে API_URL যোগ করা হয়েছে
+      const { data } = await axios.post(`${API_URL}${UPLOAD_URL}/banner/dual`, uploadFormData, { headers: { "Content-Type": "multipart/form-data" } });
       setFormData((prev) => ({ ...prev, image: data.desktop?.url || "", mobileImage: data.mobile?.url || "" }));
       toast.success("Images uploaded successfully!");
     } catch (error) { toast.error("Upload failed"); } finally { setUploading(false); }
