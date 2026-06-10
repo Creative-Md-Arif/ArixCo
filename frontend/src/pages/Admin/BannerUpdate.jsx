@@ -10,7 +10,7 @@ import { useFetchCategoriesQuery } from "@redux/api/categoryApiSlice";
 import { useGetProductsQuery } from "@redux/api/productApiSlice";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { UPLOAD_URL } from "../../redux/constants";
+import { API_URL, UPLOAD_URL } from "../../redux/constants";
 import {
   FaSave,
   FaCloudUploadAlt,
@@ -141,7 +141,7 @@ const BannerUpdate = () => {
   const getButtonTypeStyle = (type) =>
     buttonTypeOptions.find((opt) => opt.value === type) || buttonTypeOptions[0];
 
-  const handleImageUpload = async (e, isMobile = false) => {
+   const handleImageUpload = async (e, isMobile = false) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
@@ -149,8 +149,9 @@ const BannerUpdate = () => {
     uploadFormData.append("image", file);
 
     try {
+      // এখানে API_URL যোগ করা হয়েছে
       const { data } = await axios.post(
-        `${UPLOAD_URL}/banner`,
+        `${API_URL}${UPLOAD_URL}/banner`,
         uploadFormData,
         { headers: { "Content-Type": "multipart/form-data" } },
       );
