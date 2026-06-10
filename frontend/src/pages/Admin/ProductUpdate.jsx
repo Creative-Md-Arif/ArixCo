@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import AdminMenu from "./AdminMenu";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,20 +13,29 @@ import { toast } from "react-toastify";
 import { TreeSelect } from "antd";
 import {
   FaTrash,
-  FaCloudUploadAlt,
   FaSave,
   FaArrowLeft,
   FaArrowRight,
-  FaSpinner,
   FaPlus,
   FaPalette,
   FaRuler,
+  FaTruck,
 } from "react-icons/fa";
 import ReactQuill, { Quill } from "react-quill";
 import ImageResize from "quill-image-resize-module-react";
 import "react-quill/dist/quill.snow.css";
+
 window.Quill = Quill;
 Quill.register("modules/imageResize", ImageResize);
+
+// Custom Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center gap-1.5">
+    <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-0.3s]"></div>
+    <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-0.15s]"></div>
+    <div className="w-2 h-2 rounded-full bg-black animate-bounce"></div>
+  </div>
+);
 
 const ProductUpdate = () => {
   const params = useParams();
@@ -40,18 +48,26 @@ const ProductUpdate = () => {
   const [images, setImages] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState(0);
   const [category, setCategory] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(0);
   const [brand, setBrand] = useState("");
-  const [stock, setStock] = useState(0);
+  const [countInStock, setCountInStock] = useState(0);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [isFeatured, setIsFeatured] = useState(false);
   const [offer, setOffer] = useState("");
   const [warranty, setWarranty] = useState("");
   const [discountedAmount, setDiscountedAmount] = useState(0);
+  const [weight, setWeight] = useState(0.5);
 
-  // --- Key Features & Specifications
+  // --- Shipping Details State (Optional) ---
+  const [shippingDetails, setShippingDetails] = useState({
+    isFreeShipping: false,
+    isIndividualShipping: false,
+    individualShippingCost: 0,
+    extraShippingCost: 0,
+  });
+
   const [keyFeatures, setKeyFeatures] = useState([""]);
   const [specifications, setSpecifications] = useState([
     { label: "", value: "" },
@@ -70,48 +86,67 @@ const ProductUpdate = () => {
   const [updateProduct] = useUpdateProductMutation();
   const [deleteProduct] = useDeleteProductMutation();
 
+  // --- AUTO DISCOUNT CALCULATION ---
+  const handlePriceChange = (val) => {
+    const p = Number(val);
+    setPrice(p);
+    if (discountPercentage > 0) {
+      setDiscountedAmount(Math.round((p * discountPercentage) / 100));
+    }
+  };
+
+  const handleDiscountPercentageChange = (val) => {
+    const perc = Number(val);
+    setDiscountPercentage(perc);
+    if (price > 0 && perc > 0) {
+      setDiscountedAmount(Math.round((price * perc) / 100));
+    } else {
+      setDiscountedAmount(0);
+    }
+  };
+
+  const handleDiscountedAmountChange = (val) => {
+    const amt = Number(val);
+    setDiscountedAmount(amt);
+    if (price > 0 && amt > 0) {
+      setDiscountPercentage(Math.round((amt / price) * 100));
+    } else {
+      setDiscountPercentage(0);
+    }
+  };
+
   // Category Tree
   const organizedCategories = useMemo(() => {
     if (!categories || categories.length === 0) return [];
-
-    // Recursive function to map nested categories for Ant Design TreeSelect
     const buildTree = (cats, parentPath = "") => {
       return cats.map((cat) => {
         const currentPath = parentPath
           ? `${parentPath} > ${cat.name}`
           : cat.name;
-
         const node = {
-          title: cat.name, // Dropdown এ শুধু নাম দেখাবে
-          label: currentPath, // সিলেক্ট করলে ফুল পাথ দেখাবে (যেমন: MEN > Casual Shirts)
+          title: cat.name,
+          label: currentPath,
           value: cat._id,
           key: cat._id,
         };
-
-        // যদি চাইল্ড ক্যাটাগরি থাকে, তাহলে রিকার্সিভলি বিল্ড করবে
         if (cat.children && cat.children.length > 0) {
           node.children = buildTree(cat.children, currentPath);
         }
-
         return node;
       });
     };
-
     return buildTree(categories);
   }, [categories]);
 
-  // --- Image Handler for ReactQuill ---
   const imageHandler = () => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
     input.setAttribute("accept", "image/*");
     input.click();
-
     input.onchange = async () => {
       const file = input.files[0];
       const formData = new FormData();
       formData.append("image", file);
-
       try {
         toast.info("Uploading image to description...");
         const res = await uploadProductImage(formData).unwrap();
@@ -174,35 +209,34 @@ const ProductUpdate = () => {
   useEffect(() => {
     if (productData && productData._id) {
       setName(productData.name);
-      setDescription(productData.description);
-      setPrice(productData.price);
+      setDescription(productData.description || "");
+      setPrice(productData.price || 0);
       setCategory(productData.category?._id || productData.category);
-      setQuantity(productData.quantity);
-      setBrand(productData.brand);
+      setQuantity(productData.quantity || 0);
+      setBrand(productData.brand || "");
       setImages(productData.images || []);
-      setDiscountPercentage(productData.discountPercentage);
-      setIsFeatured(productData.isFeatured);
-      setOffer(productData.offer);
-      setWarranty(productData.warranty);
-      setDiscountedAmount(productData.discountedAmount);
-      setStock(productData.countInStock);
+      setDiscountPercentage(productData.discountPercentage || 0);
+      setIsFeatured(productData.isFeatured || false);
+      setOffer(productData.offer || "");
+      setWarranty(productData.warranty || "");
+      setDiscountedAmount(productData.discountedAmount || 0);
+      setCountInStock(productData.countInStock || 0);
+      setWeight(productData.weight || 0.5);
 
-      // Load Features & Specs
+      if (productData.shippingDetails) {
+        setShippingDetails(productData.shippingDetails);
+      }
       if (productData.keyFeatures) setKeyFeatures(productData.keyFeatures);
       if (productData.specifications)
         setSpecifications(productData.specifications);
 
-      // Load Variants
-      if (productData.hasVariants !== undefined) {
+      if (productData.hasVariants !== undefined)
         setHasVariants(productData.hasVariants);
-      }
-      if (productData.variants && productData.variants.length > 0) {
+      if (productData.variants && productData.variants.length > 0)
         setVariants(productData.variants);
-      }
     }
   }, [productData]);
 
-  // --- Specifications Logic ---
   const addSpec = () =>
     setSpecifications([...specifications, { label: "", value: "" }]);
   const removeSpec = (index) =>
@@ -222,15 +256,9 @@ const ProductUpdate = () => {
     setKeyFeatures(newFeatures);
   };
 
-  // --- VARIANT LOGIC ---
   const addColorVariant = () => {
     const newVariant = {
-      color: {
-        name: "",
-        hexCode: "#000000",
-        image: "",
-        images: [],
-      },
+      color: { name: "", hexCode: "#000000", image: "", images: [] },
       sizes: [
         {
           size: "",
@@ -245,9 +273,8 @@ const ProductUpdate = () => {
     setVariants([...variants, newVariant]);
   };
 
-  const removeColorVariant = (colorIndex) => {
+  const removeColorVariant = (colorIndex) =>
     setVariants(variants.filter((_, i) => i !== colorIndex));
-  };
 
   const updateColorInfo = (colorIndex, field, value) => {
     const newVariants = [...variants];
@@ -258,10 +285,8 @@ const ProductUpdate = () => {
   const uploadColorImage = async (e, colorIndex) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append("image", file);
-
     try {
       toast.info("Uploading color image...");
       const res = await uploadProductImage(formData).unwrap();
@@ -319,7 +344,6 @@ const ProductUpdate = () => {
     if (!files.length) return;
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) formData.append("image", files[i]);
-
     setUploadLoading(true);
     try {
       const res = await uploadProductImage(formData).unwrap();
@@ -336,7 +360,6 @@ const ProductUpdate = () => {
     e.preventDefault();
     setUpdateLoading(true);
 
-    // Validate variants if enabled
     if (hasVariants) {
       if (variants.length === 0) {
         toast.error("At least one color variant is required.");
@@ -386,12 +409,14 @@ const ProductUpdate = () => {
       formData.append("category", category);
       formData.append("quantity", quantity);
       formData.append("brand", brand);
-      formData.append("countInStock", stock);
+      formData.append("countInStock", countInStock);
       formData.append("discountPercentage", discountPercentage);
+      formData.append("discountedAmount", discountedAmount);
       formData.append("isFeatured", isFeatured);
       formData.append("offer", offer);
       formData.append("warranty", warranty);
-      formData.append("discountedAmount", discountedAmount);
+      formData.append("weight", weight);
+      formData.append("shippingDetails", JSON.stringify(shippingDetails));
 
       formData.append(
         "keyFeatures",
@@ -402,7 +427,6 @@ const ProductUpdate = () => {
         JSON.stringify(specifications.filter((s) => s.label.trim() !== "")),
       );
 
-      // Variant Data
       formData.append("hasVariants", hasVariants);
       if (hasVariants) {
         formData.append("variants", JSON.stringify(variants));
@@ -414,7 +438,6 @@ const ProductUpdate = () => {
         productId: params._id,
         formData,
       }).unwrap();
-
       if (data?.error) {
         toast.error(data.error);
       } else {
@@ -425,7 +448,6 @@ const ProductUpdate = () => {
     } catch (err) {
       const errorMessage = err?.data?.error || "UPDATE_FAILED";
       toast.error(errorMessage);
-      console.error("Submit Error:", err);
     } finally {
       setUpdateLoading(false);
     }
@@ -445,61 +467,63 @@ const ProductUpdate = () => {
     }
   };
 
+  // Reusable Input Style
+  const inputClass =
+    "w-full border border-gray-200 rounded-sm px-3 py-2 text-sm focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
+  const labelClass =
+    "text-[9px] sm:text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-1.5 block";
+
   return (
-    <div className="min-h-screen bg-white font-mono pt-24 lg:pt-32 transition-all duration-500">
+    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-20 lg:pt-28 pb-16 transition-all duration-500">
       <div className="flex flex-col 2xl:flex-row">
         <AdminMenu />
-        <div className="flex-1 px-4 lg:px-12 pb-20">
+        <div className="flex-1 px-4 sm:px-6 lg:px-12">
           <div className="max-w-[1400px] mx-auto">
-            <div className="mb-10 border-l-4 border-red-600 pl-6 py-2">
-              <h1 className="text-3xl font-black text-black tracking-tighter uppercase">
-                Product /{" "}
-                <span className="text-red-600">Edit_Update_Delete</span>
+            {/* Header */}
+            <div className="mb-8 border-l-4 border-black pl-4 sm:pl-6 py-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tighter uppercase">
+                Product / <span className="text-red-600">Edit_Update</span>
               </h1>
-              <p className="text-[10px] text-gray-500 font-bold tracking-[0.4em] uppercase mt-1">
-                Security Level: Admin | ID: {params._id}
+              <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase mt-1">
+                Security Level: Admin | ID: {params._id?.substring(0, 10)}...
               </p>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-4 mb-6 border-b border-gray-200">
-              <button
-                onClick={() => setActiveVariantTab("basic")}
-                className={`px-6 py-3 font-black uppercase text-[12px] tracking-widest transition-all ${
-                  activeVariantTab === "basic"
-                    ? "border-b-2 border-red-600 text-red-600"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                Basic Info
-              </button>
-              <button
-                onClick={() => setActiveVariantTab("variants")}
-                className={`px-6 py-3 font-black uppercase text-[12px] tracking-widest transition-all flex items-center gap-2 ${
-                  activeVariantTab === "variants"
-                    ? "border-b-2 border-red-600 text-red-600"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <FaPalette />
-                Variants {hasVariants && `(${variants.length} Colors)`}
-              </button>
+            <div className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-200">
+              {["basic", "variants"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveVariantTab(tab)}
+                  className={`px-3 sm:px-6 py-3 font-black uppercase text-[10px] sm:text-[12px] tracking-widest transition-all flex items-center gap-2 border-b-2 ${
+                    activeVariantTab === tab
+                      ? "border-black text-black"
+                      : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {tab === "variants" && <FaPalette className="text-[10px]" />}
+                  {tab}{" "}
+                  {tab === "variants" && hasVariants
+                    ? `(${variants.length})`
+                    : ""}
+                </button>
+              ))}
             </div>
 
-            <div className="bg-white border border-gray-100 shadow-2xl p-6 lg:p-10 relative">
+            <div className="bg-white border border-gray-200 p-4 sm:p-6 lg:p-10 relative overflow-hidden">
               {/* BASIC INFO TAB */}
               {activeVariantTab === "basic" && (
-                <>
-                  {/* Image Matrix */}
-                  <div className="mb-10">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-4">
-                      Visual_Assets
+                <div className="space-y-10">
+                  {/* Image Gallery */}
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                      Gallery Assets
                     </p>
-                    <div className="flex flex-wrap gap-4 p-4 bg-gray-50 border border-dashed border-gray-200 min-h-[150px] items-center justify-center">
+                    <div className="flex flex-wrap gap-3 sm:gap-4 p-4 bg-gray-50 border border-dashed border-gray-200 min-h-[140px] items-center justify-center rounded-sm">
                       {images.map((img, index) => (
                         <div
                           key={index}
-                          className="relative group border-2 border-white shadow-lg overflow-hidden w-28 h-28 bg-white transition-transform duration-300 hover:scale-105"
+                          className="relative group border border-gray-200 overflow-hidden w-24 h-24 sm:w-32 sm:h-32 bg-white transition-all duration-300 hover:border-black"
                         >
                           <img
                             src={img}
@@ -507,14 +531,14 @@ const ProductUpdate = () => {
                             className="h-full w-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            <div className="flex gap-2">
+                            <div className="flex gap-3">
                               <button
                                 type="button"
                                 onClick={() => moveImage(index, "left")}
                                 disabled={index === 0}
                                 className="text-white hover:text-red-500 disabled:opacity-30"
                               >
-                                <FaArrowLeft size={14} />
+                                <FaArrowLeft size={12} />
                               </button>
                               <button
                                 type="button"
@@ -522,7 +546,7 @@ const ProductUpdate = () => {
                                 disabled={index === images.length - 1}
                                 className="text-white hover:text-red-500 disabled:opacity-30"
                               >
-                                <FaArrowRight size={14} />
+                                <FaArrowRight size={12} />
                               </button>
                             </div>
                             <button
@@ -530,20 +554,24 @@ const ProductUpdate = () => {
                               onClick={() =>
                                 setImages(images.filter((_, i) => i !== index))
                               }
-                              className="text-red-500 hover:scale-125 transition-transform"
+                              className="text-red-400 hover:text-red-600"
                             >
-                              <FaTrash size={16} />
+                              <FaTrash size={14} />
                             </button>
                           </div>
                         </div>
                       ))}
-                      <label className="w-28 h-28 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-red-600 hover:bg-red-50 transition-all text-gray-400 hover:text-red-600 group">
-                        <FaCloudUploadAlt
-                          size={24}
-                          className="group-hover:bounce"
-                        />
-                        <span className="text-[8px] font-black uppercase mt-2 tracking-tighter text-center px-1">
-                          Add_New_Images
+                      <label className="w-24 h-24 sm:w-32 sm:h-32 border border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black group">
+                        {uploadLoading ? (
+                          <LoadingSpinner />
+                        ) : (
+                          <FaPlus
+                            size={20}
+                            className="group-hover:rotate-90 transition-transform"
+                          />
+                        )}
+                        <span className="text-[7px] sm:text-[8px] font-black uppercase mt-2 tracking-tighter text-center">
+                          Upload
                         </span>
                         <input
                           type="file"
@@ -554,124 +582,165 @@ const ProductUpdate = () => {
                         />
                       </label>
                     </div>
-                    {uploadLoading && (
-                      <div className="h-1 bg-red-600 animate-pulse mt-2" />
-                    )}
                   </div>
 
-                  {/* Data Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
-                    {[
-                      {
-                        label: "PRODUCT_NAME",
-                        val: name,
-                        set: setName,
-                        type: "text",
-                      },
-                      {
-                        label: "BASE_PRICE",
-                        val: price,
-                        set: setPrice,
-                        type: "number",
-                      },
-                      {
-                        label: "QTY_AVAIL",
-                        val: quantity,
-                        set: setQuantity,
-                        type: "number",
-                      },
-                      {
-                        label: "BRAND_NAME",
-                        val: brand,
-                        set: setBrand,
-                        type: "text",
-                      },
-                      {
-                        label: "STOCK_COUNT",
-                        val: stock,
-                        set: setStock,
-                        type: "number",
-                      },
-                      {
-                        label: "OFFER_TEXT",
-                        val: offer,
-                        set: setOffer,
-                        type: "text",
-                      },
-                      {
-                        label: "WARRANTY_INFO",
-                        val: warranty,
-                        set: setWarranty,
-                        type: "text",
-                      },
-                      {
-                        label: "DISCOUNT_%",
-                        val: discountPercentage,
-                        set: setDiscountPercentage,
-                        type: "number",
-                      },
-                      {
-                        label: "DISCOUNT_AMT",
-                        val: discountedAmount,
-                        set: setDiscountedAmount,
-                        type: "number",
-                      },
-                    ].map((field, idx) => (
-                      <div key={idx} className="group relative">
-                        <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block transition-colors group-focus-within:text-red-600">
-                          {field.label}
-                        </label>
-                        <input
-                          type={field.type}
-                          value={field.val}
-                          onChange={(e) => field.set(e.target.value)}
-                          className="w-full bg-white border-b-2 border-gray-100 py-2 font-bold text-black focus:outline-none focus:border-red-600 transition-all duration-300"
-                        />
-                      </div>
-                    ))}
+                  {/* Basic Info Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
+                    <div className="sm:col-span-2 lg:col-span-1">
+                      <label className={labelClass}>Product Identifier</label>
+                      <input
+                        type="text"
+                        value={name}
+                        placeholder="E.g. Mech-Keyboard X1"
+                        onChange={(e) => setName(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
 
-                    <div className="group relative">
-                      <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block">
+                    <div>
+                      <label className={labelClass}>Base Price (৳)</label>
+                      <input
+                        type="number"
+                        value={price}
+                        placeholder="0.00"
+                        onChange={(e) => handlePriceChange(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Discount %</label>
+                      <input
+                        type="number"
+                        value={discountPercentage}
+                        placeholder="0"
+                        onChange={(e) =>
+                          handleDiscountPercentageChange(e.target.value)
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Markdown Amount (৳)</label>
+                      <input
+                        type="number"
+                        value={discountedAmount}
+                        placeholder="0"
+                        onChange={(e) =>
+                          handleDiscountedAmountChange(e.target.value)
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Total Quantity</label>
+                      <input
+                        type="number"
+                        value={quantity}
+                        placeholder="100"
+                        onChange={(e) => setQuantity(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Initial Stock</label>
+                      <input
+                        type="number"
+                        value={countInStock}
+                        placeholder="0"
+                        onChange={(e) => setCountInStock(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Brand Mark</label>
+                      <input
+                        type="text"
+                        value={brand}
+                        placeholder="AriX GeaR"
+                        onChange={(e) => setBrand(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Weight (Kg)</label>
+                      <input
+                        type="number"
+                        value={weight}
+                        step="0.1"
+                        placeholder="0.5"
+                        onChange={(e) => setWeight(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 lg:col-span-1">
+                      <label className={labelClass}>
                         Category / Sub-Category
                       </label>
                       <TreeSelect
                         showSearch
                         style={{ width: "100%" }}
-                        value={category || undefined} // undefined দিলে placeholder শো করে
+                        value={category || undefined}
                         dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-                        placeholder="SELECT_CATEGORY"
+                        placeholder="SELECT CATEGORY"
                         allowClear
-                        treeDefaultExpandAll={false}
                         onChange={(newValue) => setCategory(newValue)}
                         treeData={organizedCategories}
-                        treeNodeLabelProp="label" // সিলেক্ট করার পর ফুল পাথ দেখাবে
-                        className="custom-tree-select w-full bg-white border-b-2 border-gray-100 py-2 font-bold text-black focus-within:border-red-600 transition-all"
+                        treeNodeLabelProp="label"
+                        className="border border-gray-200 rounded-sm h-[38px] flex items-center text-sm"
                         variant="borderless"
                         filterTreeNode={(input, node) =>
                           node.title.toLowerCase().includes(input.toLowerCase())
-                        } // সার্চ ফিল্টারিং
+                        }
                       />
                     </div>
 
-                    <div className="flex items-center gap-4 pt-6">
-                      <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
-                        FEATURE_STATUS
+                    <div>
+                      <label className={labelClass}>Active Offer</label>
+                      <input
+                        type="text"
+                        value={offer}
+                        placeholder="Seasonal Sale"
+                        onChange={(e) => setOffer(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Warranty Period</label>
+                      <input
+                        type="text"
+                        value={warranty}
+                        placeholder="24 Months"
+                        onChange={(e) => setWarranty(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-5">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                        Featured
                       </label>
                       <input
                         type="checkbox"
                         checked={isFeatured}
                         onChange={(e) => setIsFeatured(e.target.checked)}
-                        className="w-5 h-5 accent-red-600 cursor-pointer"
+                        className="w-4 h-4 accent-black cursor-pointer"
                       />
                     </div>
 
-                    {/* Enable Variants Toggle */}
-                    <div className="flex items-center gap-4 pt-6 bg-red-50 p-4 rounded-xl border border-red-100">
+                    <div className="flex items-center gap-4 pt-5 bg-gray-50 p-3 rounded-sm border border-gray-200">
                       <div className="flex-1">
-                        <label className="text-[11px] font-black text-red-600 tracking-widest uppercase block">
+                        <label className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">
                           Enable Variants
                         </label>
-                        <p className="text-[9px] text-gray-500 mt-1">
+                        <p className="text-[8px] text-gray-400 mt-0.5">
                           Color & Size combinations
                         </p>
                       </div>
@@ -679,77 +748,155 @@ const ProductUpdate = () => {
                         type="checkbox"
                         checked={hasVariants}
                         onChange={(e) => setHasVariants(e.target.checked)}
-                        className="w-6 h-6 accent-red-600 cursor-pointer"
+                        className="w-5 h-5 accent-red-600 cursor-pointer"
                       />
                     </div>
                   </div>
 
-                  {/* --- Key Features --- */}
-                  <div className="mb-10">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-4">
-                      Key_Features
+                  {/* Shipping Details Section (Optional) */}
+                  <div className="border-t border-gray-100 pt-8">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                      <FaTruck className="text-[9px]" /> Shipping Configuration
+                      (Optional)
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-4 border border-gray-200 rounded-sm">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={shippingDetails.isFreeShipping}
+                          onChange={(e) =>
+                            setShippingDetails({
+                              ...shippingDetails,
+                              isFreeShipping: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4 accent-black"
+                        />
+                        <label className="text-xs font-bold text-gray-700">
+                          Free Shipping
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={shippingDetails.isIndividualShipping}
+                          onChange={(e) =>
+                            setShippingDetails({
+                              ...shippingDetails,
+                              isIndividualShipping: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4 accent-black"
+                        />
+                        <label className="text-xs font-bold text-gray-700">
+                          Individual Shipping
+                        </label>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">
+                          Individual Cost (৳)
+                        </label>
+                        <input
+                          type="number"
+                          value={shippingDetails.individualShippingCost}
+                          onChange={(e) =>
+                            setShippingDetails({
+                              ...shippingDetails,
+                              individualShippingCost: Number(e.target.value),
+                            })
+                          }
+                          className={inputClass}
+                          disabled={!shippingDetails.isIndividualShipping}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">
+                          Extra Cost (৳)
+                        </label>
+                        <input
+                          type="number"
+                          value={shippingDetails.extraShippingCost}
+                          onChange={(e) =>
+                            setShippingDetails({
+                              ...shippingDetails,
+                              extraShippingCost: Number(e.target.value),
+                            })
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Features */}
+                  <div className="border-t border-gray-100 pt-8">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                      Key Features
                     </p>
                     {keyFeatures.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2 mb-2">
+                      <div key={index} className="flex gap-2 mb-2">
                         <input
                           type="text"
                           value={feature}
+                          placeholder="e.g. Ultra Responsive Switches"
                           onChange={(e) =>
                             handleFeatureChange(index, e.target.value)
                           }
-                          placeholder="Feature Description"
-                          className="flex-1 bg-gray-50 border-b border-gray-200 py-2 px-3 focus:outline-none focus:border-red-600 transition-all"
+                          className={`${inputClass} flex-1`}
                         />
                         <button
                           type="button"
                           onClick={() => removeFeature(index)}
-                          className="text-red-500 p-2"
+                          className="text-gray-300 hover:text-red-500 transition-colors px-2"
                         >
-                          <FaTrash size={14} />
+                          <FaTrash size={12} />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
                       onClick={addFeature}
-                      className="mt-2 text-[10px] font-black uppercase text-red-600 flex items-center gap-1"
+                      className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
                     >
-                      <FaPlus size={10} /> Add_Feature
+                      + Add Feature
                     </button>
                   </div>
 
-                  {/* --- Specifications --- */}
-                  <div className="mb-10">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-4">
-                      Technical_Specifications
+                  {/* Specifications */}
+                  <div className="border-t border-gray-100 pt-8">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                      Specifications
                     </p>
                     {specifications.map((spec, index) => (
-                      <div key={index} className="flex gap-4 mb-2 items-center">
+                      <div
+                        key={index}
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3"
+                      >
                         <input
                           type="text"
-                          placeholder="Label (e.g. RAM)"
+                          placeholder="Label (e.g. Battery)"
                           value={spec.label}
                           onChange={(e) =>
                             handleSpecChange(index, "label", e.target.value)
                           }
-                          className="w-1/3 bg-gray-50 border-b border-gray-200 py-2 px-3 focus:outline-none focus:border-red-600"
+                          className={inputClass}
                         />
-                        <div className="flex gap-4 flex-1">
+                        <div className="flex gap-2">
                           <input
                             type="text"
-                            placeholder="Value (e.g. 16GB)"
+                            placeholder="Value (e.g. 4000mAh)"
                             value={spec.value}
                             onChange={(e) =>
                               handleSpecChange(index, "value", e.target.value)
                             }
-                            className="flex-1 bg-gray-50 border-b border-gray-200 py-2 px-3 focus:outline-none focus:border-red-600"
+                            className={`${inputClass} flex-1`}
                           />
                           <button
                             type="button"
                             onClick={() => removeSpec(index)}
-                            className="text-red-500 p-2"
+                            className="text-gray-300 hover:text-red-500 transition-colors px-2"
                           >
-                            <FaTrash size={14} />
+                            <FaTrash size={12} />
                           </button>
                         </div>
                       </div>
@@ -757,18 +904,18 @@ const ProductUpdate = () => {
                     <button
                       type="button"
                       onClick={addSpec}
-                      className="mt-2 text-[10px] font-black uppercase text-red-600 flex items-center gap-1"
+                      className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
                     >
-                      <FaPlus size={10} /> Add_Spec
+                      + Add Spec
                     </button>
                   </div>
 
                   {/* Description Editor */}
-                  <div className="mb-12">
+                  <div className="border-t border-gray-100 pt-8">
                     <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
-                      Product_Specs_Description
+                      Description Data
                     </label>
-                    <div className="border border-gray-100 hover:border-red-600 transition-colors">
+                    <div className="border border-gray-200 rounded-sm overflow-hidden">
                       <ReactQuill
                         ref={quillRef}
                         theme="snow"
@@ -776,41 +923,39 @@ const ProductUpdate = () => {
                         onChange={setDescription}
                         modules={modules}
                         formats={formats}
-                        className="min-h-[400px] font-mono text-sm quill-editor-custom"
+                        className="min-h-[300px] sm:min-h-[400px] description-quill"
                       />
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
               {/* VARIANTS TAB */}
               {activeVariantTab === "variants" && (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-gray-100 pb-4">
                     <div>
-                      <h2 className="text-xl font-black text-black tracking-tighter uppercase">
+                      <h2 className="text-lg sm:text-xl font-black text-black tracking-tighter uppercase">
                         Product Variants
                       </h2>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Configure color and size combinations with individual
-                        pricing
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Configure color and size combinations
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={addColorVariant}
-                      className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-black transition-all"
+                      className="flex items-center gap-2 bg-black text-white px-5 py-2.5 font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all rounded-sm"
                     >
                       <FaPlus /> Add Color
                     </button>
                   </div>
 
                   {variants.length === 0 && (
-                    <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                      <FaPalette className="mx-auto text-4xl text-gray-300 mb-4" />
-                      <p className="text-gray-500 font-mono text-sm">
-                        No variants added yet. Click &quot;Add Color&quot; to
-                        start.
+                    <div className="text-center py-16 bg-gray-50 border border-dashed border-gray-200 rounded-sm">
+                      <FaPalette className="mx-auto text-3xl text-gray-300 mb-4" />
+                      <p className="text-gray-400 text-xs">
+                        No variants added yet.
                       </p>
                     </div>
                   )}
@@ -818,15 +963,12 @@ const ProductUpdate = () => {
                   {variants.map((variant, colorIndex) => (
                     <div
                       key={colorIndex}
-                      className="bg-gray-50 rounded-2xl p-6 border border-gray-200"
+                      className="bg-gray-50 p-4 sm:p-6 border border-gray-200 rounded-sm"
                     >
-                      {/* Color Header */}
-                      <div className="flex items-start gap-6 mb-6 pb-6 border-b border-gray-200">
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex flex-col md:flex-row items-start gap-4 mb-6 pb-6 border-b border-gray-200">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                           <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
-                              Color Name
-                            </label>
+                            <label className={labelClass}>Color Name</label>
                             <input
                               type="text"
                               value={variant.color.name}
@@ -838,13 +980,11 @@ const ProductUpdate = () => {
                                 )
                               }
                               placeholder="e.g. Red"
-                              className="w-full bg-white border border-gray-200 rounded-lg p-3 font-bold text-black focus:ring-2 focus:ring-red-600 outline-none"
+                              className={inputClass}
                             />
                           </div>
                           <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
-                              Hex Code
-                            </label>
+                            <label className={labelClass}>Hex Code</label>
                             <div className="flex gap-2">
                               <input
                                 type="color"
@@ -856,7 +996,7 @@ const ProductUpdate = () => {
                                     e.target.value,
                                   )
                                 }
-                                className="w-12 h-12 rounded-lg border border-gray-200 cursor-pointer"
+                                className="w-10 h-[38px] rounded-sm border border-gray-200 cursor-pointer p-1"
                               />
                               <input
                                 type="text"
@@ -868,35 +1008,33 @@ const ProductUpdate = () => {
                                     e.target.value,
                                   )
                                 }
-                                className="flex-1 bg-white border border-gray-200 rounded-lg p-3 font-mono text-sm uppercase"
+                                className={`${inputClass} flex-1 font-mono uppercase`}
                               />
                             </div>
                           </div>
                           <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
-                              Color Image
-                            </label>
-                            <div className="flex gap-2">
+                            <label className={labelClass}>Color Image</label>
+                            <div className="flex gap-2 items-center">
                               {variant.color.image ? (
-                                <div className="relative w-12 h-12">
+                                <div className="relative w-10 h-10 group">
                                   <img
                                     src={variant.color.image}
                                     alt="Color"
-                                    className="w-full h-full object-cover rounded-lg border border-gray-200"
+                                    className="w-full h-full object-cover rounded-sm border border-gray-200"
                                   />
                                   <button
                                     type="button"
                                     onClick={() =>
                                       updateColorInfo(colorIndex, "image", "")
                                     }
-                                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center"
+                                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                   >
                                     <FaTrash />
                                   </button>
                                 </div>
                               ) : (
-                                <label className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-red-600 hover:bg-red-50 transition-all">
-                                  <FaCloudUploadAlt className="text-gray-400" />
+                                <label className="w-10 h-10 border border-dashed border-gray-300 rounded-sm flex items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black">
+                                  <FaPlus size={12} />
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -913,35 +1051,34 @@ const ProductUpdate = () => {
                         <button
                           type="button"
                           onClick={() => removeColorVariant(colorIndex)}
-                          className="p-3 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                         >
                           <FaTrash />
                         </button>
                       </div>
 
-                      {/* Sizes Section */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <FaRuler /> Sizes for{" "}
+                          <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <FaRuler className="text-[8px]" /> Sizes for{" "}
                             {variant.color.name || `Color ${colorIndex + 1}`}
                           </h4>
                           <button
                             type="button"
                             onClick={() => addSizeToVariant(colorIndex)}
-                            className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-1 hover:text-black transition-all"
+                            className="text-[9px] font-black text-black uppercase tracking-widest flex items-center gap-1 hover:text-red-600 transition-colors"
                           >
-                            <FaPlus /> Add Size
+                            <FaPlus size={8} /> Add Size
                           </button>
                         </div>
 
                         {variant.sizes.map((size, sizeIndex) => (
                           <div
                             key={sizeIndex}
-                            className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-xl border border-gray-200"
+                            className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 bg-white p-3 border border-gray-200 rounded-sm"
                           >
                             <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">
+                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
                                 Size
                               </label>
                               <input
@@ -956,11 +1093,11 @@ const ProductUpdate = () => {
                                   )
                                 }
                                 placeholder="S, M, L"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold text-sm focus:ring-2 focus:ring-red-600 outline-none"
+                                className={`${inputClass} text-xs py-1`}
                               />
                             </div>
                             <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">
+                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
                                 Price (৳)
                               </label>
                               <input
@@ -975,11 +1112,11 @@ const ProductUpdate = () => {
                                   )
                                 }
                                 placeholder="0"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold text-sm focus:ring-2 focus:ring-red-600 outline-none"
+                                className={`${inputClass} text-xs py-1`}
                               />
                             </div>
                             <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">
+                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
                                 Stock
                               </label>
                               <input
@@ -994,12 +1131,12 @@ const ProductUpdate = () => {
                                   )
                                 }
                                 placeholder="0"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-bold text-sm focus:ring-2 focus:ring-red-600 outline-none"
+                                className={`${inputClass} text-xs py-1`}
                               />
                             </div>
                             <div>
-                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 block">
-                                SKU (Optional)
+                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
+                                SKU
                               </label>
                               <input
                                 type="text"
@@ -1013,18 +1150,18 @@ const ProductUpdate = () => {
                                   )
                                 }
                                 placeholder="SKU-001"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono text-sm uppercase focus:ring-2 focus:ring-red-600 outline-none"
+                                className={`${inputClass} text-xs py-1 font-mono`}
                               />
                             </div>
-                            <div className="flex items-end">
+                            <div className="flex items-end justify-center">
                               <button
                                 type="button"
                                 onClick={() =>
                                   removeSizeFromVariant(colorIndex, sizeIndex)
                                 }
-                                className="w-full p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all flex items-center justify-center gap-1"
+                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
                               >
-                                <FaTrash size={12} /> Remove
+                                <FaTrash size={11} />
                               </button>
                             </div>
                           </div>
@@ -1036,29 +1173,21 @@ const ProductUpdate = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-4 border-t border-gray-100 pt-10 mt-10">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 border-t border-gray-100 pt-8 mt-8">
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  className="px-10 py-4 bg-white border-2 border-black text-black font-black uppercase tracking-[0.2em] text-[12px] hover:bg-red-600 hover:border-red-600 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="px-8 py-3 bg-white border border-black text-black font-black uppercase tracking-[0.2em] text-[10px] sm:text-[11px] hover:bg-red-600 hover:border-red-600 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 rounded-sm"
                 >
-                  {deleteLoading ? (
-                    <FaSpinner className="animate-spin" />
-                  ) : (
-                    <FaTrash size={14} />
-                  )}{" "}
-                  {deleteLoading ? "Purging..." : "Delete_System_Record"}
+                  {deleteLoading ? <LoadingSpinner /> : <FaTrash size={12} />}
+                  {deleteLoading ? "Purging..." : "Delete_Record"}
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={updateLoading}
-                  className="px-10 py-4 bg-black text-white font-black uppercase tracking-[0.2em] text-[12px] hover:bg-red-600 shadow-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="px-8 py-3 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] sm:text-[11px] hover:bg-red-600 transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 rounded-sm"
                 >
-                  {updateLoading ? (
-                    <FaSpinner className="animate-spin" />
-                  ) : (
-                    <FaSave size={14} />
-                  )}{" "}
+                  {updateLoading ? <LoadingSpinner /> : <FaSave size={12} />}
                   {updateLoading ? "Syncing..." : "Push_Updates"}
                 </button>
               </div>

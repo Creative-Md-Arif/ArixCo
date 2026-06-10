@@ -28,11 +28,30 @@ export default function SearchOverlay({ open, onClose }) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, open]);
 
-  // lock body scroll
+  // ✅ জাম্পিং ফিক্স: lock body scroll & add padding for scrollbar
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    const headerEl = document.getElementById("main-header-nav");
+
+    if (open) {
+      // স্ক্রলবার হাইড হওয়ার আগে এর উইডথ বের করা
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
+
+      document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`; // বডি জাম্প ফিক্স
+
+      // নেভিগেশনবার জাম্প ফিক্স (আগের স্টেপে আমরা হেডারে id="main-header-nav" দিয়েছিলাম)
+      if (headerEl) headerEl.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+      if (headerEl) headerEl.style.paddingRight = "0px";
+    }
+
     return () => {
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+      if (headerEl) headerEl.style.paddingRight = "0px";
     };
   }, [open]);
 
@@ -44,7 +63,7 @@ export default function SearchOverlay({ open, onClose }) {
 
   const { data, isFetching } = useGetProductsQuery(
     { keyword: debouncedQuery, page: 1 },
-    { skip: debouncedQuery.length < 2 }
+    { skip: debouncedQuery.length < 2 },
   );
 
   const results = data?.products ?? [];

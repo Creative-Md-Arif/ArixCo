@@ -6,19 +6,12 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 
-/*
-  CARD IDENTITY: Product Card
-  BG: White card, ivory image well (#FDF6EC)
-  Border: warm gold-tinted (#EDE4D4) → gold on hover
-  Image bg: #FDF6EC (matches ivory sections)
-  CTA: Gold gradient button (matches brand gold #B88E2F)
-  Brand text: Gold accent
-  Price border: warm divider
-  Shadow on hover: subtle gold tint
-*/
+
 
 const Product = ({ product }) => {
   const dispatch = useDispatch();
+
+
 
   /* ── unchanged logic ──────────────────────────────────── */
   const getVariantPrice = (product) => {

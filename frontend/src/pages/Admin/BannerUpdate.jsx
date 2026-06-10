@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import AdminMenu from "./AdminMenu";
 import {
   useGetBannerByIdQuery,
@@ -14,7 +13,6 @@ import axios from "axios";
 import { UPLOAD_URL } from "../../redux/constants";
 import {
   FaSave,
-  FaSpinner,
   FaCloudUploadAlt,
   FaTrash,
   FaArrowLeft,
@@ -22,6 +20,20 @@ import {
   FaMobileAlt,
   FaTag,
 } from "react-icons/fa";
+
+// Custom Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center h-screen gap-4">
+    <div className="flex items-center justify-center gap-1.5">
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce [animation-delay:-0.3s]"></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce [animation-delay:-0.15s]"></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce"></div>
+    </div>
+    <p className="text-[10px] font-black tracking-[0.5em] uppercase text-gray-400 animate-pulse">
+      Loading Data...
+    </p>
+  </div>
+);
 
 const BannerUpdate = () => {
   const { id } = useParams();
@@ -36,116 +48,26 @@ const BannerUpdate = () => {
   const [formData, setFormData] = useState(null);
 
   const buttonTypeOptions = [
-    {
-      value: "default",
-      label: "Default (Shop Now)",
-      color: "bg-gray-600",
-      icon: "🛒",
-    },
-    {
-      value: "weekend-deal",
-      label: "Weekend Deal",
-      color: "bg-purple-600",
-      icon: "🔥",
-    },
-    {
-      value: "flash-sale",
-      label: "Flash Sale",
-      color: "bg-yellow-500",
-      icon: "⚡",
-    },
-    { value: "big-sale", label: "Big Sale", color: "bg-red-600", icon: "💥" },
-    {
-      value: "limited-offer",
-      label: "Limited Offer",
-      color: "bg-orange-500",
-      icon: "⏰",
-    },
-    {
-      value: "special-offer",
-      label: "Special Offer",
-      color: "bg-pink-500",
-      icon: "🎁",
-    },
-    {
-      value: "clearance",
-      label: "Clearance",
-      color: "bg-green-600",
-      icon: "🏷️",
-    },
-    {
-      value: "new-arrival",
-      label: "New Arrival",
-      color: "bg-blue-500",
-      icon: "✨",
-    },
-    {
-      value: "best-seller",
-      label: "Best Seller",
-      color: "bg-amber-500",
-      icon: "⭐",
-    },
-    {
-      value: "trending-now",
-      label: "Trending Now",
-      color: "bg-indigo-600",
-      icon: "📈",
-    },
-    { value: "hot-deal", label: "Hot Deal", color: "bg-red-700", icon: "🌶️" },
-    {
-      value: "mega-sale",
-      label: "Mega Sale",
-      color: "bg-violet-600",
-      icon: "🎉",
-    },
-    {
-      value: "seasonal-offer",
-      label: "Seasonal Offer",
-      color: "bg-emerald-500",
-      icon: "🌸",
-    },
-    {
-      value: "exclusive",
-      label: "Exclusive",
-      color: "bg-slate-700",
-      icon: "💎",
-    },
-    {
-      value: "last-chance",
-      label: "Last Chance",
-      color: "bg-rose-600",
-      icon: "⚠️",
-    },
-    {
-      value: "doorbuster",
-      label: "Doorbuster",
-      color: "bg-cyan-600",
-      icon: "🚪",
-    },
-    {
-      value: "early-bird",
-      label: "Early Bird",
-      color: "bg-sky-500",
-      icon: "🐦",
-    },
-    {
-      value: "member-exclusive",
-      label: "Member Exclusive",
-      color: "bg-teal-600",
-      icon: "👤",
-    },
-    {
-      value: "bundle-deal",
-      label: "Bundle Deal",
-      color: "bg-lime-600",
-      icon: "📦",
-    },
-    {
-      value: "buy-one-get-one",
-      label: "Buy 1 Get 1",
-      color: "bg-fuchsia-600",
-      icon: "🎊",
-    },
+    { value: "default", label: "Default (Shop Now)", icon: "🛒" },
+    { value: "weekend-deal", label: "Weekend Deal", icon: "🔥" },
+    { value: "flash-sale", label: "Flash Sale", icon: "⚡" },
+    { value: "big-sale", label: "Big Sale", icon: "💥" },
+    { value: "limited-offer", label: "Limited Offer", icon: "⏰" },
+    { value: "special-offer", label: "Special Offer", icon: "🎁" },
+    { value: "clearance", label: "Clearance", icon: "🏷️" },
+    { value: "new-arrival", label: "New Arrival", icon: "✨" },
+    { value: "best-seller", label: "Best Seller", icon: "⭐" },
+    { value: "trending-now", label: "Trending Now", icon: "📈" },
+    { value: "hot-deal", label: "Hot Deal", icon: "🌶️" },
+    { value: "mega-sale", label: "Mega Sale", icon: "🎉" },
+    { value: "seasonal-offer", label: "Seasonal Offer", icon: "🌸" },
+    { value: "exclusive", label: "Exclusive", icon: "💎" },
+    { value: "last-chance", label: "Last Chance", icon: "⚠️" },
+    { value: "doorbuster", label: "Doorbuster", icon: "🚪" },
+    { value: "early-bird", label: "Early Bird", icon: "🐦" },
+    { value: "member-exclusive", label: "Member Exclusive", icon: "👤" },
+    { value: "bundle-deal", label: "Bundle Deal", icon: "📦" },
+    { value: "buy-one-get-one", label: "Buy 1 Get 1", icon: "🎊" },
   ];
 
   useEffect(() => {
@@ -165,7 +87,7 @@ const BannerUpdate = () => {
         position: banner.position || 1,
         backgroundColor: banner.backgroundColor || "#ffffff",
         textColor: banner.textColor || "#000000",
-        buttonColor: banner.buttonColor || "#ff6b6b",
+        buttonColor: banner.buttonColor || "#000000",
         buttonTextColor: banner.buttonTextColor || "#ffffff",
         startDate: banner.startDate
           ? new Date(banner.startDate).toISOString().slice(0, 16)
@@ -197,51 +119,31 @@ const BannerUpdate = () => {
   }, [banner]);
 
   const bannerTypes = [
-    { value: "hero", label: "Hero Banner", desc: "Main homepage slider" },
-    {
-      value: "category",
-      label: "Category Banner",
-      desc: "Category page banner",
-    },
-    {
-      value: "promotional",
-      label: "Promotional",
-      desc: "Offer & discount banner",
-    },
-    { value: "sidebar", label: "Sidebar", desc: "Side panel banner" },
-    { value: "popup", label: "Popup", desc: "Welcome/offer popup" },
-    { value: "footer", label: "Footer", desc: "Bottom section banner" },
-    { value: "top-bar", label: "Top Bar", desc: "Announcement bar" },
-    { value: "middle", label: "Middle", desc: "Middle section banner" },
-  ];
-
-  const offerTypes = [
-    { value: "percentage", label: "Percentage Discount" },
-    { value: "fixed", label: "Fixed Amount" },
-    { value: "bogo", label: "Buy 1 Get 1 Free" },
-    { value: "free-shipping", label: "Free Shipping" },
+    { value: "hero", label: "Hero Banner" },
+    { value: "category", label: "Category Banner" },
+    { value: "promotional", label: "Promotional" },
+    { value: "sidebar", label: "Sidebar" },
+    { value: "popup", label: "Popup" },
+    { value: "footer", label: "Footer" },
+    { value: "top-bar", label: "Top Bar" },
+    { value: "middle", label: "Middle" },
   ];
 
   const displayPageOptions = [
     { value: "home", label: "Homepage" },
-    { value: "category", label: "Category Page" },
-    { value: "product", label: "Product Page" },
-    { value: "cart", label: "Cart Page" },
+    { value: "category", label: "Category" },
+    { value: "product", label: "Product" },
+    { value: "cart", label: "Cart" },
     { value: "checkout", label: "Checkout" },
     { value: "all", label: "All Pages" },
   ];
 
-  const getButtonTypeStyle = (type) => {
-    return (
-      buttonTypeOptions.find((opt) => opt.value === type) ||
-      buttonTypeOptions[0]
-    );
-  };
+  const getButtonTypeStyle = (type) =>
+    buttonTypeOptions.find((opt) => opt.value === type) || buttonTypeOptions[0];
 
   const handleImageUpload = async (e, isMobile = false) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     const uploadFormData = new FormData();
     uploadFormData.append("image", file);
@@ -250,16 +152,12 @@ const BannerUpdate = () => {
       const { data } = await axios.post(
         `${UPLOAD_URL}/banner`,
         uploadFormData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
-
       setFormData((prev) => ({
         ...prev,
         [isMobile ? "mobileImage" : "image"]: data.image,
       }));
-
       toast.success(`${isMobile ? "Mobile" : "Desktop"} image uploaded!`);
     } catch (error) {
       toast.error("Upload failed");
@@ -270,7 +168,6 @@ const BannerUpdate = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       await updateBanner({ bannerId: id, bannerData: formData }).unwrap();
       toast.success("Banner updated successfully!");
@@ -283,82 +180,81 @@ const BannerUpdate = () => {
   const handleDisplayPageChange = (page) => {
     setFormData((prev) => {
       const current = prev.displayPages;
-      if (current.includes(page)) {
+      if (current.includes(page))
         return { ...prev, displayPages: current.filter((p) => p !== page) };
-      }
       return { ...prev, displayPages: [...current, page] };
     });
   };
 
-  if (isFetching || !formData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <FaSpinner className="animate-spin text-4xl text-red-600" />
-      </div>
-    );
-  }
+  if (isFetching || !formData) return <LoadingSpinner />;
+
+  // Reusable Styles
+  const inputClass =
+    "w-full border border-gray-200 rounded-sm px-3 py-2 text-sm focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
+  const selectClass = `${inputClass} cursor-pointer`;
+  const labelClass =
+    "text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1";
 
   return (
-    <div className="min-h-screen bg-white font-mono pt-24 lg:pt-32 transition-all duration-500">
+    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-20 lg:pt-28 pb-16 transition-all duration-500">
       <div className="flex flex-col 2xl:flex-row">
         <AdminMenu />
-
-        <div className="flex-1 px-4 lg:px-12 pb-20">
+        <div className="flex-1 px-4 sm:px-6 lg:px-12">
           <div className="max-w-[1200px] mx-auto">
             {/* Header */}
-            <div className="mb-10 border-l-4 border-red-600 pl-6 py-2 flex justify-between items-center">
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between border-l-4 border-black pl-4 sm:pl-6 py-2 gap-4">
               <div>
-                <h1 className="text-3xl font-black text-black tracking-tighter uppercase">
-                  Update <span className="text-red-600">Banner</span>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tighter uppercase">
+                  Update / <span className="text-red-600">Banner</span>
                 </h1>
-                <p className="text-[10px] text-gray-500 font-bold tracking-[0.4em] uppercase mt-1">
+                <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-[0.3em] uppercase mt-1">
                   ID: {id}
                 </p>
               </div>
               <button
                 onClick={() => navigate("/admin/bannerlist")}
-                className="flex items-center gap-2 text-gray-500 hover:text-black transition-colors"
+                className="flex items-center gap-2 text-gray-400 hover:text-black transition-colors text-xs font-bold uppercase tracking-wider"
               >
-                <FaArrowLeft /> Back to List
+                <FaArrowLeft size={10} /> Back to List
               </button>
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Left Column: Images & Basic Info */}
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {/* Images */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <FaImage /> Images
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
+                      <FaImage size={12} /> Assets
                     </h2>
-
                     <div className="grid grid-cols-2 gap-4">
                       {/* Desktop */}
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
-                          Desktop
-                        </label>
+                        <label className={labelClass}>Desktop</label>
                         {formData.image ? (
-                          <div className="relative group">
+                          <div className="relative group border border-gray-200 rounded-sm overflow-hidden">
                             <img
                               src={formData.image}
                               alt="Desktop"
-                              className="w-full h-32 object-cover rounded-lg"
+                              className="w-full h-28 sm:h-36 object-cover"
                             />
                             <button
                               type="button"
                               onClick={() =>
                                 setFormData((prev) => ({ ...prev, image: "" }))
                               }
-                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100"
+                              className="absolute top-1 right-1 bg-black text-white p-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              <FaTrash size={10} />
+                              <FaTrash size={9} />
                             </button>
                           </div>
                         ) : (
-                          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600">
-                            <FaCloudUploadAlt className="text-2xl text-gray-400" />
+                          <label className="flex flex-col items-center justify-center w-full h-28 sm:h-36 border border-dashed border-gray-300 rounded-sm cursor-pointer hover:border-black transition-colors bg-gray-50">
+                            <FaCloudUploadAlt className="text-xl text-gray-400 group-hover:text-black" />
+                            <span className="text-[8px] font-bold text-gray-400 mt-1 uppercase">
+                              Upload
+                            </span>
                             <input
                               type="file"
                               accept="image/*"
@@ -368,18 +264,15 @@ const BannerUpdate = () => {
                           </label>
                         )}
                       </div>
-
                       {/* Mobile */}
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
-                          Mobile
-                        </label>
+                        <label className={labelClass}>Mobile</label>
                         {formData.mobileImage ? (
-                          <div className="relative group">
+                          <div className="relative group border border-gray-200 rounded-sm overflow-hidden">
                             <img
                               src={formData.mobileImage}
                               alt="Mobile"
-                              className="w-full h-32 object-cover rounded-lg"
+                              className="w-full h-28 sm:h-36 object-cover"
                             />
                             <button
                               type="button"
@@ -389,14 +282,17 @@ const BannerUpdate = () => {
                                   mobileImage: "",
                                 }))
                               }
-                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100"
+                              className="absolute top-1 right-1 bg-black text-white p-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              <FaTrash size={10} />
+                              <FaTrash size={9} />
                             </button>
                           </div>
                         ) : (
-                          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600">
-                            <FaMobileAlt className="text-2xl text-gray-400" />
+                          <label className="flex flex-col items-center justify-center w-full h-28 sm:h-36 border border-dashed border-gray-300 rounded-sm cursor-pointer hover:border-black transition-colors bg-gray-50">
+                            <FaMobileAlt className="text-xl text-gray-400" />
+                            <span className="text-[8px] font-bold text-gray-400 mt-1 uppercase">
+                              Upload
+                            </span>
                             <input
                               type="file"
                               accept="image/*"
@@ -410,55 +306,48 @@ const BannerUpdate = () => {
                   </div>
 
                   {/* Basic Info */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4">
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
                       Basic Info
                     </h2>
-
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Type
-                        </label>
-                        <select
-                          value={formData.type}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              type: e.target.value,
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        >
-                          {bannerTypes.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>Type</label>
+                          <select
+                            value={formData.type}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                type: e.target.value,
+                              }))
+                            }
+                            className={selectClass}
+                          >
+                            {bannerTypes.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className={labelClass}>Name</label>
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                              }))
+                            }
+                            className={inputClass}
+                          />
+                        </div>
                       </div>
-
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Headline
-                        </label>
+                        <label className={labelClass}>Headline</label>
                         <input
                           type="text"
                           value={formData.headline}
@@ -468,14 +357,11 @@ const BannerUpdate = () => {
                               headline: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={inputClass}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Sub Headline
-                        </label>
+                        <label className={labelClass}>Sub Headline</label>
                         <input
                           type="text"
                           value={formData.subHeadline}
@@ -485,12 +371,15 @@ const BannerUpdate = () => {
                               subHeadline: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={inputClass}
                         />
                       </div>
+
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1  flex items-center gap-2">
-                          <FaTag /> Button Type
+                        <label
+                          className={`${labelClass} flex items-center gap-1`}
+                        >
+                          <FaTag size={9} /> Button Type
                         </label>
                         <select
                           value={formData.buttonType}
@@ -500,7 +389,7 @@ const BannerUpdate = () => {
                               buttonType: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={selectClass}
                         >
                           {buttonTypeOptions.map((type) => (
                             <option key={type.value} value={type.value}>
@@ -509,9 +398,7 @@ const BannerUpdate = () => {
                           ))}
                         </select>
                         <div className="mt-2">
-                          <span
-                            className={`inline-block px-3 py-1 rounded text-xs font-bold text-white ${getButtonTypeStyle(formData.buttonType).color}`}
-                          >
+                          <span className="inline-block bg-black text-white px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase">
                             {getButtonTypeStyle(formData.buttonType).icon}{" "}
                             {getButtonTypeStyle(formData.buttonType).label}
                           </span>
@@ -521,11 +408,11 @@ const BannerUpdate = () => {
                   </div>
 
                   {/* Colors */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4">
-                      Colors
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                      Theme Colors
                     </h2>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {[
                         { key: "backgroundColor", label: "Background" },
                         { key: "textColor", label: "Text" },
@@ -542,9 +429,11 @@ const BannerUpdate = () => {
                                 [c.key]: e.target.value,
                               }))
                             }
-                            className="w-8 h-8 rounded cursor-pointer"
+                            className="w-8 h-8 border border-gray-200 rounded-sm cursor-pointer p-0.5"
                           />
-                          <span className="text-xs font-bold">{c.label}</span>
+                          <span className="text-[9px] font-bold text-gray-600 uppercase">
+                            {c.label}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -552,35 +441,45 @@ const BannerUpdate = () => {
                 </div>
 
                 {/* Right Column: Settings */}
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {/* Links */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4">
-                      Links
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                      Links & Reference
                     </h2>
-
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Button Text
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.buttonText}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              buttonText: e.target.value,
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>Button Text</label>
+                          <input
+                            type="text"
+                            value={formData.buttonText}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                buttonText: e.target.value,
+                              }))
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Position</label>
+                          <input
+                            type="number"
+                            value={formData.position}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                position: parseInt(e.target.value),
+                              }))
+                            }
+                            className={inputClass}
+                          />
+                        </div>
                       </div>
-
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          URL
-                        </label>
+                        <label className={labelClass}>URL</label>
                         <input
                           type="text"
                           value={formData.link}
@@ -590,14 +489,11 @@ const BannerUpdate = () => {
                               link: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={inputClass}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Product
-                        </label>
+                        <label className={labelClass}>Product</label>
                         <select
                           value={formData.product}
                           onChange={(e) =>
@@ -606,7 +502,7 @@ const BannerUpdate = () => {
                               product: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={selectClass}
                         >
                           <option value="">None</option>
                           {products?.products?.map((p) => (
@@ -616,11 +512,8 @@ const BannerUpdate = () => {
                           ))}
                         </select>
                       </div>
-
                       <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Category
-                        </label>
+                        <label className={labelClass}>Category</label>
                         <select
                           value={formData.category}
                           onChange={(e) =>
@@ -629,7 +522,7 @@ const BannerUpdate = () => {
                               category: e.target.value,
                             }))
                           }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
+                          className={selectClass}
                         >
                           <option value="">None</option>
                           {categories?.map((c) => (
@@ -643,50 +536,42 @@ const BannerUpdate = () => {
                   </div>
 
                   {/* Schedule */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4">
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
                       Schedule
                     </h2>
-
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Start Date
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={formData.startDate}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              startDate: e.target.value,
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>Start Date</label>
+                          <input
+                            type="datetime-local"
+                            value={formData.startDate}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                startDate: e.target.value,
+                              }))
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>End Date</label>
+                          <input
+                            type="datetime-local"
+                            value={formData.endDate}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                endDate: e.target.value,
+                              }))
+                            }
+                            className={inputClass}
+                          />
+                        </div>
                       </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          End Date
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={formData.endDate}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              endDate: e.target.value,
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <label className="text-[10px] font-black uppercase text-gray-400">
-                          Active
-                        </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.isActive}
@@ -696,79 +581,47 @@ const BannerUpdate = () => {
                               isActive: e.target.checked,
                             }))
                           }
-                          className="w-5 h-5 accent-red-600"
+                          className="accent-black w-4 h-4"
                         />
-                      </div>
+                        <span className="text-xs font-bold text-gray-700 uppercase">
+                          Active
+                        </span>
+                      </label>
                     </div>
                   </div>
 
                   {/* Display Settings */}
-                  <div className="bg-white border border-gray-100 shadow-lg p-6">
-                    <h2 className="text-lg font-black uppercase tracking-widest mb-4">
-                      Display
+                  <div className="border border-gray-200 p-4 sm:p-5 rounded-sm bg-white">
+                    <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                      Display Pages
                     </h2>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-1 block">
-                          Position
+                    <div className="flex flex-wrap gap-2">
+                      {displayPageOptions.map((page) => (
+                        <label
+                          key={page.value}
+                          className={`px-3 py-1.5 rounded-sm text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${formData.displayPages.includes(page.value) ? "bg-black text-white" : "bg-white border border-gray-200 text-gray-500 hover:border-black"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.displayPages.includes(page.value)}
+                            onChange={() => handleDisplayPageChange(page.value)}
+                            className="hidden"
+                          />
+                          {page.label}
                         </label>
-                        <input
-                          type="number"
-                          value={formData.position}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              position: parseInt(e.target.value),
-                            }))
-                          }
-                          className="w-full border-b-2 border-gray-100 py-2 font-bold focus:border-red-600 outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
-                          Pages
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {displayPageOptions.map((page) => (
-                            <label
-                              key={page.value}
-                              className={`px-3 py-1 rounded text-xs font-bold cursor-pointer ${
-                                formData.displayPages.includes(page.value)
-                                  ? "bg-red-600 text-white"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.displayPages.includes(
-                                  page.value,
-                                )}
-                                onChange={() =>
-                                  handleDisplayPageChange(page.value)
-                                }
-                                className="hidden"
-                              />
-                              {page.label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Popup Settings */}
                   {formData.type === "popup" && (
-                    <div className="bg-purple-50 border border-purple-100 p-6 rounded-xl">
-                      <h2 className="text-lg font-black uppercase tracking-widest mb-4 text-purple-600">
+                    <div className="bg-gray-50 border border-gray-200 p-4 sm:p-5 rounded-sm">
+                      <h2 className="text-xs sm:text-sm font-black text-black uppercase tracking-wider mb-4 border-b border-gray-200 pb-2">
                         Popup Settings
                       </h2>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 mb-1 block">
-                            Delay (sec)
-                          </label>
+                          <label className={labelClass}>Delay (sec)</label>
                           <input
                             type="number"
                             value={formData.popupSettings.delay}
@@ -781,13 +634,11 @@ const BannerUpdate = () => {
                                 },
                               }))
                             }
-                            className="w-full border border-gray-200 py-2 px-3 font-bold"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-black text-gray-400 mb-1 block">
-                            Show Again (hrs)
-                          </label>
+                          <label className={labelClass}>Show Again (hrs)</label>
                           <input
                             type="number"
                             value={formData.popupSettings.showAgainAfter}
@@ -800,7 +651,7 @@ const BannerUpdate = () => {
                                 },
                               }))
                             }
-                            className="w-full border border-gray-200 py-2 px-3 font-bold"
+                            className={inputClass}
                           />
                         </div>
                       </div>
@@ -810,65 +661,68 @@ const BannerUpdate = () => {
               </div>
 
               {/* Preview & Submit */}
-              <div className="mt-8">
+              <div className="mt-8 border-t border-gray-200 pt-8">
                 <div
-                  className="p-6 rounded-xl mb-6"
+                  className="border border-gray-200 p-4 sm:p-6 rounded-sm mb-6"
                   style={{
                     backgroundColor: formData.backgroundColor,
                     color: formData.textColor,
                   }}
                 >
-                  <h3 className="text-sm font-black uppercase tracking-widest mb-4 opacity-50">
-                    Preview
+                  <h3 className="text-[9px] font-black uppercase tracking-widest mb-4 opacity-40">
+                    Live Preview
                   </h3>
                   {formData.buttonType !== "default" && (
-                    <span
-                      className={`inline-block px-3 py-1 rounded text-xs font-bold text-white mb-3 ${getButtonTypeStyle(formData.buttonType).color}`}
-                    >
+                    <span className="inline-block bg-black text-white px-2 py-0.5 rounded-sm text-[8px] font-bold mb-3 uppercase">
                       {getButtonTypeStyle(formData.buttonType).icon}{" "}
                       {getButtonTypeStyle(formData.buttonType).label}
                     </span>
                   )}
-
                   {formData.image && (
                     <img
                       src={formData.image}
                       alt="Preview"
-                      className="w-full h-40 object-cover rounded-lg mb-4"
+                      className="w-full h-32 sm:h-40 object-cover rounded-sm mb-4 border border-gray-200"
                     />
                   )}
-                  <h4 className="text-xl font-black">{formData.headline}</h4>
-                  <p className="text-sm">{formData.subHeadline}</p>
+                  <h4 className="text-lg sm:text-xl font-black uppercase tracking-tight">
+                    {formData.headline}
+                  </h4>
+                  <p className="text-xs sm:text-sm opacity-80 mt-1">
+                    {formData.subHeadline}
+                  </p>
                   <button
+                    type="button"
                     style={{
                       backgroundColor: formData.buttonColor,
                       color: formData.buttonTextColor,
                     }}
-                    className="mt-4 px-6 py-2 rounded-lg font-bold"
+                    className="mt-4 px-5 py-1.5 rounded-sm font-bold text-xs uppercase tracking-wider"
                   >
                     {formData.buttonText}
                   </button>
                 </div>
 
-                <div className="flex justify-end gap-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => navigate("/admin/bannerlist")}
-                    className="px-8 py-3 border-2 border-black text-black font-black uppercase tracking-widest text-sm hover:bg-black hover:text-white transition-colors"
+                    className="px-6 py-2.5 border border-gray-200 text-black font-bold uppercase tracking-widest text-[10px] hover:border-black transition-colors rounded-sm w-full sm:w-auto"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isUpdating}
-                    className="px-8 py-3 bg-black text-white font-black uppercase tracking-widest text-sm hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    disabled={isUpdating || uploading}
+                    className="px-6 py-2.5 bg-black text-white font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 rounded-sm w-full sm:w-auto"
                   >
                     {isUpdating ? (
-                      <FaSpinner className="animate-spin" />
+                      "Saving..."
                     ) : (
-                      <FaSave />
+                      <>
+                        <FaSave size={10} /> Save Changes
+                      </>
                     )}
-                    {isUpdating ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </div>

@@ -6,8 +6,8 @@ import Loader from "./components/Loader";
 import { useEffect, useState } from "react";
 import Footer from "./components/Footer";
 import { useNotifications } from "./hooks/useNotifications";
-import FooterBanners from "./components/FooterBanners";
 import { Helmet } from "react-helmet-async";
+import Cart from "./pages/Cart"; // ✅ কার্ট কম্পোনেন্ট ইম্পোর্ট করা হয়েছে (আপনার ফাইল পাথ অনুযায়ী সেট করুন)
 
 function App() {
   useNotifications();
@@ -15,7 +15,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Prevent body scroll when mobile menu is open
+ 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
     return () => {
@@ -105,12 +105,13 @@ function App() {
 
           {shouldShowExtras && (
             <>
-              <FooterBanners />
               <Footer />
             </>
           )}
         </div>
       )}
+
+      <Cart />
     </>
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
@@ -22,6 +23,14 @@ const getItemBasePrice = (item) =>
   Number(item.price) ||
   0;
 
+/* ─── Custom Loader ─────────────────────────────────────── */
+const ButtonSpinner = () => (
+  <div className="flex items-center justify-center gap-2">
+    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+    <span>Processing...</span>
+  </div>
+);
+
 /* ─── Inline cart items ────────────────────────────────────── */
 const InlineItems = () => {
   const { cartItems } = useSelector((state) => state.cart);
@@ -31,20 +40,20 @@ const InlineItems = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-3 border-b border-black mb-4">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-black">
-          Your Items
+      <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
+        <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-black">
+          Your Items ({cartItems.length})
         </span>
         <Link
           to="/cart"
-          className="text-xs font-mono uppercase tracking-widest text-gray-500 hover:text-black"
+          className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 hover:text-black border-b border-gray-300 hover:border-black transition-colors"
         >
-          Edit
+          Edit Cart
         </Link>
       </div>
       <div
-        className="space-y-0 max-h-[320px] overflow-y-auto"
-        style={{ scrollbarWidth: "none" }}
+        className="space-y-0 max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-1"
+        style={{ scrollbarWidth: "thin" }}
       >
         {cartItems.map((item, idx) => {
           const displayImage =
@@ -63,9 +72,9 @@ const InlineItems = () => {
           return (
             <div
               key={`${item._id}-${item.variantInfo?.colorIndex}-${item.variantInfo?.sizeIndex}`}
-              className={`flex items-start gap-3 py-4 ${idx !== cartItems.length - 1 ? "border-b border-gray-100" : ""}`}
+              className={`flex items-start gap-3 py-3 ${idx !== cartItems.length - 1 ? "border-b border-gray-100" : ""}`}
             >
-              <div className="w-12 h-12 flex-shrink-0 bg-gray-50 border border-gray-200 overflow-hidden">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
                 <img
                   src={displayImage}
                   alt={item.name}
@@ -73,62 +82,57 @@ const InlineItems = () => {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-mono font-bold text-black uppercase tracking-tight line-clamp-1">
+                <p className="text-xs sm:text-sm font-mono font-bold text-black uppercase tracking-tight line-clamp-2">
                   {item.name}
                 </p>
                 {variantText && (
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-1">
                     {item.variantInfo?.colorHex && (
                       <span
-                        className="w-2.5 h-2.5 rounded-full border border-gray-200"
+                        className="w-3 h-3 rounded-full border border-gray-300"
                         style={{ backgroundColor: item.variantInfo.colorHex }}
                       />
                     )}
-                    <span className="text-xs font-mono text-gray-500 uppercase">
+                    <span className="text-[10px] sm:text-xs font-mono text-gray-500 uppercase">
                       {variantText}
                     </span>
                   </div>
                 )}
                 {discountPercent > 0 && (
-                  <span className="inline-block mt-1 text-[10px] font-mono font-bold px-1.5 py-0.5 bg-black text-white uppercase tracking-wide">
-                    −{Math.round(discountPercent)}%
+                  <span className="inline-block mt-1 text-[9px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 uppercase tracking-wide rounded-sm">
+                    −{Math.round(discountPercent)}% OFF
                   </span>
                 )}
               </div>
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="text-right leading-none">
-                  <p className="text-sm font-mono font-black text-black">
+                  <p className="text-xs sm:text-sm font-mono font-black text-black">
                     ৳{(item.qty * unitPrice).toLocaleString("en-BD")}
                   </p>
                   {savingsPerUnit > 0 && (
-                    <>
-                      <p className="text-[10px] font-mono text-gray-400 line-through mt-0.5">
-                        ৳{(basePrice * item.qty).toLocaleString("en-BD")}
-                      </p>
-                      <p className="text-[10px] font-mono text-green-600 font-bold">
-                        −৳{Math.round(totalSavings)}
-                      </p>
-                    </>
+                    <p className="text-[9px] sm:text-[10px] font-mono text-gray-400 line-through mt-0.5">
+                      ৳{(basePrice * item.qty).toLocaleString("en-BD")}
+                    </p>
                   )}
                 </div>
-                <div className="flex items-center border border-gray-300 h-6">
+                <div className="flex items-center border border-gray-300 rounded-md h-7 text-xs">
                   <button
-                    className="w-6 h-6 flex items-center justify-center text-gray-500 border-r border-gray-300 disabled:opacity-30"
+                    className="w-7 h-full flex items-center justify-center text-gray-500 border-r border-gray-300 hover:bg-gray-50 transition-colors rounded-l-md disabled:opacity-30"
                     onClick={() =>
                       item.qty > 1 && addToCartHandler(item, item.qty - 1)
                     }
                     disabled={item.qty === 1}
                   >
-                    <FaMinus size={7} />
+                    <FaMinus size={8} />
                   </button>
-                  <span className="w-7 text-center text-xs font-mono font-black text-black">
+                  <span className="w-8 h-full flex items-center justify-center font-mono font-black text-black bg-gray-50">
                     {item.qty}
                   </span>
                   <button
-                    className="w-6 h-6 flex items-center justify-center text-gray-500 border-l border-gray-300"
+                    className="w-7 h-full flex items-center justify-center text-gray-500 border-l border-gray-300 hover:bg-gray-50 transition-colors rounded-r-md"
                     onClick={() => addToCartHandler(item, item.qty + 1)}
                   >
-                    <FaPlus size={7} />
+                    <FaPlus size={8} />
                   </button>
                 </div>
               </div>
@@ -136,7 +140,7 @@ const InlineItems = () => {
           );
         })}
         {cartItems.length === 0 && (
-          <div className="py-10 text-center border border-dashed border-gray-200">
+          <div className="py-10 text-center border border-dashed border-gray-200 rounded-md">
             <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">
               Cart is empty
             </p>
@@ -148,7 +152,6 @@ const InlineItems = () => {
 };
 
 /* ─── PlaceOrder ────────────────────────────────────────────── */
-// ✅ Added isShippingCalculating prop from Shipping.jsx
 const PlaceOrder = ({
   orderSummary,
   onPlaceOrder,
@@ -219,7 +222,6 @@ const PlaceOrder = ({
   };
 
   const placeOrderHandler = async () => {
-    // ✅ Prevent placing order while shipping is being calculated
     if (isShippingCalculating) {
       toast.info("Please wait while shipping cost is being calculated...");
       return;
@@ -250,7 +252,6 @@ const PlaceOrder = ({
         },
       }));
 
-      // ✅ FIXED: division, district, thana all correctly mapped from freshAddress
       const safeShippingAddress = {
         name: freshAddress.name || "",
         address: freshAddress.address || "",
@@ -330,24 +331,24 @@ const PlaceOrder = ({
     isLoading || cartItems.length === 0 || isShippingCalculating;
 
   return (
-    <div className="bg-white border border-gray-200">
-      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-        <p className="text-xs font-mono font-bold uppercase tracking-wider text-gray-500 mb-1">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="px-4 sm:px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
+        <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-gray-500 mb-1">
           Review &amp; Confirm
         </p>
-        <h2 className="text-2xl font-mono font-black text-black uppercase tracking-tight leading-none">
+        <h2 className="text-xl sm:text-2xl font-mono font-black text-black uppercase tracking-tight leading-none">
           Order Summary
         </h2>
       </div>
-      <div className="px-6 pt-5 pb-4">
+      <div className="px-4 sm:px-6 pt-4 pb-4">
         <InlineItems />
       </div>
 
-      <div className="px-6 pb-4">
-        <div className="border border-dashed border-gray-300 p-4 bg-gray-50/50">
+      <div className="px-4 sm:px-6 pb-4">
+        <div className="border border-dashed border-gray-300 p-3 sm:p-4 rounded-md bg-gray-50/50">
           {!appliedCoupon ? (
             <>
-              <p className="text-xs font-mono font-bold uppercase tracking-wider text-gray-600 mb-2">
+              <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-gray-600 mb-2">
                 Have a coupon?
               </p>
               <div className="flex gap-2">
@@ -356,29 +357,29 @@ const PlaceOrder = ({
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                   placeholder="ENTER CODE"
-                  className="flex-1 bg-white border border-gray-300 px-3 py-2.5 text-sm font-mono uppercase tracking-widest text-black placeholder-gray-400 focus:outline-none focus:border-black transition-colors"
+                  className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm font-mono uppercase tracking-widest text-black placeholder-gray-400 focus:outline-none focus:border-black transition-colors"
                 />
                 <button
                   onClick={handleApplyCoupon}
                   disabled={isValidating || !couponInput.trim()}
-                  className="bg-black text-white px-4 text-xs font-mono font-bold uppercase tracking-wider hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="bg-black text-white px-4 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider rounded-md hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 >
                   {isValidating ? "..." : "Apply"}
                 </button>
               </div>
               {couponError && (
-                <p className="text-[10px] font-mono text-red-500 mt-1.5 uppercase tracking-wider">
+                <p className="text-[10px] sm:text-xs font-mono text-red-500 mt-1.5 uppercase tracking-wider">
                   ✕ {couponError}
                 </p>
               )}
             </>
           ) : (
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center bg-green-50 p-2 rounded-md border border-green-200">
               <div>
-                <p className="text-xs font-mono font-bold uppercase tracking-wider text-green-700">
+                <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-green-700">
                   Coupon Applied ✓
                 </p>
-                <p className="text-sm font-mono font-black text-green-900 mt-0.5">
+                <p className="text-xs sm:text-sm font-mono font-black text-green-900 mt-0.5">
                   {appliedCoupon.code}
                 </p>
               </div>
@@ -395,102 +396,103 @@ const PlaceOrder = ({
       </div>
 
       {/* Price Breakdown */}
-      <div className="mx-6 border-t border-gray-100 pt-4 pb-4 space-y-3">
+      <div className="mx-4 sm:mx-6 border-t border-gray-100 pt-3 pb-4 space-y-2.5">
         <div className="flex justify-between items-center">
-          <span className="text-xs font-mono uppercase tracking-wider text-gray-600">
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">
             Subtotal
           </span>
-          <span className="text-base font-mono font-black text-black">
+          <span className="text-xs sm:text-sm font-mono font-black text-black">
             ৳{subtotal.toFixed(2)}
           </span>
         </div>
 
-        {/* ✅ UPDATED: Auto-selected Dynamic Shipping Method Display */}
         <div className="flex justify-between items-start">
-          <span className="text-xs font-mono uppercase tracking-wider text-gray-600">
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">
             Shipping
           </span>
           {isShippingCalculating ? (
-            <span className="flex items-center gap-1.5 text-xs font-mono text-gray-500">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono text-gray-500">
               <FaSpinner className="animate-spin" size={10} />
               Calculating...
             </span>
           ) : shippingCharge > 0 || isFreeShipping ? (
             <div className="text-right">
-              <span className="text-base font-mono font-black text-black">
+              <span className="text-xs sm:text-sm font-mono font-black text-black">
                 {isFreeShipping ? "FREE" : `৳${shippingCharge.toFixed(2)}`}
               </span>
               {shippingMethodName && (
-                <p className="text-[10px] text-gray-500 font-mono mt-0.5 leading-tight">
+                <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono mt-0.5 leading-tight">
                   {shippingMethodName} {estimatedDays && `· ${estimatedDays}`}
                 </p>
               )}
             </div>
           ) : (
-            <span className="text-xs font-mono text-gray-500 uppercase">
+            <span className="text-[10px] sm:text-xs font-mono text-gray-400 uppercase">
               Select address
             </span>
           )}
         </div>
 
         {appliedCoupon && (
-          <div className="flex justify-between items-center py-2 px-3 bg-green-50 border border-green-100">
-            <span className="text-xs font-mono uppercase tracking-wider text-green-700">
+          <div className="flex justify-between items-center py-1.5 px-2.5 bg-green-50 border border-green-100 rounded-md">
+            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">
               Coupon ({appliedCoupon.code})
             </span>
-            <span className="text-base font-mono font-black text-green-600">
+            <span className="text-xs sm:text-sm font-mono font-black text-green-600">
               −৳{appliedCoupon.discountAmount.toFixed(2)}
             </span>
           </div>
         )}
 
         {totalSavings > 0 && (
-          <div className="flex justify-between items-center py-2 px-3 bg-gray-50 border border-gray-100">
-            <span className="text-xs font-mono uppercase tracking-wider text-green-700">
+          <div className="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 border border-gray-100 rounded-md">
+            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">
               Product Savings
             </span>
-            <span className="text-base font-mono font-black text-green-600">
+            <span className="text-xs sm:text-sm font-mono font-black text-green-600">
               −৳{totalSavings.toFixed(2)}
             </span>
           </div>
         )}
       </div>
 
-      <div className="mx-6 border-t-2 border-black pt-4 pb-5 flex justify-between items-baseline">
-        <span className="text-sm font-mono font-bold uppercase tracking-wider text-black">
+      <div className="mx-4 sm:mx-6 border-t-2 border-black pt-3 pb-4 flex justify-between items-baseline">
+        <span className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-black">
           Total Payable
         </span>
         {isShippingCalculating ? (
-          <span className="flex items-center gap-2 text-gray-500 font-mono font-black text-xl">
+          <span className="flex items-center gap-2 text-gray-500 font-mono font-black text-lg sm:text-xl">
             <FaSpinner className="animate-spin" size={14} />
             Updating...
           </span>
         ) : (
-          <span className="text-3xl font-mono font-black text-black leading-none">
+          <span className="text-2xl sm:text-3xl font-mono font-black text-black leading-none">
             ৳{finalTotalPrice.toFixed(2)}
           </span>
         )}
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-5">
         <button
           onClick={placeOrderHandler}
           disabled={isButtonDisabled}
-          className={`w-full py-4 font-mono font-black text-sm uppercase tracking-widest transition-none ${
+          className={`w-full py-3.5 sm:py-4 font-mono font-black text-xs sm:text-sm uppercase tracking-widest rounded-md transition-colors duration-200 flex items-center justify-center ${
             isButtonDisabled
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
               : "bg-black text-white hover:bg-gray-800"
           }`}
         >
-          {isLoading
-            ? "Processing..."
-            : isShippingCalculating
-              ? "Calculating Shipping..."
-              : isManualPayment
-                ? "Proceed to Payment →"
-                : "Confirm Order →"}
+          {isLoading ? (
+            <ButtonSpinner />
+          ) : isShippingCalculating ? (
+            "Calculating Shipping..."
+          ) : isManualPayment ? (
+            "Proceed to Payment →"
+          ) : (
+            "Confirm Order →"
+          )}
         </button>
-        <p className="text-center text-[10px] text-gray-500 mt-3 font-mono uppercase tracking-wider">
+        <p className="text-center text-[9px] sm:text-[10px] text-gray-500 mt-2.5 font-mono uppercase tracking-wider">
           {isManualPayment
             ? "Payment first · then order is created"
             : "By confirming, you agree to our terms"}

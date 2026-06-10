@@ -1,11 +1,22 @@
 /* eslint-disable react/prop-types */
 import { motion, AnimatePresence } from "framer-motion";
 import { RiShoppingBag3Fill } from "react-icons/ri";
-import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux"; // ✅ Redux থেকে useDispatch ইম্পোর্ট করা হয়েছে
+import { toggleCartSidebar } from "../redux/features/cart/cartSlice"; // ✅ আপনার স্লাইস পাথ অনুযায়ী সেট করুন
 
-const CartIcon = ({ cartCount, onClick }) => {
+const CartIcon = ({ cartCount }) => {
+  const dispatch = useDispatch(); // ✅ ডিসপ্যাচ হুক ব্যবহার
+
+  const handleOpenCart = () => {
+    dispatch(toggleCartSidebar(true)); // ✅ ক্লিক করলে সাইডবার ওপেন হবে
+  };
+
   return (
-    <Link to="/cart" onClick={onClick} className="relative group block p-1">
+    <button 
+      onClick={handleOpenCart} 
+      className="relative group block outline-none" 
+      aria-label="Open Shopping Cart"
+    >
       <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-300 group-hover:bg-white/10">
         <RiShoppingBag3Fill
           className="text-gray-400 transition-colors duration-300 group-hover:text-[#D4A843]"
@@ -26,7 +37,7 @@ const CartIcon = ({ cartCount, onClick }) => {
           )}
         </AnimatePresence>
       </div>
-    </Link>
+    </button>
   );
 };
 

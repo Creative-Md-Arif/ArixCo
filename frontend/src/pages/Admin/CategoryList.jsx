@@ -23,9 +23,9 @@ import {
   FaPlus,
 } from "react-icons/fa";
 
-// Custom Loading Spinner Component
+// Custom Loading Spinner Component for Buttons
 const ButtonSpinner = () => (
-  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5"></div>
 );
 
 const CategoryList = () => {
@@ -57,7 +57,7 @@ const CategoryList = () => {
     return flat;
   }, [categories]);
 
-  // Recursive function for Select Dropdown (Now uses nested children)
+  // Recursive function for Select Dropdown
   const renderTreeOptions = (cats, depth = 0) => {
     if (!cats || cats.length === 0) return null;
     return cats.map((c) => (
@@ -72,7 +72,7 @@ const CategoryList = () => {
     ));
   };
 
-  // Recursive TreeView Component (Now uses nested children)
+  // Recursive TreeView Component
   const TreeItem = ({ category }) => {
     const [isOpen, setIsOpen] = useState(true);
     const children = category.children || [];
@@ -80,36 +80,37 @@ const CategoryList = () => {
 
     return (
       <div className="ml-2 md:ml-4 border-l border-gray-200 pl-3 md:pl-4 my-0.5">
-        <div className="flex items-center justify-between group py-1.5 px-2 rounded-md hover:bg-gray-50 transition-colors">
+        <div className="flex items-center justify-between group py-1.5 px-2 rounded-sm hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
           <div className="flex items-center gap-2">
             {hasChildren ? (
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="text-gray-400 hover:text-black focus:outline-none"
               >
                 {isOpen ? (
-                  <FaChevronDown size={10} />
+                  <FaChevronDown size={9} />
                 ) : (
-                  <FaChevronRight size={10} />
+                  <FaChevronRight size={9} />
                 )}
               </button>
             ) : (
-              <span className="w-[10px]" />
+              <span className="w-[9px]" />
             )}
-
             <span
-              className={`text-sm ${hasChildren ? "text-gray-800 font-semibold" : "text-gray-600 font-medium"}`}
+              className={`text-[11px] sm:text-xs ${hasChildren ? "text-black font-black uppercase tracking-wider" : "text-gray-600 font-medium"}`}
             >
               {isOpen && hasChildren ? (
-                <FaFolderOpen className="inline mr-1.5 text-blue-500" />
+                <FaFolderOpen
+                  className="inline mr-1.5 text-gray-400"
+                  size={11}
+                />
               ) : (
-                <FaFolder className="inline mr-1.5 text-gray-400" />
+                <FaFolder className="inline mr-1.5 text-gray-300" size={11} />
               )}
               {category.name}
             </span>
           </div>
 
-          {/* Opacity used instead of hidden to prevent jumping */}
           <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
             <button
               onClick={() => {
@@ -117,9 +118,9 @@ const CategoryList = () => {
                 setUpdatingName(category.name);
                 setModalVisible(true);
               }}
-              className="p-1 text-blue-500 hover:bg-blue-50 rounded-md"
+              className="p-1 text-gray-400 hover:text-black rounded-sm"
             >
-              <CiEdit size={16} />
+              <CiEdit size={14} />
             </button>
           </div>
         </div>
@@ -140,7 +141,6 @@ const CategoryList = () => {
     if (!image) return null;
     const formData = new FormData();
     formData.append("image", image);
-
     try {
       const { data } = await axios.post("/api/upload", formData);
       return data.images && data.images.length > 0 ? data.images[0] : null;
@@ -187,22 +187,16 @@ const CategoryList = () => {
       toast.error("Category name is required");
       return;
     }
-
     let imageUrl = selectedCategory.image;
     if (image) {
       const uploadedUrl = await uploadImage();
       if (uploadedUrl) imageUrl = uploadedUrl;
     }
-
     try {
       const result = await updateCategory({
         categoryId: selectedCategory._id,
-        updatedCategory: {
-          name: updatingName,
-          image: imageUrl,
-        },
+        updatedCategory: { name: updatingName, image: imageUrl },
       }).unwrap();
-
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -235,309 +229,308 @@ const CategoryList = () => {
     }
   };
 
+  // Reusable Styles
+  const inputClass =
+    "w-full border border-gray-200 rounded-sm px-3 py-2 text-sm focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
+  const selectClass = `${inputClass} cursor-pointer`;
+  const labelClass =
+    "text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1";
+
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <AdminMenu />
-
-      {/* Main Container - Reduced padding */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
-        {/* Header - Reduced margin */}
-        <header className="mb-6 border-b border-gray-100 pb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-            Category Management
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Organize your store with infinite sub-categories.
-          </p>
-        </header>
-
-        {/* Create Form Card - Reduced padding and margin */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 mb-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
-            <FaPlus className="text-blue-500" /> Create New Category
-          </h2>
-          <form onSubmit={handleCreateCategory} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                  placeholder="e.g. Electronics, Clothes"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Select Parent
-                </label>
-                <select
-                  value={parent}
-                  onChange={(e) => setParent(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-sm"
-                >
-                  <option value="">None (Main Category)</option>
-                  {categories && renderTreeOptions(categories)}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Category Image
-                </label>
-                <label className="flex items-center gap-2 w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                  <MdOutlineCloudUpload className="text-gray-400 text-lg" />
-                  <span className="text-sm text-gray-500 truncate">
-                    {image ? image.name : "Choose an image"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setImage(e.target.files[0])}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Fixed height container to prevent jumping */}
-            <div className="h-[80px] flex justify-start items-center">
-              {image && (
-                <div className="relative inline-block">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt="Preview"
-                    className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-                  />
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full md:w-auto min-w-[160px] flex justify-center items-center px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={creating}
-            >
-              {creating && <ButtonSpinner />}
-              {creating ? "Processing" : "Create Category"}
-            </button>
-          </form>
-        </div>
-
-        {/* Tree View & Table Layout - Reduced gap */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Tree View Section - Reduced padding */}
-          <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-4 md:p-5 h-fit lg:sticky lg:top-28">
-            <h2 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <FaFolderOpen className="text-blue-500" /> Hierarchy View
-            </h2>
-            <div className="max-h-[500px] overflow-y-auto pr-1">
-              {categories?.length > 0 ? (
-                categories.map((mainCat) => (
-                  <TreeItem key={mainCat._id} category={mainCat} />
-                ))
-              ) : (
-                <p className="text-sm text-gray-400 py-4 text-center">
-                  No categories found.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Table Section - Reduced padding */}
-          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="p-4 md:p-5 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-800">
-                All Categories
-              </h2>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Image
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {flatCategories.map((category) => (
-                    <tr
-                      key={category._id}
-                      className="hover:bg-gray-50/50 transition-colors"
-                    >
-                      <td className="px-5 py-3">
-                        {category.image ? (
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            className="w-9 h-9 rounded-md object-cover border border-gray-100"
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center text-gray-400">
-                            <FaFolder size={14} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="text-sm font-medium text-gray-800">
-                          {category.name}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-center">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${category.isSubCategory ? "bg-purple-50 text-purple-600" : "bg-green-50 text-green-600"}`}
-                        >
-                          {category.isSubCategory ? "Sub" : "Main"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex justify-end gap-1.5">
-                          <button
-                            title="Edit"
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            onClick={() => {
-                              setModalVisible(true);
-                              setSelectedCategory(category);
-                              setUpdatingName(category.name);
-                            }}
-                          >
-                            <CiEdit size={16} />
-                          </button>
-                          <button
-                            title="Delete"
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            onClick={() => {
-                              setSelectedCategory(category);
-                              setModalVisible(true);
-                            }}
-                          >
-                            <MdDeleteOutline size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Component */}
-        <Modal
-          isOpen={modalVisible}
-          onClose={() => {
-            setModalVisible(false);
-            setImage(null);
-          }}
-        >
-          <div className="bg-white p-5 md:p-6">
-            <header className="mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Edit Category</h2>
-              <p className="text-gray-500 text-xs mt-1">
-                Update details or remove this category permanently.
+    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-20 lg:pt-28 pb-16 transition-all duration-500">
+      <div className="flex flex-col 2xl:flex-row">
+        <AdminMenu />
+        <div className="flex-1 px-4 sm:px-6 lg:px-12">
+          <div className="max-w-[1500px] mx-auto">
+            {/* Header */}
+            <div className="mb-8 border-l-4 border-black pl-4 sm:pl-6 py-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tighter uppercase">
+                Category / <span className="text-red-600">Management</span>
+              </h1>
+              <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-[0.3em] uppercase mt-1">
+                Organize your store hierarchy
               </p>
-            </header>
+            </div>
 
-            <form onSubmit={handleUpdateCategory} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Update Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
-                  placeholder="New category name"
-                  value={updatingName}
-                  onChange={(e) => setUpdatingName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Change Image
-                </label>
-                <label className="flex items-center gap-2 w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                  <MdOutlineCloudUpload className="text-gray-400 text-lg" />
-                  <span className="text-sm text-gray-500 truncate">
-                    {image ? image.name : "Choose new image"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setImage(e.target.files[0])} // Fixed files[1] to files[0]
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* Fixed height container for image preview to prevent jumping */}
-              <div className="h-[90px] flex gap-4 items-center">
-                {selectedCategory?.image && !image && (
+            {/* Create Form Card */}
+            <div className="bg-white border border-gray-200 p-4 sm:p-5 rounded-sm mb-6">
+              <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
+                <FaPlus size={10} /> Create New Category
+              </h2>
+              <form onSubmit={handleCreateCategory} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-[9px] uppercase font-semibold text-gray-400 mb-1">
-                      Current
-                    </p>
-                    <img
-                      src={selectedCategory.image}
-                      alt="Current"
-                      className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                    <label className={labelClass}>Category Name</label>
+                    <input
+                      type="text"
+                      className={inputClass}
+                      placeholder="e.g. Electronics"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
                     />
                   </div>
-                )}
-                {image && (
                   <div>
-                    <p className="text-[9px] uppercase font-semibold text-blue-400 mb-1">
-                      New Preview
-                    </p>
-                    <img
-                      src={URL.createObjectURL(image)}
-                      alt="Preview"
-                      className="w-16 h-16 rounded-lg object-cover border border-blue-200"
-                    />
+                    <label className={labelClass}>Select Parent</label>
+                    <select
+                      value={parent}
+                      onChange={(e) => setParent(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="">None (Main Category)</option>
+                      {categories && renderTreeOptions(categories)}
+                    </select>
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className={labelClass}>Category Image</label>
+                    <label className="flex items-center gap-2 w-full border border-gray-200 rounded-sm px-3 py-2 cursor-pointer hover:border-black transition-colors bg-white text-xs text-gray-500">
+                      <MdOutlineCloudUpload className="text-gray-400 text-base" />
+                      <span className="truncate">
+                        {image ? image.name : "Choose an image"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setImage(e.target.files[0])}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                {/* Image Preview Container */}
+                <div className="h-[70px] flex items-center">
+                  {image && (
+                    <div className="relative inline-block">
+                      <img
+                        src={URL.createObjectURL(image)}
+                        alt="Preview"
+                        className="w-14 h-14 rounded-sm object-cover border border-gray-200"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="submit"
-                  className="min-w-[120px] flex justify-center items-center bg-gray-900 text-white py-2.5 rounded-lg font-semibold hover:bg-black transition-all text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  disabled={updating}
+                  disabled={creating}
+                  className="bg-black text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all rounded-sm flex items-center justify-center gap-1 disabled:bg-gray-400 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
-                  {updating && <ButtonSpinner />}
-                  {updating ? "Updating" : "Save Changes"}
+                  {creating && <ButtonSpinner />}{" "}
+                  {creating ? "Processing" : "Create Category"}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteCategory}
-                  className="min-w-[120px] flex justify-center items-center bg-white text-red-600 border border-gray-200 py-2.5 rounded-lg font-semibold hover:bg-red-50 hover:border-red-200 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={deleting}
-                >
-                  {deleting && <ButtonSpinner />}
-                  {deleting ? "Deleting" : "Delete"}
-                </button>
+              </form>
+            </div>
+
+            {/* Tree View & Table Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              {/* Tree View Section */}
+              <div className="lg:col-span-1 bg-white border border-gray-200 p-4 sm:p-5 rounded-sm h-fit lg:sticky lg:top-28">
+                <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
+                  <FaFolderOpen size={11} /> Hierarchy View
+                </h2>
+                <div className="max-h-[500px] overflow-y-auto pr-1">
+                  {categories?.length > 0 ? (
+                    categories.map((mainCat) => (
+                      <TreeItem key={mainCat._id} category={mainCat} />
+                    ))
+                  ) : (
+                    <p className="text-[10px] text-gray-400 py-4 text-center uppercase font-bold">
+                      No categories found.
+                    </p>
+                  )}
+                </div>
               </div>
-            </form>
+
+              {/* Table Section */}
+              <div className="lg:col-span-2 bg-white border border-gray-200 rounded-sm overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-gray-200">
+                  <h2 className="text-xs sm:text-sm font-black text-gray-500 uppercase tracking-wider">
+                    All Categories
+                  </h2>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[500px]">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                          Image
+                        </th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                          Name
+                        </th>
+                        <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {flatCategories.map((category) => (
+                        <tr
+                          key={category._id}
+                          className="hover:bg-gray-50 transition-colors group"
+                        >
+                          <td className="px-4 py-3">
+                            {category.image ? (
+                              <img
+                                src={category.image}
+                                alt={category.name}
+                                className="w-9 h-9 rounded-sm object-cover border border-gray-200"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-sm bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-300">
+                                <FaFolder size={12} />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-bold text-black uppercase tracking-wider">
+                              {category.name}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-sm text-[8px] font-bold uppercase tracking-wider ${category.isSubCategory ? "bg-gray-100 text-gray-600 border border-gray-200" : "bg-black text-white"}`}
+                            >
+                              {category.isSubCategory ? "Sub" : "Main"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                title="Edit"
+                                className="p-1.5 text-gray-400 hover:text-black rounded-sm transition-colors"
+                                onClick={() => {
+                                  setModalVisible(true);
+                                  setSelectedCategory(category);
+                                  setUpdatingName(category.name);
+                                }}
+                              >
+                                <CiEdit size={14} />
+                              </button>
+                              <button
+                                title="Delete"
+                                className="p-1.5 text-gray-400 hover:text-red-600 rounded-sm transition-colors"
+                                onClick={() => {
+                                  setSelectedCategory(category);
+                                  setModalVisible(true);
+                                }}
+                              >
+                                <MdDeleteOutline size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Component */}
+            <Modal
+              isOpen={modalVisible}
+              onClose={() => {
+                setModalVisible(false);
+                setImage(null);
+              }}
+            >
+              <div className="bg-white p-5 md:p-6">
+                <header className="mb-5 border-b border-gray-200 pb-3">
+                  <h2 className="text-sm font-black text-black uppercase tracking-wider">
+                    Edit Category
+                  </h2>
+                  <p className="text-gray-400 text-[9px] mt-1 uppercase font-bold tracking-wider">
+                    Update details or remove permanently.
+                  </p>
+                </header>
+
+                <form onSubmit={handleUpdateCategory} className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Update Name</label>
+                    <input
+                      type="text"
+                      className={inputClass}
+                      placeholder="New category name"
+                      value={updatingName}
+                      onChange={(e) => setUpdatingName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Change Image</label>
+                    <label className="flex items-center gap-2 w-full border border-gray-200 rounded-sm px-3 py-2 cursor-pointer hover:border-black transition-colors bg-white text-xs text-gray-500">
+                      <MdOutlineCloudUpload className="text-gray-400 text-base" />
+                      <span className="truncate">
+                        {image ? image.name : "Choose new image"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setImage(e.target.files[0])}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Image Preview Container */}
+                  <div className="h-[85px] flex gap-4 items-center border-t border-b border-gray-100 py-2">
+                    {selectedCategory?.image && !image && (
+                      <div>
+                        <p className="text-[8px] uppercase font-bold text-gray-400 mb-1">
+                          Current
+                        </p>
+                        <img
+                          src={selectedCategory.image}
+                          alt="Current"
+                          className="w-14 h-14 rounded-sm object-cover border border-gray-200"
+                        />
+                      </div>
+                    )}
+                    {image && (
+                      <div>
+                        <p className="text-[8px] uppercase font-bold text-black mb-1">
+                          New Preview
+                        </p>
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt="Preview"
+                          className="w-14 h-14 rounded-sm object-cover border border-black"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={updating}
+                      className="flex justify-center items-center bg-black text-white py-2.5 rounded-sm font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 transition-all disabled:bg-gray-400"
+                    >
+                      {updating && <ButtonSpinner />}{" "}
+                      {updating ? "Updating" : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteCategory}
+                      disabled={deleting}
+                      className="flex justify-center items-center bg-white text-red-600 border border-red-200 py-2.5 rounded-sm font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white hover:border-red-600 transition-all disabled:opacity-50"
+                    >
+                      {deleting && <ButtonSpinner />}{" "}
+                      {deleting ? "Deleting" : "Delete"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </Modal>
           </div>
-        </Modal>
+        </div>
       </div>
     </div>
   );

@@ -35,12 +35,12 @@ const getItemBasePrice = (item) =>
 /* ─── Field ───────────────────────────────────────────────── */
 const Field = ({ label, error, touched, children }) => (
   <div>
-    <label className="block text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.25em] text-gray-400 mb-2">
+    <label className="block text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">
       {label}
     </label>
     {children}
     {error && touched && (
-      <p className="mt-1.5 text-[11px] sm:text-xs font-mono text-red-500 uppercase tracking-wide">
+      <p className="mt-1 text-[10px] sm:text-xs font-mono text-red-500 uppercase tracking-wide">
         ⚠ {error}
       </p>
     )}
@@ -48,14 +48,16 @@ const Field = ({ label, error, touched, children }) => (
 );
 
 const inputBase =
-  "w-full px-4 py-3 bg-white border font-mono text-sm text-black placeholder-gray-300 outline-none focus:border-black transition-colors";
+  "w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border font-mono text-xs sm:text-sm text-black placeholder-gray-400 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 rounded-md appearance-none";
 
 const inputStyle = (fieldName, errors, touched) =>
   `${inputBase} ${
     errors[fieldName] && touched[fieldName]
-      ? "border-red-400"
-      : "border-gray-200 focus:border-black"
+      ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+      : "border-gray-300 hover:border-gray-400"
   }`;
+
+const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
 
 /* ─── Shipping ─────────────────────────────────────────────── */
 const Shipping = () => {
@@ -433,58 +435,55 @@ const Shipping = () => {
     },
   ];
 
-  console.log(cart);
-
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-gray-50 min-h-screen">
       {/* ── Breadcrumb ── */}
-      <div className="border-b border-gray-100">
-        <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.2em]">
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center gap-2 font-mono text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em]">
           <Link
             to="/"
             className="text-gray-400 hover:text-black transition-colors"
           >
             Home
           </Link>
-          <span className="text-gray-200">/</span>
+          <span className="text-gray-300">/</span>
           <Link
             to="/cart"
             className="text-gray-400 hover:text-black transition-colors"
           >
             Cart
           </Link>
-          <span className="text-gray-200">/</span>
+          <span className="text-gray-300">/</span>
           <span className="text-black font-bold">Checkout</span>
         </div>
       </div>
 
-      <div className="container mx-auto py-8 sm:py-10 px-4 sm:px-6">
+      <div className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
         {/* ── Page Header ── */}
-        <div className="mb-8 sm:mb-10 border-b-2 border-black pb-4">
-          <p className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.35em] text-gray-400 mb-1">
+        <div className="mb-6 sm:mb-10 border-b-2 border-black pb-4">
+          <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-1">
             Step 1 of 2
           </p>
-          <h1 className="text-3xl sm:text-4xl font-mono font-black text-black uppercase tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-black text-black uppercase tracking-tight">
             Checkout
           </h1>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-10 xl:gap-12">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           {/* ── Left Column ── */}
-          <div className="w-full xl:w-7/12 space-y-8">
+          <div className="w-full lg:w-7/12 space-y-6">
             {/* ── Section 01: Delivery Details ── */}
-            <section>
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-white bg-black px-2 py-1">
-                  01
+            <section className="bg-white p-4 sm:p-6 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-mono font-bold text-white bg-black rounded-full">
+                  1
                 </span>
-                <h2 className="text-lg sm:text-xl font-mono font-black text-black uppercase tracking-tight">
+                <h2 className="text-base sm:text-lg font-mono font-black text-black uppercase tracking-tight">
                   Delivery Details
                 </h2>
               </div>
 
-              <div className="space-y-5">
-                {/* Full Name */}
+              <div className="space-y-4">
                 <Field
                   label="Full Name"
                   error={errors.name}
@@ -500,8 +499,7 @@ const Shipping = () => {
                   />
                 </Field>
 
-                {/* Phone + Division */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Phone Number"
                     error={errors.phoneNumber}
@@ -519,7 +517,6 @@ const Shipping = () => {
                     />
                   </Field>
 
-                  {/* ✅ Division Select */}
                   <Field
                     label="Division"
                     error={errors.division}
@@ -530,6 +527,12 @@ const Shipping = () => {
                       onChange={(e) => handleChange("division", e.target.value)}
                       onBlur={(e) => handleBlur("division", e.target.value)}
                       className={inputStyle("division", errors, touched)}
+                      style={{
+                        backgroundImage: `url("${selectArrow}")`,
+                        backgroundPosition: "right 0.5rem center",
+                        backgroundRepeat: "no-repeat",
+                        backgroundSize: "1.5em 1.5em",
+                      }}
                     >
                       <option value="">Select division</option>
                       {divisionsEn.map((div, i) => (
@@ -541,8 +544,7 @@ const Shipping = () => {
                   </Field>
                 </div>
 
-                {/* District + Thana */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="District"
                     error={errors.district}
@@ -554,6 +556,12 @@ const Shipping = () => {
                       onBlur={(e) => handleBlur("district", e.target.value)}
                       className={inputStyle("district", errors, touched)}
                       disabled={!division}
+                      style={{
+                        backgroundImage: `url("${selectArrow}")`,
+                        backgroundPosition: "right 0.5rem center",
+                        backgroundRepeat: "no-repeat",
+                        backgroundSize: "1.5em 1.5em",
+                      }}
                     >
                       <option value="">Select district</option>
                       {districtsList.map((dist) => (
@@ -574,8 +582,14 @@ const Shipping = () => {
                         value={thana}
                         onChange={(e) => handleChange("thana", e.target.value)}
                         onBlur={(e) => handleBlur("thana", e.target.value)}
-                        className={inputStyle("thana", errors, touched)}
+                        className={`${inputStyle("thana", errors, touched)} pr-8`}
                         disabled={!district}
+                        style={{
+                          backgroundImage: `url("${selectArrow}")`,
+                          backgroundPosition: "right 0.5rem center",
+                          backgroundRepeat: "no-repeat",
+                          backgroundSize: "1.5em 1.5em",
+                        }}
                       >
                         <option value="">Select thana</option>
                         {thanasList.map((t) => (
@@ -584,16 +598,14 @@ const Shipping = () => {
                           </option>
                         ))}
                       </select>
-                      {/* ✅ Shipping calculating indicator */}
                       {isCalculating && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                          <FaSpinner className="animate-spin text-gray-400 text-sm" />
+                        <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <FaSpinner className="animate-spin text-gray-400 text-xs" />
                         </div>
                       )}
                     </div>
-                    {/* ✅ Shipping calculation status */}
                     {thana && district && division && (
-                      <p className="mt-1.5 text-[11px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
+                      <p className="mt-1 text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-500 flex items-center gap-1">
                         {isCalculating
                           ? "⟳ Calculating shipping..."
                           : `✓ Shipping: ৳${orderSummary.shippingCharge}`}
@@ -602,7 +614,6 @@ const Shipping = () => {
                   </Field>
                 </div>
 
-                {/* Full Address */}
                 <Field
                   label="Full Address"
                   error={errors.address}
@@ -618,8 +629,7 @@ const Shipping = () => {
                   />
                 </Field>
 
-                {/* Postal Code + Country */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Postal Code"
                     error={errors.postalCode}
@@ -654,21 +664,19 @@ const Shipping = () => {
               </div>
             </section>
 
-            <div className="border-t border-gray-100" />
-
             {/* ── Section 02: Payment Method ── */}
-            <section>
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-[11px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-white bg-black px-2 py-1">
-                  02
+            <section className="bg-white p-4 sm:p-6 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-mono font-bold text-white bg-black rounded-full">
+                  2
                 </span>
-                <h2 className="text-lg sm:text-xl font-mono font-black text-black uppercase tracking-tight">
+                <h2 className="text-base sm:text-lg font-mono font-black text-black uppercase tracking-tight">
                   Payment Method
                 </h2>
               </div>
 
               {errors.paymentMethod && touched.paymentMethod && (
-                <p className="mb-4 text-[11px] sm:text-xs font-mono text-red-500 uppercase tracking-wide">
+                <p className="mb-3 text-[10px] sm:text-xs font-mono text-red-500 uppercase tracking-wide bg-red-50 p-2 rounded-md border border-red-100">
                   ⚠ {errors.paymentMethod}
                 </p>
               )}
@@ -681,44 +689,47 @@ const Shipping = () => {
                       key={m.id}
                       type="button"
                       onClick={() => handlePaymentChange(m.id)}
-                      className={`flex items-center gap-4 px-4 py-4 border-2 text-left transition-none ${active ? "border-black bg-black text-white" : "border-gray-200 bg-white text-black"}`}
+                      className={`flex items-center gap-3 p-3 sm:p-4 border rounded-md text-left transition-all duration-200 ${active ? "border-black bg-gray-50 ring-1 ring-black" : "border-gray-200 bg-white hover:border-gray-400"}`}
                     >
                       <span
-                        className={`text-xl sm:text-2xl ${active ? "text-white" : "text-gray-400"}`}
+                        className={`text-lg sm:text-xl ${active ? "text-black" : "text-gray-400"}`}
                       >
                         {m.icon}
                       </span>
-                      <div>
-                        <p className="text-xs sm:text-sm font-mono font-black uppercase tracking-tight">
+                      <div className="flex-1">
+                        <p
+                          className={`text-[11px] sm:text-xs font-mono font-black uppercase tracking-tight ${active ? "text-black" : "text-gray-800"}`}
+                        >
                           {m.label}
                         </p>
                         <p
-                          className={`text-[11px] sm:text-xs font-mono uppercase tracking-wide mt-0.5 ${active ? "text-gray-300" : "text-gray-400"}`}
+                          className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-wide mt-0.5 ${active ? "text-gray-600" : "text-gray-400"}`}
                         >
                           {m.sub}
                         </p>
                       </div>
-                      {active && (
-                        <div className="ml-auto w-4 h-4 border-2 border-white rounded-full flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                        </div>
-                      )}
+                      <div
+                        className={`w-4 h-4 border-2 rounded-full flex items-center justify-center transition-colors ${active ? "border-black" : "border-gray-300"}`}
+                      >
+                        {active && (
+                          <div className="w-2 h-2 bg-black rounded-full" />
+                        )}
+                      </div>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Selected Payment Summary */}
-              <div className="mt-4 p-4 bg-gray-50 border border-gray-100 flex items-center gap-3">
-                <div className="w-1 h-8 bg-black flex-shrink-0" />
+              <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md flex items-center gap-3">
+                <div className="w-1 h-8 bg-black flex-shrink-0 rounded-full"></div>
                 <div>
-                  <p className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.2em] text-gray-400 mb-0.5">
+                  <p className="text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.2em] text-gray-500 mb-0.5">
                     Selected
                   </p>
-                  <p className="text-sm sm:text-base font-mono font-black text-black uppercase">
+                  <p className="text-xs sm:text-sm font-mono font-black text-black uppercase">
                     {paymentMethods.find((m) => m.id === paymentMethod)?.label}
                   </p>
-                  <p className="text-[11px] sm:text-xs font-mono text-gray-500 mt-0.5">
+                  <p className="text-[9px] sm:text-[10px] font-mono text-gray-500 mt-0.5">
                     {paymentMethod === "Cash on Delivery"
                       ? `Pay ৳${orderSummary.totalPrice.toFixed(2)} on delivery`
                       : "You will be redirected to payment instructions"}
@@ -729,9 +740,8 @@ const Shipping = () => {
           </div>
 
           {/* ── Right Column: Order Summary ── */}
-          <div className="w-full xl:w-5/12">
-            <div className="sticky top-[120px]">
-              {/* ✅ Pass isCalculating so PlaceOrder can disable button during calculation */}
+          <div className="w-full lg:w-5/12">
+            <div className="sticky top-[70px] sm:top-[90px]">
               <PlaceOrder
                 orderSummary={orderSummary}
                 onPlaceOrder={handleShippingDetails}

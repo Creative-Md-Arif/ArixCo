@@ -5,6 +5,8 @@ const FavoritesCount = () => {
   const favorites = useSelector((state) => state.favorites);
   const favoriteCount = favorites?.length || 0;
 
+
+
   return (
     <AnimatePresence>
       {favoriteCount > 0 && (

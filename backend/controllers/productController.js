@@ -39,7 +39,6 @@ const sanitizeDescription = (description) => {
 
 const parseVariants = (variantsData) => {
   if (!variantsData) return [];
-
   try {
     const parsed =
       typeof variantsData === "string"
@@ -72,7 +71,7 @@ const addProduct = asyncHandler(async (req, res) => {
       salesCount,
     } = fields;
 
-    // ১. ভ্যালিডেশন
+    // 1. Validation
     if (!name || !brand || !description || !price || !category || !quantity) {
       return res.status(400).json({ error: "Required fields are missing" });
     }
@@ -101,9 +100,33 @@ const addProduct = asyncHandler(async (req, res) => {
     // Parse variants
     const hasVariantsBool = hasVariants === "true" || hasVariants === true;
     let parsedVariants = [];
-
     if (hasVariantsBool && variants) {
       parsedVariants = parseVariants(variants);
+    }
+
+    // Parse shipping details
+    let shippingDetails = {
+      isFreeShipping: false,
+      isIndividualShipping: false,
+      individualShippingCost: 0,
+      extraShippingCost: 0,
+    };
+    if (fields.shippingDetails) {
+      const parsedShipping =
+        typeof fields.shippingDetails === "string"
+          ? JSON.parse(fields.shippingDetails)
+          : fields.shippingDetails;
+      shippingDetails = {
+        isFreeShipping:
+          parsedShipping.isFreeShipping === true ||
+          parsedShipping.isFreeShipping === "true",
+        isIndividualShipping:
+          parsedShipping.isIndividualShipping === true ||
+          parsedShipping.isIndividualShipping === "true",
+        individualShippingCost:
+          Number(parsedShipping.individualShippingCost) || 0,
+        extraShippingCost: Number(parsedShipping.extraShippingCost) || 0,
+      };
     }
 
     const slug = name
@@ -121,14 +144,18 @@ const addProduct = asyncHandler(async (req, res) => {
       isFeatured: fields.isFeatured === "true" || fields.isFeatured === true,
       price: Number(price),
       quantity: Number(quantity),
-      countInStock: Number(fields.countInStock) || 0,
+      countInStock: Number(quantity), // Will be overwritten by pre-save if variants exist
       hasVariants: hasVariantsBool,
       variants: parsedVariants,
       defaultColorIndex: Number(defaultColorIndex) || 0,
       defaultSizeIndex: Number(defaultSizeIndex) || 0,
       salesCount: Number(salesCount) || 0,
+      discountPercentage: Number(fields.discountPercentage) || 0,
+      discountedAmount: Number(fields.discountedAmount) || 0,
+      shippingDetails: shippingDetails,
     });
 
+    // pre-save hook will run here and auto-calculate discount & stock
     await product.save();
     res.status(201).json(product);
   } catch (error) {
@@ -157,14 +184,13 @@ const updateProductDetails = asyncHandler(async (req, res) => {
       salesCount,
     } = fields;
 
-    // ভ্যালিডেশন
+    // Validation
     if (!name || !description || !price || !category || !quantity) {
       return res
         .status(400)
         .json({ error: "Required basic fields are missing" });
     }
 
-    // ইমেজের অ্যারে প্রসেসিং
     let imagesArray = [];
     if (images) {
       imagesArray = typeof images === "string" ? JSON.parse(images) : images;
@@ -174,7 +200,6 @@ const updateProductDetails = asyncHandler(async (req, res) => {
     // Parse variants
     const hasVariantsBool = hasVariants === "true" || hasVariants === true;
     let parsedVariants = [];
-
     if (hasVariantsBool && variants) {
       parsedVariants = parseVariants(variants);
     }
@@ -184,40 +209,63 @@ const updateProductDetails = asyncHandler(async (req, res) => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
 
-    const updatedFields = {
-      ...fields,
-      slug,
-      description: sanitizeDescription(description),
-      images: imagesArray,
-      specifications: specifications
-        ? typeof specifications === "string"
-          ? JSON.parse(specifications)
-          : specifications
-        : [],
-      keyFeatures: keyFeatures
-        ? typeof keyFeatures === "string"
-          ? JSON.parse(keyFeatures)
-          : keyFeatures
-        : [],
-      isFeatured: isFeatured === "true" || isFeatured === true,
-      price: Number(price),
-      quantity: Number(quantity),
-      hasVariants: hasVariantsBool,
-      variants: parsedVariants,
-      defaultColorIndex: Number(defaultColorIndex) || 0,
-      defaultSizeIndex: Number(defaultSizeIndex) || 0,
-      salesCount: Number(fields.salesCount) || 0,
-    };
-
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      updatedFields,
-      { new: true, runValidators: true },
-    );
-
+    // FIX: Use findById + save() to trigger the pre-save middleware for auto-calculations
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
+
+    // Update fields
+    product.name = name;
+    product.slug = slug;
+    product.description = sanitizeDescription(description);
+    product.brand = fields.brand;
+    product.price = Number(price);
+    product.quantity = Number(quantity);
+    product.category = category;
+    product.isFeatured = isFeatured === "true" || isFeatured === true;
+    product.specifications = specifications
+      ? typeof specifications === "string"
+        ? JSON.parse(specifications)
+        : specifications
+      : [];
+    product.keyFeatures = keyFeatures
+      ? typeof keyFeatures === "string"
+        ? JSON.parse(keyFeatures)
+        : keyFeatures
+      : [];
+    product.hasVariants = hasVariantsBool;
+    product.variants = parsedVariants;
+    product.defaultColorIndex = Number(defaultColorIndex) || 0;
+    product.defaultSizeIndex = Number(defaultSizeIndex) || 0;
+    product.salesCount = Number(salesCount) || 0;
+    product.discountPercentage = Number(fields.discountPercentage) || 0;
+    product.discountedAmount = Number(fields.discountedAmount) || 0;
+
+    // Keep old images if no new images are provided
+    product.images = imagesArray.length > 0 ? imagesArray : product.images;
+
+    // Parse and Update shipping details
+    if (fields.shippingDetails) {
+      const parsedShipping =
+        typeof fields.shippingDetails === "string"
+          ? JSON.parse(fields.shippingDetails)
+          : fields.shippingDetails;
+      product.shippingDetails = {
+        isFreeShipping:
+          parsedShipping.isFreeShipping === true ||
+          parsedShipping.isFreeShipping === "true",
+        isIndividualShipping:
+          parsedShipping.isIndividualShipping === true ||
+          parsedShipping.isIndividualShipping === "true",
+        individualShippingCost:
+          Number(parsedShipping.individualShippingCost) || 0,
+        extraShippingCost: Number(parsedShipping.extraShippingCost) || 0,
+      };
+    }
+
+    // pre-save hook will run here and auto-calculate discount & variant stock
+    await product.save();
 
     res.json(product);
   } catch (error) {
@@ -319,9 +367,7 @@ const fetchAllProducts = asyncHandler(async (req, res) => {
         path: "category",
         populate: {
           path: "parent",
-          populate: {
-            path: "parent",
-          },
+          populate: { path: "parent" },
         },
       })
       .limit(50)
@@ -365,7 +411,6 @@ const addProductReview = asyncHandler(async (req, res) => {
     };
 
     product.reviews.push(review);
-
     product.numReviews = product.reviews.length;
     product.rating =
       product.reviews.reduce((acc, item) => item.rating + acc, 0) /

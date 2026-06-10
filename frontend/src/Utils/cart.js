@@ -28,13 +28,9 @@ export const updateCart = (state) => {
 
   const itemsPriceNum = Number(state.itemsPrice);
 
-  // ✅ REMOVED: Hardcoded shipping calculation logic
-  // Shipping is now calculated dynamically on the Checkout page based on Division/District/Thana
-
   state.shippingPrice = addDecimals(0); // Set to 0 in cart context
   state.taxPrice = addDecimals(0);
 
-  // ✅ UPDATED: Total price in cart is now just items + tax (shipping added later at checkout)
   state.totalPrice = addDecimals(itemsPriceNum);
 
   state.totalSavings = addDecimals(totalSavings);

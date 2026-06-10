@@ -19,6 +19,7 @@ const getInitialState = () => {
         taxPrice: parsedCart.taxPrice || 0,
         totalPrice: parsedCart.itemsPrice || 0, // ✅ totalPrice = Subtotal only (items + tax)
         totalSavings: parsedCart.totalSavings || 0,
+        isCartOpen: false, // ✅ Always false on page refresh (Don't persist in local storage)
       };
     }
   } catch (error) {
@@ -34,6 +35,7 @@ const getInitialState = () => {
     taxPrice: 0,
     totalPrice: 0,
     totalSavings: 0,
+    isCartOpen: false, // ✅ New State Added
   };
 };
 
@@ -127,6 +129,9 @@ const cartSlice = createSlice({
         state.cartItems.push(normalizedItem);
       }
 
+      // ✅ Automatically open the cart sidebar when a new item is added
+      state.isCartOpen = true;
+
       // ✅ Removed state.shippingAddress parameter, no longer needed for price calc
       return updateCart(state);
     },
@@ -194,7 +199,15 @@ const cartSlice = createSlice({
         taxPrice: 0,
         totalPrice: 0,
         totalSavings: 0,
+        isCartOpen: false,
       };
+    },
+
+    // ✅ New Reducer to toggle the Cart Sidebar
+    toggleCartSidebar: (state, action) => {
+      state.isCartOpen = action.payload;
+      // We are not calling localStorage here because we don't want
+      // the sidebar open state to persist after a page refresh
     },
   },
 });
@@ -206,6 +219,7 @@ export const {
   savePaymentMethod,
   clearCartItems,
   resetCart,
+  toggleCartSidebar, // ✅ Exported the new action
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

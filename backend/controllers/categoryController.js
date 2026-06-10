@@ -9,7 +9,6 @@ const createCategory = asyncHandler(async (req, res) => {
       return res.json({ error: "Name is required" });
     }
 
-    // একই প্যারেন্টের আন্ডারে একই নাম চেক করা
     const existingCategory = await Category.findOne({
       name,
       parent: parent || null,
@@ -59,17 +58,12 @@ const removeCategory = asyncHandler(async (req, res) => {
   try {
     const categoryId = req.params.categoryId;
 
-    // চেক করা: এই ক্যাটাগরির আন্ডারে কি কোনো চাইল্ড আছে?
     const hasChildren = await Category.exists({ parent: categoryId });
 
     if (hasChildren) {
-      // অপশন ১: চাইল্ড থাকলে ডিলিট হতে দেবেন না (Safe approach)
       return res
         .status(400)
         .json({ error: "Cannot delete. This category has sub-categories." });
-
-      // অপশন ২: চাইল্ডদের parent কে null করে দিন (Orphan approach)
-      // await Category.updateMany({ parent: categoryId }, { $set: { parent: null } });
     }
 
     const removed = await Category.findByIdAndDelete(categoryId);
@@ -80,17 +74,13 @@ const removeCategory = asyncHandler(async (req, res) => {
   }
 });
 
-// সবচেয়ে গুরুত্বপূর্ণ অংশ: Tree Structure তৈরি করা
 const listCategory = asyncHandler(async (req, res) => {
   try {
-    // সব ক্যাটাগরি ফ্ল্যাট আকারে নিচ্ছি, populate এর দরকার নেই ট্রি বানানোর জন্য
     const all = await Category.find({}).lean();
 
-    // ফ্ল্যাট লিস্ট থেকে Nested Tree বানানোর ফাংশন
     const buildCategoryTree = (categories, parentId = null) => {
       const categoryList = [];
       const filteredCategories = categories.filter((cat) => {
-        // parentId null হলে মেন ক্যাটাগরি, না হলে চাইল্ড
         return String(cat.parent) === String(parentId);
       });
 

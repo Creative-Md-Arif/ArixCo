@@ -3,11 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { useProfileMutation } from "../../redux/api/usersApiSlice";
 import { setCredentials } from "../../redux/features/auth/authSlice";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, NavLink } from "react-router-dom";
 
 import Swal from "sweetalert2";
-import Sidebar from "../../components/Sidebar";
-import { BsPersonCircle, BsShieldLock } from "react-icons/bs";
+import { BsPersonCircle, BsShieldLock, BsBagCheck } from "react-icons/bs";
 
 const Profile = () => {
   const [username, setUserName] = useState("");
@@ -22,7 +21,6 @@ const Profile = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // 1️⃣ বাগ ফিক্স: userInfo null চেক করা হয়েছে
   useEffect(() => {
     if (userInfo) {
       setUserName(userInfo.username || "");
@@ -33,12 +31,10 @@ const Profile = () => {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    // বেসিক রিকোয়ারমেন্ট চেক
     if (!username.trim() || !email.trim()) {
       return toast.error("Name and Email are required");
     }
 
-    // কী কী পরিবর্তন হচ্ছে তা ট্র্যাক করা
     const isNameChanging = username.trim() !== userInfo?.username;
     const initialEmail = userInfo?.pendingEmail || userInfo?.email || "";
     const isEmailChanging =
@@ -46,7 +42,6 @@ const Profile = () => {
     const isPasswordChanging =
       newPassword.length > 0 || confirmPassword.length > 0;
 
-    // ১. ভ্যালিডেশন: যদি কোনো কিছুই পরিবর্তন না করা হয়
     if (
       !isNameChanging &&
       !isEmailChanging &&
@@ -56,14 +51,12 @@ const Profile = () => {
       return toast.info("No changes were made to update.");
     }
 
-    // ২. ভ্যালিডেশন: যদি Current Password দেয়, কিন্তু New Password বা Email চেঞ্জ করার চেষ্টা না করে
     if (currentPassword && !isPasswordChanging && !isEmailChanging) {
       return toast.error(
         "Please enter a new password if you want to change your password.",
       );
     }
 
-    // ৩. ভ্যালিডেশন: পাসওয়ার্ড পরিবর্তনের নিয়ম
     if (isPasswordChanging) {
       if (!currentPassword) {
         return toast.error(
@@ -78,14 +71,12 @@ const Profile = () => {
       }
     }
 
-    // ৪. ভ্যালিডেশন: ইমেইল পরিবর্তনের নিয়ম
     if (isEmailChanging && !currentPassword) {
       return toast.error(
         "Current password is required to update your email address.",
       );
     }
 
-    // সব ভ্যালিডেশন পাস করলে তবেই কনফার্মেশন পপআপ আসবে
     const result = await Swal.fire({
       title: "Confirm Update?",
       text: isEmailChanging
@@ -135,141 +126,170 @@ const Profile = () => {
   };
   
   return (
-    <div className="mt-[10px] bg-white min-h-screen">
-      <div className="py-4 md:py-6 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider">
-          <Link
-            to="/"
-            className="text-gray-500 hover:text-blue-600 transition-all"
-          >
-            Home
-          </Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-blue-600">My Profile</span>
+    <div className="bg-white min-h-screen">
+      {/* ✅ Unified Breadcrumb */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <nav className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
+            <Link to="/" className="hover:text-blue-600 transition-colors">
+              Home
+            </Link>
+            <span className="text-gray-300">/</span>
+            <Link to="/profile" className="hover:text-blue-600 transition-colors">
+              Profile
+            </Link>
+            <span className="text-gray-300">/</span>
+            <span className="text-blue-600 font-black">Settings</span>
+          </nav>
         </div>
       </div>
 
-      <div className="container mx-auto py-8 md:py-10 px-4">
-        <div className="flex flex-col lg:flex-row gap-6 md:gap-10">
-          <Sidebar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        
+        {/* ✅ Unified Tab Navigation */}
+        <div className="flex gap-2 border-b border-gray-200 mb-8 overflow-x-auto pb-px">
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-5 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
+                isActive
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              }`
+            }
+          >
+            <BsPersonCircle className="text-sm" /> Profile
+          </NavLink>
+          <NavLink
+            to="/user-orders"
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-5 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
+                isActive
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              }`
+            }
+          >
+            <BsBagCheck className="text-sm" /> Orders
+          </NavLink>
+        </div>
 
-          {/* ✅ CHANGED: Removed motion.div and used regular div to prevent jumping/flickering */}
-          <div className="flex-1">
-            <div className="bg-white rounded-2xl md:rounded-[2rem] border border-gray-200 hover:border-gray-300 transition-all duration-300 overflow-hidden">
-              <div className="p-5 md:p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50/30 to-transparent">
-                <h2 className="text-xl md:text-2xl font-mono font-black text-gray-900 uppercase tracking-tighter flex items-center gap-3">
-                  <BsPersonCircle className="text-blue-600" />
-                  Account <span className="text-blue-600">Settings</span>
-                </h2>
-                <p className="text-gray-500 text-xs font-mono mt-1 uppercase tracking-wider">
-                  Update your personal information and security
-                </p>
+        {/* ✅ Unified Container Width (max-w-5xl) */}
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-300 overflow-hidden">
+            <div className="p-5 md:p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50/30 to-transparent">
+              <h2 className="text-xl md:text-2xl font-mono font-black text-gray-900 uppercase tracking-tighter flex items-center gap-3">
+                <BsPersonCircle className="text-blue-600" />
+                Account <span className="text-blue-600">Settings</span>
+              </h2>
+              <p className="text-gray-500 text-xs font-mono mt-1 uppercase tracking-wider">
+                Update your personal information and security
+              </p>
+            </div>
+
+            <form onSubmit={submitHandler} className="p-5 md:p-8 space-y-6 md:space-y-8">
+              <div className="space-y-5 md:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. John Doe"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
+                      value={username}
+                      onChange={(e) => setUserName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="email@example.com"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    {userInfo?.pendingEmail && (
+                      <p className="text-xs text-orange-500 font-mono font-bold">
+                        ⚠️ This email is pending verification.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <form onSubmit={submitHandler} className="p-5 md:p-8 space-y-6 md:space-y-8">
-                <div className="space-y-5 md:space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. John Doe"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
-                        value={username}
-                        onChange={(e) => setUserName(e.target.value)}
-                      />
-                    </div>
+              <hr className="border-gray-100" />
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="email@example.com"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-sm md:text-base text-gray-900 placeholder-gray-400"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                      {userInfo?.pendingEmail && (
-                        <p className="text-xs text-orange-500 font-mono font-bold">
-                          ⚠️ This email is pending verification.
-                        </p>
-                      )}
-                    </div>
+              <div className="space-y-5 md:space-y-6">
+                <h3 className="text-sm font-mono font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <BsShieldLock /> Password Security
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
+                      Current Password *
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500 font-mono">
+                      Required for email or password changes
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
                   </div>
                 </div>
+              </div>
 
-                <hr className="border-gray-100" />
+              <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p className="text-xs text-gray-500 font-mono italic text-center md:text-left">
+                  * Current password required for email/password changes.
+                  Leave new password blank to keep current.
+                </p>
 
-                <div className="space-y-5 md:space-y-6">
-                  <h3 className="text-sm font-mono font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                    <BsShieldLock /> Password Security
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
-                        Current Password *
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 font-mono">
-                        Required for email or password changes
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-mono font-black text-gray-600 uppercase tracking-wider ml-1">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 transition-all outline-none font-mono text-base text-gray-900 placeholder-gray-400"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-xs text-gray-500 font-mono italic text-center md:text-left">
-                    * Current password required for email/password changes.
-                    Leave new password blank to keep current.
-                  </p>
-
-                  <button
-                    disabled={loadingUpdateProfile}
-                    type="submit"
-                    className="w-full md:w-auto bg-gray-900 text-white px-6 md:px-10 py-3 md:py-3.5 rounded-xl text-sm font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {loadingUpdateProfile ? "Processing..." : "Update Profile"}
-                  </button>
-                </div>
-              </form>
-            </div>
+                <button
+                  disabled={loadingUpdateProfile}
+                  type="submit"
+                  className="w-full md:w-auto bg-gray-900 text-white px-6 md:px-10 py-3 md:py-3.5 rounded-xl text-sm font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {loadingUpdateProfile ? "Processing..." : "Update Profile"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

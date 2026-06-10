@@ -1,11 +1,6 @@
 import Shipping from "../models/shippingModel.js";
 
-// ============================================
-//  HELPER: BD Division Name Alias Map
-//  bd-geo-data returns: "Chattogram", "Barishal", "Cumilla"
-//  DB stores UPPERCASE: "CHITTAGONG", "BARISAL", "COMILLA"
-//  This map normalizes both old & new spellings → DB value
-// ============================================
+
 const DIVISION_ALIASES = {
   // New spelling → DB value
   CHATTOGRAM: "CHITTAGONG",
@@ -13,7 +8,6 @@ const DIVISION_ALIASES = {
   CUMILLA: "COMILLA",
   JASHORE: "JESSORE",
   FARIDPUR: "FARIDPUR",
-  // Old spelling → DB value (self-map for safety)
   CHITTAGONG: "CHITTAGONG",
   BARISAL: "BARISAL",
   COMILLA: "COMILLA",

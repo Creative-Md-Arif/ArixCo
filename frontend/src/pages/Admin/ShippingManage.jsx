@@ -18,15 +18,11 @@ import {
   useUpdateShippingZoneMutation,
   useDeleteShippingZoneMutation,
 } from "@redux/api/shippingApiSlice";
-
 import { useFetchCategoriesQuery } from "@redux/api/categoryApiSlice";
 import { useGetProductsQuery } from "@redux/api/productApiSlice";
-
-// ✅ BD Location Data Import
+import AdminMenu from "./AdminMenu";
 import bd from "@bd-geo-data/bd-location-data";
 
-// ✅ FIX: Division alias map — bd-geo-data "Chattogram" → DB "CHITTAGONG"
-// Admin থেকে save করার সময় এই map দিয়ে normalize হবে
 const DIVISION_ALIASES = {
   Chattogram: "CHITTAGONG",
   Barishal: "BARISAL",
@@ -60,20 +56,32 @@ const initialFormState = {
   excludedProducts: [],
 };
 
+// Custom Loading Spinner
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center py-20 gap-4">
+    <div className="flex items-center justify-center gap-1.5">
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce [animation-delay:-0.3s]"></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce [animation-delay:-0.15s]"></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-black animate-bounce"></div>
+    </div>
+    <p className="text-[10px] font-black tracking-[0.5em] uppercase text-gray-400 animate-pulse">
+      Loading Zones...
+    </p>
+  </div>
+);
+
 const ShippingManage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialFormState);
   const [productSearch, setProductSearch] = useState("");
 
-  // ✅ BD Location States
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [districts, setDistricts] = useState([]);
   const [thanas, setThanas] = useState([]);
   const [selectedThanas, setSelectedThanas] = useState([]);
 
-  // RTK Query Hooks
   const { data: zones, isLoading, refetch } = useGetAllShippingZonesQuery();
   const [createZone, { isLoading: isCreating }] =
     useCreateShippingZoneMutation();
@@ -88,7 +96,6 @@ const ShippingManage = () => {
 
   const categories = categoriesData?.categories || categoriesData || [];
   const products = productsData?.products || productsData || [];
-
   const divisionsEn = bd.allDivisions("en");
   const divisionsBn = bd.allDivisions("bn");
 
@@ -96,10 +103,8 @@ const ShippingManage = () => {
     refetch();
   }, [refetch]);
 
-  // ✅ FIX: Conflict detection — same ID applicable & excluded উভয়তে থাকলে warn করো
   const getConflictingIds = (applicableList, excludedList) =>
     applicableList.filter((id) => excludedList.includes(id));
-
   const categoryConflicts = getConflictingIds(
     formData.applicableCategories,
     formData.excludedCategories,
@@ -108,6 +113,8 @@ const ShippingManage = () => {
     formData.applicableProducts,
     formData.excludedProducts,
   );
+  const hasConflicts =
+    categoryConflicts.length > 0 || productConflicts.length > 0;
 
   const openAddModal = () => {
     setFormData(initialFormState);
@@ -204,14 +211,14 @@ const ShippingManage = () => {
 
   const handleAddEntireDivision = () => {
     if (!selectedDivision) return toast.error("Select a division first");
-    // ✅ FIX: Division normalize করে UPPERCASE alias-এ save করো
     const normalizedDiv = normalizeDivision(selectedDivision);
     setFormData((prev) => {
       const updatedDivisions = prev.divisions.includes(normalizedDiv)
         ? prev.divisions
         : [...prev.divisions, normalizedDiv];
-      // Division add করলে তার under-এর districts ও thanas সরিয়ে দাও (redundant)
-      const distsUnderDiv = bd.districtsOf(selectedDivision, "en").map((d) => d.toUpperCase());
+      const distsUnderDiv = bd
+        .districtsOf(selectedDivision, "en")
+        .map((d) => d.toUpperCase());
       const updatedDistricts = prev.districts.filter(
         (d) => !distsUnderDiv.includes(d.toUpperCase()),
       );
@@ -236,13 +243,11 @@ const ShippingManage = () => {
 
   const handleAddEntireDistrict = () => {
     if (!selectedDistrict) return toast.error("Select a district first");
-    // ✅ FIX: District UPPERCASE করে save
     const normalizedDist = selectedDistrict.trim().toUpperCase();
     setFormData((prev) => {
       const updatedDistricts = prev.districts.includes(normalizedDist)
         ? prev.districts
         : [...prev.districts, normalizedDist];
-      // District add করলে তার under-এর thanas সরিয়ে দাও
       const thanasUnderDist = bd
         .thanasOf(selectedDistrict, "en")
         .map((t) => t.toLowerCase());
@@ -261,7 +266,6 @@ const ShippingManage = () => {
         : [...prev, thanaEn],
     );
   };
-
   const handleSelectAllThanas = (e) => {
     if (e.target.checked) {
       setSelectedThanas(thanas.map((t) => t.en));
@@ -276,7 +280,6 @@ const ShippingManage = () => {
     setFormData((prev) => {
       let newThanas = [...prev.thanas];
       selectedThanas.forEach((thanaEn) => {
-        // ✅ FIX: Thana lowercase করে save
         const cityVal = thanaEn.toLowerCase().trim();
         if (!newThanas.includes(cityVal)) newThanas.push(cityVal);
       });
@@ -296,7 +299,6 @@ const ShippingManage = () => {
       setFormData((prev) => ({ ...prev, [field]: [] }));
     }
   };
-
   const handleArrayIdChange = (field, id) => {
     const strId = id.toString();
     setFormData((prev) => {
@@ -316,17 +318,12 @@ const ShippingManage = () => {
       (formData.divisions.length === 0 &&
         formData.districts.length === 0 &&
         formData.thanas.length === 0)
-    ) {
+    )
       return toast.error("Zone name and at least one area are required");
-    }
-
-    // ✅ FIX: Conflict check — submit আগে warn করো
-    if (categoryConflicts.length > 0 || productConflicts.length > 0) {
+    if (hasConflicts)
       return toast.error(
         "Some items are in both Applicable and Excluded lists. Please fix conflicts before saving.",
       );
-    }
-
     const payload = {
       ...formData,
       baseCost: Number(formData.baseCost),
@@ -336,7 +333,6 @@ const ShippingManage = () => {
         ? Number(formData.freeShippingMinOrder)
         : null,
     };
-
     try {
       if (editingId) {
         await updateZone({ zoneId: editingId, data: payload }).unwrap();
@@ -355,66 +351,76 @@ const ShippingManage = () => {
   const submitBtnLoading = isCreating || isUpdating;
   const areAllThanasSelected =
     thanas.length > 0 && selectedThanas.length === thanas.length;
-  const hasConflicts =
-    categoryConflicts.length > 0 || productConflicts.length > 0;
+
+  const inputClass =
+    "w-full border border-gray-200 rounded-sm px-3 py-2 text-sm focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
+  const selectClass = `${inputClass} cursor-pointer`;
+  const labelClass =
+    "text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1";
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-6 rounded-xl shadow-lg mb-8 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <FaTruck size={28} />
-          <div>
-            <h1 className="text-2xl font-bold">Manage Shipping Zones</h1>
-            <p className="text-sm text-indigo-200">
-              Configure rates, weight logic, and restrictions
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={openAddModal}
-          className="bg-white text-indigo-700 px-5 py-2.5 rounded-lg font-semibold hover:bg-indigo-50 transition flex items-center gap-2 shadow-md"
-        >
-          <FaPlus /> Create Zone
-        </button>
-      </div>
+    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-10 pb-16 transition-all duration-500">
+      <div className="flex flex-col 2xl:flex-row">
+        <AdminMenu />
+        <div className="flex-1 px-4 sm:px-6 lg:px-12">
+          <div className="max-w-[1500px] mx-auto">
+            {/* Header */}
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between border-l-4 border-black pl-4 sm:pl-6 py-2 gap-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tighter uppercase">
+                  Shipping / <span className="text-red-600">Zones</span>
+                </h1>
+                <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-[0.3em] uppercase mt-1">
+                  Configure rates, weight logic, and restrictions
+                </p>
+              </div>
+              <button
+                onClick={openAddModal}
+                className="bg-black text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 rounded-sm w-full md:w-auto justify-center"
+              >
+                <FaPlus size={10} /> Create Zone
+              </button>
+            </div>
 
-      {/* Zones List Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Loading...</div>
-        ) : zones?.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No zones found.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-b">
-                  <th className="p-4 font-semibold">Zone Name</th>
-                  <th className="p-4 font-semibold">Coverage</th>
-                  <th className="p-4 font-semibold">Cost</th>
-                  <th className="p-4 font-semibold">Status</th>
-                  <th className="p-4 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {zones?.map((zone) => (
-                  <tr
-                    key={zone._id}
-                    className="border-b border-gray-50 hover:bg-gray-50/50"
-                  >
-                    <td className="p-4 font-bold text-gray-900">
-                      {zone.zoneName}{" "}
-                      <span className="font-normal text-xs text-gray-500 block">
-                        {zone.estimatedDays}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
+            {isLoading ? (
+              <LoadingSpinner />
+            ) : zones?.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 font-bold uppercase tracking-widest text-xs border border-dashed border-gray-200 rounded-sm">
+                No zones found. Create one!
+              </div>
+            ) : (
+              <>
+                {/* ============================================ */}
+                {/* MOBILE VIEW: Card Layout (Visible < md) */}
+                {/* ============================================ */}
+                <div className="md:hidden space-y-4">
+                  {zones?.map((zone) => (
+                    <div
+                      key={zone._id}
+                      className="border border-gray-200 p-4 rounded-sm bg-white hover:border-black transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-black text-black uppercase tracking-wider text-sm">
+                            {zone.zoneName}
+                          </h3>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                            {zone.estimatedDays}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleToggle(zone)}
+                          className={`text-xl ${zone.isActive ? "text-black" : "text-gray-300"}`}
+                        >
+                          {zone.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 mb-3 border-t border-b border-gray-100 py-2">
                         {zone.divisions?.map((div) => (
                           <span
                             key={div}
-                            className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold uppercase"
+                            className="bg-gray-100 border border-gray-200 text-black px-1.5 py-0.5 text-[8px] font-bold uppercase"
                           >
                             {div}
                           </span>
@@ -422,7 +428,7 @@ const ShippingManage = () => {
                         {zone.districts?.map((dist) => (
                           <span
                             key={dist}
-                            className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs uppercase"
+                            className="bg-gray-50 border border-gray-200 text-gray-700 px-1.5 py-0.5 text-[8px] uppercase"
                           >
                             {dist}
                           </span>
@@ -430,125 +436,234 @@ const ShippingManage = () => {
                         {zone.thanas?.slice(0, 3).map((thana) => (
                           <span
                             key={thana}
-                            className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs capitalize"
+                            className="bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 text-[8px] capitalize"
                           >
                             {thana}
                           </span>
                         ))}
                         {zone.thanas?.length > 3 && (
-                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                          <span className="text-[8px] text-gray-400 font-bold">
                             +{zone.thanas.length - 3} more
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="p-4 text-sm text-gray-700">
-                      <p>
-                        Base: ৳{zone.baseCost} ({zone.baseWeightKg}kg)
-                      </p>
-                      <p>Extra: ৳{zone.extraWeightCostPerKg}/kg</p>
-                      {zone.freeShippingMinOrder && (
-                        <p className="text-green-600 text-xs">
-                          Free &gt;৳{zone.freeShippingMinOrder}
-                        </p>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => handleToggle(zone)}
-                        className={`text-2xl ${zone.isActive ? "text-green-500" : "text-gray-300"}`}
-                      >
-                        {zone.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-3 justify-end">
+
+                      <div className="grid grid-cols-2 gap-2 mb-4 text-[10px]">
+                        <div>
+                          <span className="text-gray-400 block">Base Cost</span>
+                          <span className="font-black text-black">
+                            ৳{zone.baseCost} ({zone.baseWeightKg}kg)
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Extra/Kg</span>
+                          <span className="font-black text-black">
+                            ৳{zone.extraWeightCostPerKg}
+                          </span>
+                        </div>
+                        {zone.freeShippingMinOrder && (
+                          <div className="col-span-2">
+                            <span className="text-green-600 font-bold">
+                              Free Shipping over ৳{zone.freeShippingMinOrder}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 border-t border-gray-100 pt-3">
                         <button
                           onClick={() => handleEdit(zone)}
-                          className="text-blue-500 hover:text-blue-700"
+                          className="flex-1 py-1.5 border border-gray-200 text-gray-600 hover:border-black hover:text-black text-[9px] font-bold uppercase tracking-widest transition-all rounded-sm flex items-center justify-center gap-1"
                         >
-                          <FaEdit size={18} />
+                          <FaEdit size={9} /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(zone._id)}
-                          className="text-red-400 hover:text-red-600"
+                          className="flex-1 py-1.5 border border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 text-[9px] font-bold uppercase tracking-widest transition-all rounded-sm flex items-center justify-center gap-1"
                         >
-                          <FaTrash size={16} />
+                          <FaTrash size={9} /> Del
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ============================================ */}
+                {/* DESKTOP VIEW: Table Layout (Visible >= md) */}
+                {/* ============================================ */}
+                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                          Zone Name
+                        </th>
+                        <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                          Coverage
+                        </th>
+                        <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                          Cost
+                        </th>
+                        <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                          Status
+                        </th>
+                        <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {zones?.map((zone) => (
+                        <tr
+                          key={zone._id}
+                          className="hover:bg-gray-50 transition-colors group"
+                        >
+                          <td className="p-4">
+                            <div className="font-black text-black uppercase tracking-wider text-xs">
+                              {zone.zoneName}
+                            </div>
+                            <div className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                              {zone.estimatedDays}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {zone.divisions?.map((div) => (
+                                <span
+                                  key={div}
+                                  className="bg-gray-100 border border-gray-200 text-black px-1.5 py-0.5 text-[8px] font-bold uppercase"
+                                >
+                                  {div}
+                                </span>
+                              ))}
+                              {zone.districts?.map((dist) => (
+                                <span
+                                  key={dist}
+                                  className="bg-white border border-gray-200 text-gray-700 px-1.5 py-0.5 text-[8px] uppercase"
+                                >
+                                  {dist}
+                                </span>
+                              ))}
+                              {zone.thanas?.slice(0, 3).map((thana) => (
+                                <span
+                                  key={thana}
+                                  className="bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 text-[8px] capitalize"
+                                >
+                                  {thana}
+                                </span>
+                              ))}
+                              {zone.thanas?.length > 3 && (
+                                <span className="text-[8px] text-gray-400 font-bold">
+                                  +{zone.thanas.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 text-[11px] text-gray-700 space-y-1">
+                            <p className="font-bold text-black">
+                              Base: ৳{zone.baseCost} ({zone.baseWeightKg}kg)
+                            </p>
+                            <p>Extra: ৳{zone.extraWeightCostPerKg}/kg</p>
+                            {zone.freeShippingMinOrder && (
+                              <p className="text-green-600 font-bold text-[9px] uppercase">
+                                Free &gt;৳{zone.freeShippingMinOrder}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => handleToggle(zone)}
+                              className={`text-xl ${zone.isActive ? "text-black" : "text-gray-300"}`}
+                            >
+                              {zone.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                            </button>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex gap-3 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEdit(zone)}
+                                className="text-gray-400 hover:text-black transition-colors"
+                              >
+                                <FaEdit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(zone._id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors"
+                              >
+                                <FaTrash size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ============ CREATE / EDIT MODAL ============ */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start z-50 p-4 pt-10 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mb-10">
-            <div className="flex justify-between items-center p-6 border-b bg-gray-50 rounded-t-2xl">
-              <h2 className="text-xl font-bold text-gray-800">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-start z-50 p-4 pt-10 overflow-y-auto">
+          <div className="bg-white border border-gray-200 rounded-sm w-full max-w-3xl mb-10">
+            <div className="flex justify-between items-center p-5 border-b border-gray-200">
+              <h2 className="text-sm font-black text-black uppercase tracking-wider">
                 {editingId ? "Update Zone" : "Create New Zone"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-800"
+                className="text-gray-400 hover:text-black transition-colors"
               >
-                <FaTimes size={20} />
+                <FaTimes size={16} />
               </button>
             </div>
 
-            <form onSubmit={submitHandler} className="p-6 space-y-6">
+            <form onSubmit={submitHandler} className="p-5 space-y-6">
               {/* Section 1: Coverage Info */}
-              <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
-                <h3 className="font-semibold text-gray-700 mb-4 border-b pb-2">
+              <div className="border border-gray-200 rounded-sm p-4">
+                <h3 className="font-bold text-[10px] text-gray-500 uppercase tracking-widest mb-4 border-b border-gray-100 pb-2">
                   Zone & Coverage Info
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Zone Name <span className="text-red-500">*</span>
-                    </label>
+                    <label className={labelClass}>Zone Name *</label>
                     <input
                       type="text"
                       name="zoneName"
                       value={formData.zoneName}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className={inputClass}
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Estimated Days
-                    </label>
+                    <label className={labelClass}>Estimated Days</label>
                     <input
                       type="text"
                       name="estimatedDays"
                       value={formData.estimatedDays}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className={inputClass}
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 bg-white p-3 rounded-lg border border-gray-100">
-                  <label className="block text-sm font-medium mb-3 text-gray-700">
-                    Select Coverage Area <span className="text-red-500">*</span>
+                <div className="mt-4 bg-gray-50 p-3 border border-gray-200 rounded-sm">
+                  <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-3">
+                    Select Coverage Area *
                   </label>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">
+                      <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
                         বিভাগ / Division
                       </label>
                       <select
                         value={selectedDivision}
                         onChange={handleDivisionChange}
-                        className="w-full border border-gray-200 bg-gray-50 px-3 py-2 rounded-lg outline-none text-sm"
+                        className={selectClass}
                       >
                         <option value="">নির্বাচন করুন</option>
                         {divisionsEn.map((div, i) => (
@@ -561,20 +676,21 @@ const ShippingManage = () => {
                         <button
                           type="button"
                           onClick={handleAddEntireDivision}
-                          className="mt-1 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded w-full hover:bg-indigo-200 transition font-semibold"
+                          className="mt-1 text-[9px] bg-black text-white px-2 py-1 rounded-sm w-full hover:bg-red-600 transition-all font-bold uppercase"
                         >
-                          + Add Entire Division ({normalizeDivision(selectedDivision)})
+                          + Add Entire Division (
+                          {normalizeDivision(selectedDivision)})
                         </button>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">
+                      <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
                         জেলা / District
                       </label>
                       <select
                         value={selectedDistrict}
                         onChange={handleDistrictChange}
-                        className="w-full border border-gray-200 bg-gray-50 px-3 py-2 rounded-lg outline-none text-sm"
+                        className={selectClass}
                         disabled={!selectedDivision}
                       >
                         <option value="">নির্বাচন করুন</option>
@@ -588,48 +704,49 @@ const ShippingManage = () => {
                         <button
                           type="button"
                           onClick={handleAddEntireDistrict}
-                          className="mt-1 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded w-full hover:bg-indigo-200 transition font-semibold"
+                          className="mt-1 text-[9px] bg-black text-white px-2 py-1 rounded-sm w-full hover:bg-red-600 transition-all font-bold uppercase"
                         >
-                          + Add Entire District ({selectedDistrict.toUpperCase()})
+                          + Add Entire District (
+                          {selectedDistrict.toUpperCase()})
                         </button>
                       )}
                     </div>
                   </div>
 
                   {selectedDistrict && thanas.length > 0 && (
-                    <div className="border border-dashed border-indigo-200 rounded-lg p-3 bg-indigo-50/30">
-                      <div className="flex justify-between items-center mb-2 border-b border-indigo-100 pb-2">
+                    <div className="border border-dashed border-gray-300 rounded-sm p-3 bg-white">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 border-b border-gray-100 pb-2">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
                             onChange={handleSelectAllThanas}
                             checked={areAllThanasSelected}
-                            className="w-4 h-4 text-indigo-600 rounded"
+                            className="accent-black w-3 h-3"
                           />
-                          <span className="text-xs font-bold text-indigo-800">
+                          <span className="text-[9px] font-bold text-gray-700 uppercase">
                             Select All Thanas
                           </span>
                         </label>
                         <button
                           type="button"
                           onClick={handleAddSelectedThanas}
-                          className="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1"
+                          className="bg-black text-white px-3 py-1 rounded-sm text-[9px] font-bold hover:bg-red-600 transition-all flex items-center gap-1"
                         >
                           <FaPlus size={8} /> Add Selected (
                           {selectedThanas.length})
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
                         {thanas.map((thana) => (
                           <label
                             key={thana.en}
-                            className="flex items-center gap-1.5 cursor-pointer bg-white p-1.5 rounded border border-gray-100 hover:border-indigo-300 transition text-xs"
+                            className="flex items-center gap-1.5 cursor-pointer bg-gray-50 p-1.5 rounded-sm border border-gray-200 hover:border-black transition-all text-[10px]"
                           >
                             <input
                               type="checkbox"
                               checked={selectedThanas.includes(thana.en)}
                               onChange={() => handleThanaCheck(thana.en)}
-                              className="w-3 h-3 text-indigo-600 rounded"
+                              className="accent-black w-3 h-3"
                             />
                             <span className="text-gray-700 truncate">
                               {thana.bn}
@@ -646,9 +763,9 @@ const ShippingManage = () => {
                   {formData.divisions.map((div) => (
                     <span
                       key={div}
-                      className="bg-purple-200 text-purple-900 px-2 py-1 rounded-md text-xs flex items-center gap-1 font-bold uppercase border border-purple-300"
+                      className="bg-black text-white px-2 py-1 rounded-sm text-[8px] flex items-center gap-1 font-bold uppercase"
                     >
-                      <FaMapMarkerAlt size={8} /> {div} (Entire Division)
+                      <FaMapMarkerAlt size={7} /> {div} (Div)
                       <button
                         type="button"
                         onClick={() =>
@@ -657,18 +774,18 @@ const ShippingManage = () => {
                             divisions: prev.divisions.filter((d) => d !== div),
                           }))
                         }
-                        className="text-purple-600 hover:text-red-600 ml-1"
+                        className="text-white hover:text-red-400 ml-1"
                       >
-                        <FaTimes size={9} />
+                        <FaTimes size={8} />
                       </button>
                     </span>
                   ))}
                   {formData.districts.map((dist) => (
                     <span
                       key={dist}
-                      className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs flex items-center gap-1 font-bold uppercase"
+                      className="bg-gray-800 text-white px-2 py-1 rounded-sm text-[8px] flex items-center gap-1 font-bold uppercase"
                     >
-                      <FaMapMarkerAlt size={8} /> {dist} (Entire District)
+                      <FaMapMarkerAlt size={7} /> {dist} (Dist)
                       <button
                         type="button"
                         onClick={() =>
@@ -677,18 +794,18 @@ const ShippingManage = () => {
                             districts: prev.districts.filter((d) => d !== dist),
                           }))
                         }
-                        className="text-blue-500 hover:text-red-500 ml-1"
+                        className="text-white hover:text-red-400 ml-1"
                       >
-                        <FaTimes size={9} />
+                        <FaTimes size={8} />
                       </button>
                     </span>
                   ))}
                   {formData.thanas.map((thana) => (
                     <span
                       key={thana}
-                      className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-xs flex items-center gap-1 capitalize font-medium"
+                      className="bg-gray-100 border border-gray-200 text-black px-2 py-1 rounded-sm text-[8px] flex items-center gap-1 capitalize font-bold"
                     >
-                      <FaMapMarkerAlt size={8} /> {thana}
+                      <FaMapMarkerAlt size={7} /> {thana}
                       <button
                         type="button"
                         onClick={() =>
@@ -697,16 +814,16 @@ const ShippingManage = () => {
                             thanas: prev.thanas.filter((t) => t !== thana),
                           }))
                         }
-                        className="text-indigo-500 hover:text-red-500 ml-1"
+                        className="text-gray-500 hover:text-red-600 ml-1"
                       >
-                        <FaTimes size={9} />
+                        <FaTimes size={8} />
                       </button>
                     </span>
                   ))}
                   {formData.divisions.length === 0 &&
                     formData.districts.length === 0 &&
                     formData.thanas.length === 0 && (
-                      <p className="text-xs text-gray-400 italic">
+                      <p className="text-[9px] text-gray-400 italic uppercase">
                         No areas added yet
                       </p>
                     )}
@@ -714,97 +831,93 @@ const ShippingManage = () => {
               </div>
 
               {/* Section 2: Cost & Weight Logic */}
-              <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
-                <h3 className="font-semibold text-gray-700 mb-4 border-b pb-2">
+              <div className="border border-gray-200 rounded-sm p-4">
+                <h3 className="font-bold text-[10px] text-gray-500 uppercase tracking-widest mb-4 border-b border-gray-100 pb-2">
                   Cost & Weight Logic
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Base Cost (৳)
-                    </label>
+                    <label className={labelClass}>Base Cost (৳)</label>
                     <input
                       type="number"
                       name="baseCost"
                       value={formData.baseCost}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg outline-none"
+                      className={inputClass}
                       min="0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Base Weight (Kg)
-                    </label>
+                    <label className={labelClass}>Base Weight (Kg)</label>
                     <input
                       type="number"
                       name="baseWeightKg"
                       value={formData.baseWeightKg}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg outline-none"
+                      className={inputClass}
                       min="0"
                       step="0.1"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Extra Cost/Kg (৳)
-                    </label>
+                    <label className={labelClass}>Extra Cost/Kg (৳)</label>
                     <input
                       type="number"
                       name="extraWeightCostPerKg"
                       value={formData.extraWeightCostPerKg}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg outline-none"
+                      className={inputClass}
                       min="0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">
-                      Free Shipping Min Order (৳)
+                    <label className={labelClass}>
+                      Free Ship Min Order (৳)
                     </label>
                     <input
                       type="number"
                       name="freeShippingMinOrder"
                       value={formData.freeShippingMinOrder}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-200 bg-white px-3 py-2.5 rounded-lg outline-none"
+                      className={inputClass}
                       min="0"
-                      placeholder="Leave empty for none"
+                      placeholder="None"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Section 3: Restrictions */}
-              <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
-                <h3 className="font-semibold text-gray-700 mb-1 border-b pb-2">
+              <div className="border border-gray-200 rounded-sm p-4">
+                <h3 className="font-bold text-[10px] text-gray-500 uppercase tracking-widest mb-1 border-b border-gray-100 pb-2">
                   Restrictions (Optional)
                 </h3>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-[8px] text-gray-400 mb-3 uppercase">
                   If left empty, rules apply to all products/categories.
                 </p>
 
-                {/* ✅ FIX: Conflict Warning Banner */}
                 {hasConflicts && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                    <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" size={14} />
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm flex items-start gap-2">
+                    <FaExclamationTriangle
+                      className="text-red-500 mt-0.5 flex-shrink-0"
+                      size={12}
+                    />
                     <div>
-                      <p className="text-xs font-bold text-red-700">Conflict Detected!</p>
-                      <p className="text-xs text-red-600">
-                        {categoryConflicts.length > 0 && `${categoryConflicts.length} category(s) `}
-                        {productConflicts.length > 0 && `${productConflicts.length} product(s) `}
-                        are in both Applicable and Excluded lists. This will cause incorrect shipping calculation. Please remove them from one list.
+                      <p className="text-[9px] font-bold text-red-700 uppercase">
+                        Conflict Detected!
+                      </p>
+                      <p className="text-[9px] text-red-600">
+                        Items are in both Applicable and Excluded lists. Fix
+                        before saving.
                       </p>
                     </div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Applicable Categories */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-600">
+                      <label className={labelClass}>
                         Applicable Categories
                       </label>
                       <button
@@ -817,7 +930,7 @@ const ShippingManage = () => {
                               categories.length,
                           )
                         }
-                        className="text-[10px] text-indigo-600 font-bold hover:underline"
+                        className="text-[8px] text-black font-bold hover:underline uppercase"
                       >
                         {formData.applicableCategories.length ===
                         categories.length
@@ -825,16 +938,20 @@ const ShippingManage = () => {
                           : "Mark All"}
                       </button>
                     </div>
-                    <div className="max-h-40 overflow-y-auto border bg-white rounded-lg p-2 space-y-1">
+                    <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-sm p-2 space-y-1 bg-white">
                       {categories.length === 0 ? (
-                        <p className="text-xs text-gray-400 p-1">No categories</p>
+                        <p className="text-[9px] text-gray-400 p-1">
+                          No categories
+                        </p>
                       ) : (
                         categories.map((cat) => {
-                          const isConflict = categoryConflicts.includes(cat._id.toString());
+                          const isConflict = categoryConflicts.includes(
+                            cat._id.toString(),
+                          );
                           return (
                             <label
                               key={cat._id}
-                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
+                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded-sm text-[11px] ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
                             >
                               <input
                                 type="checkbox"
@@ -842,11 +959,16 @@ const ShippingManage = () => {
                                   cat._id.toString(),
                                 )}
                                 onChange={() =>
-                                  handleArrayIdChange("applicableCategories", cat._id)
+                                  handleArrayIdChange(
+                                    "applicableCategories",
+                                    cat._id,
+                                  )
                                 }
-                                className="w-4 h-4 text-indigo-600 rounded"
+                                className="accent-black w-3 h-3"
                               />
-                              <span className={`text-sm ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}>
+                              <span
+                                className={`truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}
+                              >
                                 {cat.name} {isConflict && "⚠"}
                               </span>
                             </label>
@@ -855,13 +977,9 @@ const ShippingManage = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* Excluded Categories */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-600">
-                        Excluded Categories
-                      </label>
+                      <label className={labelClass}>Excluded Categories</label>
                       <button
                         type="button"
                         onClick={() =>
@@ -872,23 +990,28 @@ const ShippingManage = () => {
                               categories.length,
                           )
                         }
-                        className="text-[10px] text-red-600 font-bold hover:underline"
+                        className="text-[8px] text-red-600 font-bold hover:underline uppercase"
                       >
-                        {formData.excludedCategories.length === categories.length
+                        {formData.excludedCategories.length ===
+                        categories.length
                           ? "Unmark All"
                           : "Mark All"}
                       </button>
                     </div>
-                    <div className="max-h-40 overflow-y-auto border bg-white rounded-lg p-2 space-y-1">
+                    <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-sm p-2 space-y-1 bg-white">
                       {categories.length === 0 ? (
-                        <p className="text-xs text-gray-400 p-1">No categories</p>
+                        <p className="text-[9px] text-gray-400 p-1">
+                          No categories
+                        </p>
                       ) : (
                         categories.map((cat) => {
-                          const isConflict = categoryConflicts.includes(cat._id.toString());
+                          const isConflict = categoryConflicts.includes(
+                            cat._id.toString(),
+                          );
                           return (
                             <label
                               key={cat._id}
-                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
+                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded-sm text-[11px] ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
                             >
                               <input
                                 type="checkbox"
@@ -896,11 +1019,16 @@ const ShippingManage = () => {
                                   cat._id.toString(),
                                 )}
                                 onChange={() =>
-                                  handleArrayIdChange("excludedCategories", cat._id)
+                                  handleArrayIdChange(
+                                    "excludedCategories",
+                                    cat._id,
+                                  )
                                 }
-                                className="w-4 h-4 text-red-600 rounded"
+                                className="accent-red-600 w-3 h-3"
                               />
-                              <span className={`text-sm ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}>
+                              <span
+                                className={`truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}
+                              >
                                 {cat.name} {isConflict && "⚠"}
                               </span>
                             </label>
@@ -909,23 +1037,20 @@ const ShippingManage = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* Applicable Products */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-600">
-                        Applicable Products
-                      </label>
+                      <label className={labelClass}>Applicable Products</label>
                       <button
                         type="button"
                         onClick={() =>
                           handleSelectAllArray(
                             "applicableProducts",
                             products,
-                            formData.applicableProducts.length !== products.length,
+                            formData.applicableProducts.length !==
+                              products.length,
                           )
                         }
-                        className="text-[10px] text-indigo-600 font-bold hover:underline"
+                        className="text-[8px] text-black font-bold hover:underline uppercase"
                       >
                         {formData.applicableProducts.length === products.length
                           ? "Unmark All"
@@ -937,18 +1062,22 @@ const ShippingManage = () => {
                       placeholder="Search products..."
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
-                      className="w-full border border-gray-200 bg-white px-3 py-2 rounded-lg mb-1 text-sm outline-none"
+                      className={`${inputClass} mb-1 text-[11px]`}
                     />
-                    <div className="max-h-40 overflow-y-auto border bg-white rounded-lg p-2 space-y-1">
+                    <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-sm p-2 space-y-1 bg-white">
                       {products.length === 0 ? (
-                        <p className="text-xs text-gray-400 p-1">No products found</p>
+                        <p className="text-[9px] text-gray-400 p-1">
+                          No products found
+                        </p>
                       ) : (
                         products.map((prod) => {
-                          const isConflict = productConflicts.includes(prod._id.toString());
+                          const isConflict = productConflicts.includes(
+                            prod._id.toString(),
+                          );
                           return (
                             <label
                               key={prod._id}
-                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
+                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded-sm text-[11px] ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
                             >
                               <input
                                 type="checkbox"
@@ -956,11 +1085,16 @@ const ShippingManage = () => {
                                   prod._id.toString(),
                                 )}
                                 onChange={() =>
-                                  handleArrayIdChange("applicableProducts", prod._id)
+                                  handleArrayIdChange(
+                                    "applicableProducts",
+                                    prod._id,
+                                  )
                                 }
-                                className="w-4 h-4 text-indigo-600 rounded"
+                                className="accent-black w-3 h-3"
                               />
-                              <span className={`text-sm truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}>
+                              <span
+                                className={`truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}
+                              >
                                 {prod.name} {isConflict && "⚠"}
                               </span>
                             </label>
@@ -969,23 +1103,20 @@ const ShippingManage = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* Excluded Products */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-600">
-                        Excluded Products
-                      </label>
+                      <label className={labelClass}>Excluded Products</label>
                       <button
                         type="button"
                         onClick={() =>
                           handleSelectAllArray(
                             "excludedProducts",
                             products,
-                            formData.excludedProducts.length !== products.length,
+                            formData.excludedProducts.length !==
+                              products.length,
                           )
                         }
-                        className="text-[10px] text-red-600 font-bold hover:underline"
+                        className="text-[8px] text-red-600 font-bold hover:underline uppercase"
                       >
                         {formData.excludedProducts.length === products.length
                           ? "Unmark All"
@@ -997,18 +1128,22 @@ const ShippingManage = () => {
                       placeholder="Search products..."
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
-                      className="w-full border border-gray-200 bg-white px-3 py-2 rounded-lg mb-1 text-sm outline-none"
+                      className={`${inputClass} mb-1 text-[11px]`}
                     />
-                    <div className="max-h-40 overflow-y-auto border bg-white rounded-lg p-2 space-y-1">
+                    <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-sm p-2 space-y-1 bg-white">
                       {products.length === 0 ? (
-                        <p className="text-xs text-gray-400 p-1">No products found</p>
+                        <p className="text-[9px] text-gray-400 p-1">
+                          No products found
+                        </p>
                       ) : (
                         products.map((prod) => {
-                          const isConflict = productConflicts.includes(prod._id.toString());
+                          const isConflict = productConflicts.includes(
+                            prod._id.toString(),
+                          );
                           return (
                             <label
                               key={prod._id}
-                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
+                              className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded-sm text-[11px] ${isConflict ? "bg-red-50 border border-red-200" : ""}`}
                             >
                               <input
                                 type="checkbox"
@@ -1016,11 +1151,16 @@ const ShippingManage = () => {
                                   prod._id.toString(),
                                 )}
                                 onChange={() =>
-                                  handleArrayIdChange("excludedProducts", prod._id)
+                                  handleArrayIdChange(
+                                    "excludedProducts",
+                                    prod._id,
+                                  )
                                 }
-                                className="w-4 h-4 text-red-600 rounded"
+                                className="accent-red-600 w-3 h-3"
                               />
-                              <span className={`text-sm truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}>
+                              <span
+                                className={`truncate ${isConflict ? "text-red-700 font-bold" : "text-gray-700"}`}
+                              >
                                 {prod.name} {isConflict && "⚠"}
                               </span>
                             </label>
@@ -1032,16 +1172,16 @@ const ShippingManage = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-indigo-600 rounded"
+                    className="accent-black w-4 h-4"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-xs font-bold text-gray-700 uppercase">
                     Active
                   </span>
                 </label>
@@ -1051,7 +1191,7 @@ const ShippingManage = () => {
                 <button
                   type="submit"
                   disabled={submitBtnLoading || hasConflicts}
-                  className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition flex justify-center items-center gap-2 shadow-md"
+                  className="w-full bg-black text-white py-3 rounded-sm font-bold uppercase tracking-widest text-xs hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2"
                 >
                   {submitBtnLoading
                     ? "Processing..."

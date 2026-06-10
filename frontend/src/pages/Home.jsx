@@ -1,26 +1,20 @@
-import { useParams } from "react-router-dom";
-
 import NewArrivals from "../components/bannerSection/NewArrivals";
 import BestSellers from "../components/bannerSection/BestSellers";
 import Category from "../components/Category";
 import HeroBanner from "../components/HeroBanner";
+import { DoubleBanner, WideBanner } from "../components/bannerSection/PromoBanners";
 
 const Home = () => {
-  const { keyword } = useParams();
-  // const { data, isLoading, isError } = useGetProductsQuery({ keyword });
+  const keyword = window.location.search.includes('keyword') ? new URLSearchParams(window.location.search).get('keyword') : null;
 
   return (
-    <div className="bg-white min-h-screen ">
-      {/* Header / Hero Section */}
+    <div className="bg-white min-h-screen">
       <HeroBanner />
-
-      {!keyword ? <Category /> : null}
-
-      {/* New Arrivals Section */}
+      {!keyword && <Category />}
       {!keyword && <NewArrivals />}
-
-      {/* Best Sellers Section */}
+      {!keyword && <DoubleBanner />}    
       {!keyword && <BestSellers />}
+      {!keyword && <WideBanner />}  
     </div>
   );
 };

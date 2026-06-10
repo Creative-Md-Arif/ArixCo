@@ -61,18 +61,18 @@ const productSchema = mongoose.Schema(
     price: { type: Number, required: true, default: 0 },
     countInStock: { type: Number, required: true, default: 0 },
     discountPercentage: { type: Number, default: 0 },
+    discountedAmount: { type: Number, default: 0 },
     isFeatured: { type: Boolean, default: false },
     offer: { type: String, default: "" },
     warranty: { type: String, default: "" },
-    discountedAmount: { type: Number, default: 0 },
     weight: { type: Number, default: 0.5 },
 
-    // ====== NEW: Product Wise Shipping Details ======
+    // ====== Product Wise Shipping Details ======
     shippingDetails: {
       isFreeShipping: { type: Boolean, default: false },
       isIndividualShipping: { type: Boolean, default: false },
-      individualShippingCost: { type: Number, default: 0 }, 
-      extraShippingCost: { type: Number, default: 0 }, 
+      individualShippingCost: { type: Number, default: 0 },
+      extraShippingCost: { type: Number, default: 0 },
     },
 
     hasVariants: { type: Boolean, default: false },
@@ -86,11 +86,31 @@ const productSchema = mongoose.Schema(
   { timestamps: true },
 );
 
+// Pre-save hook for Auto-calculations
 productSchema.pre("save", function (next) {
+  // 1. Slug Generate
   if (this.isModified("name")) {
     this.slug = slugify(this.name, { lower: true, strict: true });
   }
 
+  // 2. Discount Auto-Calculation
+  const price = Number(this.price) || 0;
+  const discountPercentage = Number(this.discountPercentage) || 0;
+  const discountedAmount = Number(this.discountedAmount) || 0;
+
+  if (discountPercentage > 0) {
+    // If percentage is given, calculate amount
+    this.discountedAmount = Math.round((price * discountPercentage) / 100);
+  } else if (discountedAmount > 0 && price > 0) {
+    // If amount is given directly, calculate percentage
+    this.discountPercentage = Math.round((discountedAmount / price) * 100);
+  } else {
+    // If no discount, reset both
+    this.discountedAmount = 0;
+    this.discountPercentage = 0;
+  }
+
+  // 3. Variant Stock Calculation & Quantity Sync
   if (this.hasVariants && this.variants && this.variants.length > 0) {
     let totalStock = 0;
     this.variants.forEach((variant) => {
@@ -101,11 +121,16 @@ productSchema.pre("save", function (next) {
       }
     });
     this.countInStock = totalStock;
+    this.quantity = totalStock; // Sync quantity with total variant stock
+  } else {
+    // If no variants, countInStock should equal quantity
+    this.countInStock = Number(this.quantity) || 0;
   }
 
   next();
 });
 
+// Helper Methods
 productSchema.methods.getVariantPrice = function (colorIndex, sizeIndex) {
   if (!this.hasVariants || !this.variants[colorIndex]) {
     return this.price;
@@ -138,11 +163,26 @@ productSchema.methods.getColorImages = function (colorIndex) {
     : [variant.color.image];
 };
 
-productSchema.methods.getEffectivePrice = function () {
-  if (this.discountPercentage > 0) {
-    return this.price - (this.price * this.discountPercentage) / 100;
+productSchema.methods.getEffectivePrice = function (
+  colorIndex = 0,
+  sizeIndex = 0,
+) {
+  let basePrice = this.price;
+
+  // If product has variants, get the variant price
+  if (
+    this.hasVariants &&
+    this.variants[colorIndex] &&
+    this.variants[colorIndex].sizes[sizeIndex]
+  ) {
+    basePrice = this.variants[colorIndex].sizes[sizeIndex].price;
   }
-  return this.price;
+
+  // Apply discount
+  if (this.discountPercentage > 0) {
+    return basePrice - (basePrice * this.discountPercentage) / 100;
+  }
+  return basePrice;
 };
 
 productSchema.index({
@@ -150,7 +190,6 @@ productSchema.index({
   brand: "text",
   description: "text",
 });
-
 
 const Product = mongoose.model("Product", productSchema);
 
