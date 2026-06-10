@@ -13,6 +13,7 @@ import axios from "axios";
 import { CiEdit } from "react-icons/ci";
 import { MdDeleteOutline, MdOutlineCloudUpload } from "react-icons/md";
 import React from "react";
+import { API_URL, UPLOAD_URL } from "../../constants";
 
 // Icons for TreeView
 import {
@@ -137,12 +138,14 @@ const CategoryList = () => {
   };
 
   // Handle Image Upload
+  // Handle Image Upload
   const uploadImage = async () => {
     if (!image) return null;
     const formData = new FormData();
     formData.append("image", image);
     try {
-      const { data } = await axios.post("/api/upload", formData);
+      // এখানে API_URL এবং UPLOAD_URL ব্যবহার করুন
+      const { data } = await axios.post(`${API_URL}${UPLOAD_URL}`, formData);
       return data.images && data.images.length > 0 ? data.images[0] : null;
     } catch (error) {
       console.error("Image upload failed", error);
@@ -150,7 +153,6 @@ const CategoryList = () => {
       return null;
     }
   };
-
   // Handle Create Category
   const handleCreateCategory = async (e) => {
     e.preventDefault();
