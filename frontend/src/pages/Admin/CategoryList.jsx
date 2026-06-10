@@ -13,7 +13,10 @@ import axios from "axios";
 import { CiEdit } from "react-icons/ci";
 import { MdDeleteOutline, MdOutlineCloudUpload } from "react-icons/md";
 import React from "react";
-import { API_URL, UPLOAD_URL } from "../../constants";
+const isDevelopment = import.meta.env.DEV;
+const RENDER_BACKEND_URL = "https://bechabikri-1.onrender.com";
+const API_URL = isDevelopment ? "" : RENDER_BACKEND_URL;
+const UPLOAD_URL = "/api/upload";
 
 // Icons for TreeView
 import {
@@ -144,7 +147,6 @@ const CategoryList = () => {
     const formData = new FormData();
     formData.append("image", image);
     try {
-      // এখানে API_URL এবং UPLOAD_URL ব্যবহার করুন
       const { data } = await axios.post(`${API_URL}${UPLOAD_URL}`, formData);
       return data.images && data.images.length > 0 ? data.images[0] : null;
     } catch (error) {
