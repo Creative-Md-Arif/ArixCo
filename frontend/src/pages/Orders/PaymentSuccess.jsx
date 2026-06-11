@@ -1,25 +1,25 @@
-import { useEffect } from "react";
+// PaymentSuccess.jsx
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useDispatch, } from "react-redux";
-import { useGetOrderDetailsQuery } from "@redux/api/orderApiSlice"; // ✅ আপনার RTK Query hook
+import { useDispatch } from "react-redux";
+import { useGetOrderDetailsQuery } from "@redux/api/orderApiSlice";
 import { clearCartItems } from "../../redux/features/cart/cartSlice";
 import { FaCheckCircle, FaHourglassHalf } from "react-icons/fa";
-import Loader from "../../components/Loader"; // আপনার লোডার কম্পোনেন্ট
+import Loader from "../../components/Loader";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const tranId = searchParams.get("tran_id"); // এটি আমাদের Order ID
+  const tranId = searchParams.get("tran_id");
 
+  // ✅ Track if payment is confirmed to STOP polling
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
 
-  const { data: order, isLoading, } = useGetOrderDetailsQuery(tranId, {
-    skip: !tranId, 
-    pollingInterval: 3000, 
+  const { data: order, isLoading } = useGetOrderDetailsQuery(tranId, {
+    skip: !tranId || isPaymentConfirmed, // ✅ STOP polling when confirmed
+    pollingInterval: 3000,
   });
-
-
-
 
   useEffect(() => {
     dispatch(clearCartItems());
@@ -27,13 +27,21 @@ const PaymentSuccess = () => {
     localStorage.removeItem("pendingOrderData");
   }, [dispatch]);
 
-  // ✅ যদি পেমেন্ট Paid হয়ে যায়, তবে পলিং (বারবার রিকোয়েস্ট) বন্ধ করে দিচ্ছি
+  // ✅ Stop polling once payment is confirmed
   useEffect(() => {
     if (order?.isPaid) {
-      // পেমেন্ট সফল হয়ে গেছে, এখানে কিছু করার নেই, pollingInterface অটো বন্ধ হয়ে যাবে 
-      // কারণ আমরা নিচে conditional rendering করেছি
+      setIsPaymentConfirmed(true);
     }
   }, [order]);
+
+  // ✅ Failsafe: Stop polling after 2 minutes regardless
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setIsPaymentConfirmed(true);
+    }, 120000); // 2 minutes
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   if (!tranId) {
     return (
@@ -46,8 +54,6 @@ const PaymentSuccess = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-lg border border-gray-200 text-center max-w-md w-full">
-        
-        {/* ✅ যদি এখনো লোড হচ্ছে বা পেমেন্ট Pending অবস্থায় থাকে */}
         {isLoading || !order?.isPaid ? (
           <>
             <FaHourglassHalf className="text-yellow-500 text-5xl mx-auto mb-4 animate-pulse" />
@@ -57,10 +63,9 @@ const PaymentSuccess = () => {
             <p className="text-gray-500 font-mono text-sm mb-6">
               Please wait while we confirm your transaction with SSLCommerz.
             </p>
-            <Loader /> {/* আপনার কাস্টম স্পিনার */}
+            <Loader />
           </>
         ) : (
-          // ✅ পেমেন্ট সফল হলে এই অংশটি দেখাবে
           <>
             <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-4" />
             <h1 className="text-2xl font-mono font-black text-black uppercase mb-2">
@@ -72,8 +77,12 @@ const PaymentSuccess = () => {
 
             {tranId && (
               <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <p className="text-xs font-mono text-gray-500 uppercase tracking-wider">Transaction ID</p>
-                <p className="text-sm font-mono font-bold text-black mt-1">{order.orderId || tranId}</p>
+                <p className="text-xs font-mono text-gray-500 uppercase tracking-wider">
+                  Transaction ID
+                </p>
+                <p className="text-sm font-mono font-bold text-black mt-1">
+                  {order.orderId || tranId}
+                </p>
               </div>
             )}
 

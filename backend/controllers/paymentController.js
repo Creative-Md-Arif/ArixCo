@@ -518,11 +518,108 @@ const validateSSLCommerzPayment = asyncHandler(async (req, res) => {
 });
 
 
+// paymentController.js
+
 const sslcommerzSuccessRedirect = asyncHandler(async (req, res) => {
-  const tran_id = req.body.tran_id; 
+  const { tran_id, val_id, bank_tran_id, card_type, card_no, currency_type } = req.body;
+
+  // ✅ Verify payment IMMEDIATELY in the success callback (don't wait for IPN)
+  if (val_id && tran_id) {
+    try {
+      const validationRes = await axios.get(
+        process.env.SSLCOMMERZ_VALIDATION_URL,
+        {
+          params: {
+            val_id: val_id,
+            store_id: process.env.SSLCOMMERZ_STORE_ID,
+            store_passwd: process.env.SSLCOMMERZ_STORE_PASSWORD,
+            format: "json",
+          },
+        }
+      );
+
+      if (validationRes.data.status === "VALID_TRANSACTION") {
+        const order = await Order.findById(tran_id).populate(
+          "user",
+          "username email"
+        );
+
+        if (order && !order.isPaid) {
+          order.isPaid = true;
+          order.paidAt = new Date();
+          order.paymentStatus = "paid";
+          order.isDelivered = "Processing";
+
+          order.paymentResult = {
+            id: val_id,
+            status: validationRes.data.status,
+            update_time: new Date().toISOString(),
+            email_address: order.user?.email || "N/A",
+            val_id: val_id,
+            bank_tran_id:
+              bank_tran_id || validationRes.data.bank_tran_id || "",
+            card_type: card_type || validationRes.data.card_type || "",
+            card_no: card_no || validationRes.data.card_no || "",
+            currency_type:
+              currency_type || validationRes.data.currency_type || "",
+            gateway_type: "SSLCommerz",
+          };
+
+          await order.save();
+          console.log(`✅ Order ${tran_id} verified & paid via Success Redirect`);
+
+          // ✅ Send emails & notification (same as IPN handler)
+          try {
+            await sendEmail({
+              to: order.user.email,
+              subject: `Payment Confirmed - Order #${order.orderId}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                  <h2 style="color: #16a34a;">Payment Confirmed! ✅</h2>
+                  <p>Hi <strong>${order.user.username}</strong>,</p>
+                  <p>Your payment for order <strong>#${order.orderId}</strong> via SSLCommerz has been successfully verified and confirmed.</p>
+                  <p>We are now processing your order and will notify you once it ships.</p>
+                  <div style="margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                    <p style="margin: 0 0 5px 0;"><strong>Order ID:</strong> ${order.orderId}</p>
+                    <p style="margin: 0 0 5px 0;"><strong>Amount Paid:</strong> ৳${order.totalPrice.toFixed(2)}</p>
+                    <p style="margin: 0;"><strong>Payment Method:</strong> SSLCommerz (${card_type || "Online Gateway"})</p>
+                  </div>
+                  <p style="font-size: 14px; color: #6b7280;">Thank you for shopping with us!</p>
+                  <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
+                  <p style="font-size: 12px; color: #9ca3af; text-align: center;">© 2024 Becha Bikri. All rights reserved.</p>
+                </div>`,
+            });
+
+            await sendEmail({
+              to: process.env.ADMIN_EMAIL,
+              subject: `💳 SSLCommerz Payment Verified - #${order.orderId}`,
+              html: `<div style="font-family: sans-serif; max-width: 600px;">
+                <h3 style="color: #16a34a;">Payment Verified via SSLCommerz!</h3>
+                <p>Payment for order <strong>#${order.orderId}</strong> by <strong>${order.user.username}</strong> has been verified.</p>
+                <p><strong>Amount:</strong> ৳${order.totalPrice.toFixed(2)}</p>
+                <p><strong>Bank Tran ID:</strong> ${bank_tran_id || "N/A"}</p>
+              </div>`,
+            });
+          } catch (mailErr) {
+            console.error("Success Redirect Email Error:", mailErr.message);
+          }
+        }
+      } else {
+        console.warn(
+          `⚠️ SSLCommerz validation failed for tran_id: ${tran_id}`,
+          validationRes.data
+        );
+      }
+    } catch (err) {
+      console.error("Success Redirect Verification Error:", err.message);
+      // Don't block the redirect — user will see "verifying" on frontend, IPN may still fix it
+    }
+  }
+
+  // Redirect user to frontend success page
   res.redirect(
     303,
-    `${process.env.FRONTEND_URL}/payment/success?tran_id=${tran_id}`,
+    `${process.env.FRONTEND_URL}/payment/success?tran_id=${tran_id}`
   );
 });
 

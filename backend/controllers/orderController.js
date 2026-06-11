@@ -699,12 +699,13 @@ const markOrderAsPaid = async (req, res) => {
       userId: updatedOrder.user,
       type: "order",
       actionUrl: `/order/${updatedOrder.orderId}`,
-      sendEmailFlag: false,
+      sendEmailFlag: false, 
     };
 
     if (updatedOrder.paymentStatus === "paid") {
       notificationConfig.title = "Payment Received ✅";
       notificationConfig.message = `Payment for order #${updatedOrder.orderId} is successful.`;
+
 
       try {
         const populatedPaidOrder = await Order.findById(
