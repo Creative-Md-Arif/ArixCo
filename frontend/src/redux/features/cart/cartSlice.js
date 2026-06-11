@@ -129,10 +129,6 @@ const cartSlice = createSlice({
         state.cartItems.push(normalizedItem);
       }
 
-      // ✅ Automatically open the cart sidebar when a new item is added
-      state.isCartOpen = true;
-
-      // ✅ Removed state.shippingAddress parameter, no longer needed for price calc
       return updateCart(state);
     },
 

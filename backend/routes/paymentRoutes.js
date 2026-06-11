@@ -9,6 +9,12 @@ import {
   verifyManualPayment,
   getPaymentStats,
   checkTransactionId,
+  initSSLCommerz,
+  handleSSLCommerzIPN,
+  validateSSLCommerzPayment,
+  sslcommerzSuccessRedirect,
+  sslcommerzFailRedirect,
+  sslcommerzCancelRedirect,
 } from "../controllers/paymentController.js";
 
 import { authenticate, authorizeAdmin } from "../middlewares/authMiddleware.js";
@@ -36,5 +42,24 @@ router.put(
   authorizeAdmin,
   verifyManualPayment,
 );
+
+// SSLCommerz API Routes
+router.post("/sslcommerz/init", authenticate, initSSLCommerz);
+router.post("/sslcommerz/ipn", handleSSLCommerzIPN);
+router.post("/sslcommerz/validate", authenticate, validateSSLCommerzPayment);
+
+// ✅ SSLCommerz Redirect Routes (GET এবং POST দুটোই সাপোর্ট করবে)
+router
+  .route("/sslcommerz/success")
+  .get(sslcommerzSuccessRedirect)
+  .post(sslcommerzSuccessRedirect);
+router
+  .route("/sslcommerz/fail")
+  .get(sslcommerzFailRedirect)
+  .post(sslcommerzFailRedirect);
+router
+  .route("/sslcommerz/cancel")
+  .get(sslcommerzCancelRedirect)
+  .post(sslcommerzCancelRedirect);
 
 export default router;

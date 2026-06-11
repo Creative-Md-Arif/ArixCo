@@ -17,9 +17,12 @@ import AllNotifications from "./components/AllNotifications";
 import { HelmetProvider } from "react-helmet-async";
 
 
+
 // Lazy Loading Components
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
+const PaymentSuccess = lazy(() => import("./pages/Orders/PaymentSuccess"));
+const PaymentFail = lazy(() => import("./pages/Orders/PaymentFail"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const VerifyOtp = lazy(() => import("./components/VerifyOtp"));
@@ -211,6 +214,34 @@ const router = createBrowserRouter(
           </Suspense>
         }
       />
+      <Route
+        path="/payment/success"
+        element={
+          <Suspense fallback={<Loader />}>
+            <PaymentSuccess />
+          </Suspense>
+        }
+      />
+  
+        <Route
+        path="/payment/fail"
+        element={
+          <Suspense fallback={<Loader />}>
+            <PaymentFail />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/payment/cancel"
+        element={
+          <Suspense fallback={<Loader />}>
+            <PaymentFail />
+          </Suspense>
+        }
+      />
+
+
+
       {/* Private Routes */}
       <Route
         path="/"

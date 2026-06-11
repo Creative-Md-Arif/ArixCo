@@ -14,6 +14,7 @@ import {
   FaMoneyBillWaveAlt,
   FaUniversity,
   FaSpinner,
+  FaCreditCard, // ✅ নতুন আইকন ইম্পোর্ট
 } from "react-icons/fa";
 
 // ✅ BD Location Data Import
@@ -51,11 +52,7 @@ const inputBase =
   "w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border font-mono text-xs sm:text-sm text-black placeholder-gray-400 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 rounded-md appearance-none";
 
 const inputStyle = (fieldName, errors, touched) =>
-  `${inputBase} ${
-    errors[fieldName] && touched[fieldName]
-      ? "border-red-400 focus:border-red-500 focus:ring-red-500"
-      : "border-gray-300 hover:border-gray-400"
-  }`;
+  `${inputBase} ${errors[fieldName] && touched[fieldName] ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-gray-300 hover:border-gray-400"}`;
 
 const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
 
@@ -65,11 +62,8 @@ const Shipping = () => {
   const { cartItems, shippingAddress } = cart;
   const dispatch = useDispatch();
 
-  // ✅ Dynamic Shipping Hook
   const [calculateShipping, { isLoading: isCalculating }] =
     useCalculateShippingMutation();
-
-  // ✅ Debounce ref to avoid excessive API calls
   const shippingDebounceRef = useRef(null);
 
   const getSaved = () => {
@@ -85,12 +79,9 @@ const Shipping = () => {
 
   const [name, setName] = useState(init.name || "");
   const [address, setAddress] = useState(init.address || "");
-
-  // ✅ Location States
   const [division, setDivision] = useState(init.division || "");
   const [district, setDistrict] = useState(init.district || "");
   const [thana, setThana] = useState(init.thana || "");
-
   const [postalCode, setPostalCode] = useState(init.postalCode || "");
   const [country, setCountry] = useState(init.country || "Bangladesh");
   const [phoneNumber, setPhoneNumber] = useState(init.phoneNumber || "");
@@ -110,14 +101,11 @@ const Shipping = () => {
     isFreeShipping: false,
   });
 
-  // ✅ BD Location Data
   const divisionsEn = bd.allDivisions("en");
   const divisionsBn = bd.allDivisions("bn");
-
   const [districtsList, setDistrictsList] = useState([]);
   const [thanasList, setThanasList] = useState([]);
 
-  // ✅ Fetch Districts based on Division
   useEffect(() => {
     if (division) {
       const dEn = bd.districtsOf(division, "en");
@@ -134,7 +122,6 @@ const Shipping = () => {
     }
   }, [division]);
 
-  // ✅ Fetch Thanas based on District
   useEffect(() => {
     if (district) {
       const tEn = bd.thanasOf(district, "en");
@@ -147,7 +134,6 @@ const Shipping = () => {
     }
   }, [district]);
 
-  /* ── Validation ── */
   const validateField = (field, value) => {
     switch (field) {
       case "name":
@@ -192,7 +178,6 @@ const Shipping = () => {
     let value = raw;
     if (field === "phoneNumber") value = raw.replace(/\D/g, "").slice(0, 11);
     if (field === "postalCode") value = raw.replace(/\D/g, "").slice(0, 4);
-
     const setters = {
       name: setName,
       address: setAddress,
@@ -203,9 +188,7 @@ const Shipping = () => {
       country: setCountry,
       phoneNumber: setPhoneNumber,
     };
-
     if (setters[field]) setters[field](value);
-
     if (touched[field]) {
       setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
     }
@@ -221,14 +204,16 @@ const Shipping = () => {
       }));
     }
     const pending = localStorage.getItem("pendingOrderData");
+    
     if (pending) {
       try {
         localStorage.setItem(
           "pendingOrderData",
           JSON.stringify({ ...JSON.parse(pending), paymentMethod: id }),
         );
-        // eslint-disable-next-line no-empty
-      } catch {}
+      } catch (err) {
+        console.error("Error updating pending order data:", err);
+      }
     }
   };
 
@@ -259,7 +244,6 @@ const Shipping = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  /* ── Persist to localStorage ── */
   useEffect(() => {
     if (name || phoneNumber || address || division || postalCode || country) {
       localStorage.setItem(
@@ -297,7 +281,6 @@ const Shipping = () => {
     }
   }, []);
 
-  // ✅ Dynamic Shipping Calculation Effect
   useEffect(() => {
     const subtotal = cartItems.reduce(
       (a, item) => a + getItemFinalPrice(item) * (Number(item.qty) || 1),
@@ -310,12 +293,10 @@ const Shipping = () => {
           (Number(item.qty) || 1),
       0,
     );
-
     if (thana && district && division && cartItems.length > 0) {
       if (shippingDebounceRef.current) {
         clearTimeout(shippingDebounceRef.current);
       }
-
       shippingDebounceRef.current = setTimeout(async () => {
         try {
           const orderItemsData = cartItems.map((item) => ({
@@ -325,7 +306,6 @@ const Shipping = () => {
             weight: Number(item.weight) || 0,
             shippingDetails: item.shippingDetails || {},
           }));
-
           const res = await calculateShipping({
             thana: thana.trim(),
             district: district.trim(),
@@ -333,7 +313,6 @@ const Shipping = () => {
             orderItems: orderItemsData,
             subtotal,
           }).unwrap();
-
           setOrderSummary({
             subtotal,
             shippingCharge: res.shippingCost,
@@ -370,7 +349,6 @@ const Shipping = () => {
         isFreeShipping: false,
       });
     }
-
     return () => {
       if (shippingDebounceRef.current) {
         clearTimeout(shippingDebounceRef.current);
@@ -402,6 +380,7 @@ const Shipping = () => {
     return data;
   };
 
+  // ✅ পেমেন্ট মেথড লিস্টে SSLCommerz যোগ করা হয়েছে
   const paymentMethods = [
     {
       id: "Cash on Delivery",
@@ -409,6 +388,12 @@ const Shipping = () => {
       sub: "Pay when received",
       icon: <FaMoneyBillWave />,
     },
+    {
+      id: "SSLCommerz",
+      label: "Credit/Debit Card",
+      sub: "Visa, Master, Amex",
+      icon: <FaCreditCard />,
+    }, // ✅ নতুন অপশন
     {
       id: "bKash",
       label: "bKash",
@@ -459,7 +444,6 @@ const Shipping = () => {
       </div>
 
       <div className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
-        {/* ── Page Header ── */}
         <div className="mb-6 sm:mb-10 border-b-2 border-black pb-4">
           <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-1">
             Step 1 of 2
@@ -470,7 +454,6 @@ const Shipping = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
-          {/* ── Left Column ── */}
           <div className="w-full lg:w-7/12 space-y-6">
             {/* ── Section 01: Delivery Details ── */}
             <section className="bg-white p-4 sm:p-6 border border-gray-200 rounded-lg">
@@ -482,7 +465,6 @@ const Shipping = () => {
                   Delivery Details
                 </h2>
               </div>
-
               <div className="space-y-4">
                 <Field
                   label="Full Name"
@@ -498,7 +480,6 @@ const Shipping = () => {
                     placeholder="Receiver's full name"
                   />
                 </Field>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Phone Number"
@@ -516,7 +497,6 @@ const Shipping = () => {
                       placeholder="01XXX-XXXXXX"
                     />
                   </Field>
-
                   <Field
                     label="Division"
                     error={errors.division}
@@ -543,7 +523,6 @@ const Shipping = () => {
                     </select>
                   </Field>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="District"
@@ -571,7 +550,6 @@ const Shipping = () => {
                       ))}
                     </select>
                   </Field>
-
                   <Field
                     label="Thana / Upazila"
                     error={errors.thana}
@@ -613,7 +591,6 @@ const Shipping = () => {
                     )}
                   </Field>
                 </div>
-
                 <Field
                   label="Full Address"
                   error={errors.address}
@@ -628,7 +605,6 @@ const Shipping = () => {
                     placeholder="House / Road / Area"
                   />
                 </Field>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field
                     label="Postal Code"
@@ -732,7 +708,9 @@ const Shipping = () => {
                   <p className="text-[9px] sm:text-[10px] font-mono text-gray-500 mt-0.5">
                     {paymentMethod === "Cash on Delivery"
                       ? `Pay ৳${orderSummary.totalPrice.toFixed(2)} on delivery`
-                      : "You will be redirected to payment instructions"}
+                      : paymentMethod === "SSLCommerz"
+                        ? "Secure payment via SSLCommerz gateway"
+                        : "You will be redirected to payment instructions"}
                   </p>
                 </div>
               </div>

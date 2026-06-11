@@ -5,23 +5,23 @@ const paymentMethodSchema = mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["bKash", "Nagad", "Rocket", "Bank"],
+      enum: ["bKash", "Nagad", "Rocket", "Bank", "SSLCommerz" ],
       unique: true, // প্রতিটি টাইপে একটি করে এন্ট্রি
     },
     number: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     accountType: {
       type: String,
       required: true,
-      enum: ["Personal", "Agent", "Merchant"],
+      enum: ["Personal", "Agent", "Merchant", "Gateway"],
       default: "Personal",
     },
     accountName: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     instructions: {

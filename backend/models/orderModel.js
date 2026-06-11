@@ -44,12 +44,22 @@ const orderSchema = mongoose.Schema(
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
       phoneNumber: { type: String, required: true },
+      division: { type: String },
+      district: { type: String },
+      thana: { type: String },
     },
 
     paymentMethod: {
       type: String,
       required: true,
-      enum: ["Cash on Delivery", "bKash", "Nagad", "Rocket", "Bank"],
+      enum: [
+        "Cash on Delivery",
+        "bKash",
+        "Nagad",
+        "Rocket",
+        "Bank",
+        "SSLCommerz",
+      ],
     },
 
     manualPaymentDetails: {
@@ -73,6 +83,12 @@ const orderSchema = mongoose.Schema(
       status: { type: String },
       update_time: { type: String },
       email_address: { type: String },
+      val_id: { type: String }, // ✅ SSLCommerz Validation ID (IPN এবং Refund এর জন্য দরকার)
+      bank_tran_id: { type: String }, // ✅ Bank Transaction ID
+      card_type: { type: String }, // ✅ VISA, MASTER, DBBL-VISA, etc.
+      card_no: { type: String }, // ✅ Masked Card Number (e.g., 411111******1111)
+      currency_type: { type: String }, // ✅ BDT
+      gateway_type: { type: String },
     },
 
     paymentStatus: {
@@ -89,6 +105,9 @@ const orderSchema = mongoose.Schema(
         if (["bKash", "Nagad", "Rocket", "Bank"].includes(this.paymentMethod)) {
           return "awaiting_verification";
         }
+          if (this.paymentMethod === "SSLCommerz") {
+            return "pending";
+          }
         return this.paymentMethod === "Cash on Delivery" ? "due" : "pending";
       },
     },

@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
 
     server: {
-      // ⭐ শুধু development-এ proxy
+       historyApiFallback: true, // SPA routing support
       proxy: isDevelopment
         ? {
             "/api": {

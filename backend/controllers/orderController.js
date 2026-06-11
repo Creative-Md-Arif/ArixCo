@@ -38,12 +38,14 @@ const createOrder = async (req, res) => {
       res.status(400);
       throw new Error("No order items");
     }
+
     const validMethods = [
       "Cash on Delivery",
       "bKash",
       "Nagad",
       "Rocket",
       "Bank",
+      "SSLCommerz",
     ];
     if (!validMethods.includes(paymentMethod)) {
       return res.status(400).json({ msg: "Invalid payment method." });
@@ -128,7 +130,7 @@ const createOrder = async (req, res) => {
         price: originalPrice,
         finalPrice: finalPrice,
         product: matchingItemFromDB._id,
-        category: matchingItemFromDB.category, // Dynamic Shipping এর জন্য ক্যাটাগরি অবশ্যই লাগবে
+        category: matchingItemFromDB.category,
         discountPercentage: appliedDiscountPercent,
         weight: Number(matchingItemFromDB.weight) || 0.0,
         variantInfo: variantInfo,
@@ -137,7 +139,7 @@ const createOrder = async (req, res) => {
           isIndividualShipping: false,
           individualShippingCost: 0,
           extraShippingCost: 0,
-        }, // Dynamic Shipping এর জন্য প্রোডাক্ট লেভেল ডাটা
+        },
       };
     });
 
@@ -149,7 +151,6 @@ const createOrder = async (req, res) => {
       0,
     );
 
-    // ডায়নামিক শিপিং ক্যালকুলেশন (Zone, Weight, Category, Individual)
     const shippingPrice = await calculateDynamicShipping(
       shippingAddress.thana || shippingAddress.city || "",
       shippingAddress.district || "",
@@ -256,6 +257,8 @@ const createOrder = async (req, res) => {
       paymentStatus = "due";
     } else if (["bKash", "Nagad", "Rocket", "Bank"].includes(paymentMethod)) {
       paymentStatus = "awaiting_verification";
+    } else if (paymentMethod === "SSLCommerz") {
+      paymentStatus = "pending";
     } else {
       paymentStatus = "pending";
     }
@@ -269,7 +272,7 @@ const createOrder = async (req, res) => {
       paymentMethod,
       itemsPrice: Number(itemsPrice.toFixed(2)),
       taxPrice: Number(taxPrice.toFixed(2)),
-      shippingPrice: Number(shippingPrice.toFixed(2)), // ডায়নামিক শিপিং প্রাইস
+      shippingPrice: Number(shippingPrice.toFixed(2)),
       totalPrice,
       totalSavings: Number(totalSavings.toFixed(2)),
       appliedCuppon: couponDiscount > 0 ? appliedCuppon : undefined,
@@ -303,127 +306,132 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // Notification Logic
-    try {
-      await createAndSendNotification(req, {
-        userId: order.user,
-        title: "Order Placed! 🛒",
-        message: `Your order #${order.orderId} has been confirmed.${
-          couponDiscount > 0 ? ` Coupon ${appliedCuppon.code} applied!` : ""
-        }${
-          ["bKash", "Nagad", "Rocket", "Bank"].includes(paymentMethod)
-            ? " Payment successful. Verification in progress."
-            : ""
-        }`,
-        type: "order",
-        actionUrl: `/order/${order._id}`,
-        sendEmailFlag: true,
-      });
-    } catch (err) {
-      console.error("Notification Error:", err.message);
-    }
+    // ✅✅ সবচেয়ে গুরুত্বপূর্ণ পরিবর্তন: SSLCommerz এর ক্ষেত্রে নোটিফিকেশন ও ইমেইল ব্লক করা হয়েছে
+    const isGatewayPayment = paymentMethod === "SSLCommerz";
 
-    const populatedOrder = await createdOrder.populate(
-      "user",
-      "username email",
-    );
-
-    // Email Sending Logic
-    const sendEmails = async () => {
+    if (!isGatewayPayment) {
+      // Notification Logic
       try {
-        let paymentInstructions = "";
-        if (["bKash", "Nagad", "Rocket", "Bank"].includes(paymentMethod)) {
-          paymentInstructions = `
-          <div style="background-color: #fff9db; padding: 15px; border-left: 4px solid #fab005; margin-bottom: 20px;">
-            <p style="color: #856404; font-weight: bold; margin: 0;">Payment Received!</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px;">
-              Your payment via <strong>${paymentMethod}</strong> is currently undergoing verification. 
-              We will notify you once it's confirmed.
-            </p>
-          </div>`;
-        }
-
-        const itemsDetails = dbOrderItems
-          .map((item) => {
-            let variantText = item.variantInfo?.hasVariants
-              ? `<br/><small style="color: #666;">Variant: ${item.variantInfo.colorName} / ${item.variantInfo.sizeName}</small>`
-              : "";
-            let savingsText =
-              item.discountPercentage > 0
-                ? `<br/><small style="color: #dc2626;">You saved ৳${((item.price - item.finalPrice) * item.qty).toFixed(2)}</small>`
-                : "";
-            return `
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                <img src="${item.image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" />
-              </td>
-              <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                <strong>${item.name}</strong> ${variantText} ${savingsText}
-              </td>
-              <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}x</td>
-              <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">৳${(item.finalPrice * item.qty).toFixed(2)}</td>
-            </tr>`;
-          })
-          .join("");
-
-        await sendEmail({
-          to: populatedOrder.user.email,
-          subject: `Order Success - ${populatedOrder.orderId}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Hi ${populatedOrder.user.username},</h2>
-              <p>Thank you for your order!</p>
-              ${paymentInstructions}
-              <h3>Order Summary:</h3>
-              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                <thead><tr style="background: #f3f4f6;">
-                  <th style="padding: 10px; text-align: left;">Image</th>
-                  <th style="padding: 10px; text-align: left;">Product</th>
-                  <th style="padding: 10px; text-align: center;">Qty</th>
-                  <th style="padding: 10px; text-align: right;">Price</th>
-                </tr></thead>
-                <tbody>${itemsDetails}</tbody>
-              </table>
-              <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
-                <p style="margin: 5px 0;"><strong>Order ID:</strong> #${populatedOrder.orderId}</p>
-                <p style="margin: 5px 0;"><strong>Subtotal:</strong> ৳${itemsPrice.toFixed(2)}</p>
-                <p style="margin: 5px 0;"><strong>Shipping:</strong> ৳${shippingPrice.toFixed(2)}</p>
-                ${couponDiscount > 0 ? `<p style="margin: 5px 0; color: #16a34a;"><strong>Coupon (${appliedCuppon.code}):</strong> -৳${couponDiscount.toFixed(2)}</p>` : ""}
-                ${Number(totalSavings) > 0 ? `<p style="margin: 5px 0; color: #dc2626;"><strong>Product Savings:</strong> -৳${Number(totalSavings).toFixed(2)}</p>` : ""}
-                <p style="margin: 10px 0 0 0; font-size: 18px; font-weight: bold;"><strong>Total Paid:</strong> ৳${totalPrice}</p>
-              </div>
-              <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-              <p style="font-size: 12px; color: #999; text-align: center;">© 2024 Becha Bikri. All rights reserved.</p>
-            </div>`,
+        await createAndSendNotification(req, {
+          userId: order.user,
+          title: "Order Placed! 🛒",
+          message: `Your order #${order.orderId} has been confirmed.${
+            couponDiscount > 0 ? ` Coupon ${appliedCuppon.code} applied!` : ""
+          }${
+            ["bKash", "Nagad", "Rocket", "Bank"].includes(paymentMethod)
+              ? " Payment successful. Verification in progress."
+              : ""
+          }`,
+          type: "order",
+          actionUrl: `/order/${order._id}`,
+          sendEmailFlag: true,
         });
-
-        const adminItemsList = dbOrderItems
-          .map(
-            (item) =>
-              `<li>${item.name} ${item.variantInfo?.hasVariants ? `(${item.variantInfo.colorName}/${item.variantInfo.sizeName})` : ""} - ${item.qty}x - ৳${(item.finalPrice * item.qty).toFixed(2)}</li>`,
-          )
-          .join("");
-
-        await sendEmail({
-          to: process.env.ADMIN_EMAIL,
-          subject: `🔔 New Order #${populatedOrder.orderId}`,
-          html: `<div style="font-family: sans-serif; max-width: 600px;">
-            <h3 style="color: #2563eb;">New Order Received!</h3>
-            <p>A new order has been placed by <strong>${populatedOrder.user.username}</strong> (${populatedOrder.user.email}).</p>
-            <h4>Items:</h4><ul>${adminItemsList}</ul>
-            <hr />
-            <p><strong>Order ID:</strong> ${populatedOrder.orderId}</p>
-            <p><strong>Payment Method:</strong> ${paymentMethod}</p>
-            ${couponDiscount > 0 ? `<p><strong>Coupon Used:</strong> ${appliedCuppon.code} (-৳${couponDiscount.toFixed(2)})</p>` : ""}
-            <p><strong>Total Amount:</strong> ৳${totalPrice}</p>
-          </div>`,
-        });
-      } catch (mailErr) {
-        console.error("Email Sending Error:", mailErr.message);
+      } catch (err) {
+        console.error("Notification Error:", err.message);
       }
-    };
 
-    sendEmails();
+      const populatedOrder = await createdOrder.populate(
+        "user",
+        "username email",
+      );
+
+      // Email Sending Logic
+      const sendEmails = async () => {
+        try {
+          let paymentInstructions = "";
+          if (["bKash", "Nagad", "Rocket", "Bank"].includes(paymentMethod)) {
+            paymentInstructions = `
+            <div style="background-color: #fff9db; padding: 15px; border-left: 4px solid #fab005; margin-bottom: 20px;">
+              <p style="color: #856404; font-weight: bold; margin: 0;">Payment Received!</p>
+              <p style="margin: 5px 0 0 0; font-size: 14px;">
+                Your payment via <strong>${paymentMethod}</strong> is currently undergoing verification. 
+                We will notify you once it's confirmed.
+              </p>
+            </div>`;
+          }
+
+          const itemsDetails = dbOrderItems
+            .map((item) => {
+              let variantText = item.variantInfo?.hasVariants
+                ? `<br/><small style="color: #666;">Variant: ${item.variantInfo.colorName} / ${item.variantInfo.sizeName}</small>`
+                : "";
+              let savingsText =
+                item.discountPercentage > 0
+                  ? `<br/><small style="color: #dc2626;">You saved ৳${((item.price - item.finalPrice) * item.qty).toFixed(2)}</small>`
+                  : "";
+              return `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                  <img src="${item.image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" />
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                  <strong>${item.name}</strong> ${variantText} ${savingsText}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}x</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">৳${(item.finalPrice * item.qty).toFixed(2)}</td>
+              </tr>`;
+            })
+            .join("");
+
+          await sendEmail({
+            to: populatedOrder.user.email,
+            subject: `Order Success - ${populatedOrder.orderId}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Hi ${populatedOrder.user.username},</h2>
+                <p>Thank you for your order!</p>
+                ${paymentInstructions}
+                <h3>Order Summary:</h3>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                  <thead><tr style="background: #f3f4f6;">
+                    <th style="padding: 10px; text-align: left;">Image</th>
+                    <th style="padding: 10px; text-align: left;">Product</th>
+                    <th style="padding: 10px; text-align: center;">Qty</th>
+                    <th style="padding: 10px; text-align: right;">Price</th>
+                  </tr></thead>
+                  <tbody>${itemsDetails}</tbody>
+                </table>
+                <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                  <p style="margin: 5px 0;"><strong>Order ID:</strong> #${populatedOrder.orderId}</p>
+                  <p style="margin: 5px 0;"><strong>Subtotal:</strong> ৳${itemsPrice.toFixed(2)}</p>
+                  <p style="margin: 5px 0;"><strong>Shipping:</strong> ৳${shippingPrice.toFixed(2)}</p>
+                  ${couponDiscount > 0 ? `<p style="margin: 5px 0; color: #16a34a;"><strong>Coupon (${appliedCuppon.code}):</strong> -৳${couponDiscount.toFixed(2)}</p>` : ""}
+                  ${Number(totalSavings) > 0 ? `<p style="margin: 5px 0; color: #dc2626;"><strong>Product Savings:</strong> -৳${Number(totalSavings).toFixed(2)}</p>` : ""}
+                  <p style="margin: 10px 0 0 0; font-size: 18px; font-weight: bold;"><strong>Total Payable:</strong> ৳${totalPrice}</p>
+                </div>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+                <p style="font-size: 12px; color: #999; text-align: center;">© 2024 Becha Bikri. All rights reserved.</p>
+              </div>`,
+          });
+
+          const adminItemsList = dbOrderItems
+            .map(
+              (item) =>
+                `<li>${item.name} ${item.variantInfo?.hasVariants ? `(${item.variantInfo.colorName}/${item.variantInfo.sizeName})` : ""} - ${item.qty}x - ৳${(item.finalPrice * item.qty).toFixed(2)}</li>`,
+            )
+            .join("");
+
+          await sendEmail({
+            to: process.env.ADMIN_EMAIL,
+            subject: `🔔 New Order #${populatedOrder.orderId}`,
+            html: `<div style="font-family: sans-serif; max-width: 600px;">
+              <h3 style="color: #2563eb;">New Order Received!</h3>
+              <p>A new order has been placed by <strong>${populatedOrder.user.username}</strong> (${populatedOrder.user.email}).</p>
+              <h4>Items:</h4><ul>${adminItemsList}</ul>
+              <hr />
+              <p><strong>Order ID:</strong> ${populatedOrder.orderId}</p>
+              <p><strong>Payment Method:</strong> ${paymentMethod}</p>
+              ${couponDiscount > 0 ? `<p><strong>Coupon Used:</strong> ${appliedCuppon.code} (-৳${couponDiscount.toFixed(2)})</p>` : ""}
+              <p><strong>Total Amount:</strong> ৳${totalPrice}</p>
+            </div>`,
+          });
+        } catch (mailErr) {
+          console.error("Email Sending Error:", mailErr.message);
+        }
+      };
+
+      sendEmails();
+    } // ✅ এখানে SSLCommerz এর ব্লক শেষ হচ্ছে
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -642,6 +650,15 @@ const markOrderAsPaid = async (req, res) => {
           status: req.body.status || "Completed",
           update_time: req.body.update_time || paidAtTime.toISOString(),
           email_address: req.body.payer?.email_address || "N/A",
+          // ✅ SSLCommerz Specific Data
+          val_id: req.body.val_id || undefined,
+          bank_tran_id: req.body.bank_tran_id || undefined,
+          card_type: req.body.card_type || undefined,
+          card_no: req.body.card_no || undefined,
+          currency_type: req.body.currency_type || undefined,
+          gateway_type:
+            req.body.gateway_type ||
+            (order.paymentMethod === "SSLCommerz" ? "SSLCommerz" : undefined),
         };
       }
     } else {
@@ -656,6 +673,15 @@ const markOrderAsPaid = async (req, res) => {
             status: req.body.status || "Completed",
             update_time: req.body.update_time || order.paidAt.toISOString(),
             email_address: req.body.payer?.email_address || "N/A",
+            // ✅ SSLCommerz Specific Data
+            val_id: req.body.val_id || undefined,
+            bank_tran_id: req.body.bank_tran_id || undefined,
+            card_type: req.body.card_type || undefined,
+            card_no: req.body.card_no || undefined,
+            currency_type: req.body.currency_type || undefined,
+            gateway_type:
+              req.body.gateway_type ||
+              (order.paymentMethod === "SSLCommerz" ? "SSLCommerz" : undefined),
           };
         }
       } else {
@@ -666,16 +692,51 @@ const markOrderAsPaid = async (req, res) => {
 
     const updatedOrder = await order.save();
 
+    // ==========================================
+    //  NOTIFICATION & EMAIL LOGIC
+    // ==========================================
     let notificationConfig = {
       userId: updatedOrder.user,
       type: "order",
       actionUrl: `/order/${updatedOrder.orderId}`,
-      sendEmailFlag: true,
+      sendEmailFlag: false, 
     };
 
     if (updatedOrder.paymentStatus === "paid") {
       notificationConfig.title = "Payment Received ✅";
       notificationConfig.message = `Payment for order #${updatedOrder.orderId} is successful.`;
+
+
+      try {
+        const populatedPaidOrder = await Order.findById(
+          updatedOrder._id,
+        ).populate("user", "username email");
+        if (populatedPaidOrder && populatedPaidOrder.user.email) {
+          await sendEmail({
+            to: populatedPaidOrder.user.email,
+            subject: `Payment Confirmed - Order #${populatedPaidOrder.orderId}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <h2 style="color: #16a34a;">Payment Confirmed! ✅</h2>
+                <p>Hi <strong>${populatedPaidOrder.user.username}</strong>,</p>
+                <p>Great news! Your payment for order <strong>#${populatedPaidOrder.orderId}</strong> has been successfully verified and confirmed.</p>
+                <p>We are now processing your order and will notify you once it ships.</p>
+                
+                <div style="margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+                  <p style="margin: 0 0 5px 0;"><strong>Order ID:</strong> ${populatedPaidOrder.orderId}</p>
+                  <p style="margin: 0 0 5px 0;"><strong>Amount Paid:</strong> ৳${populatedPaidOrder.totalPrice.toFixed(2)}</p>
+                  <p style="margin: 0;"><strong>Payment Method:</strong> ${populatedPaidOrder.paymentMethod}</p>
+                </div>
+                
+                <p style="font-size: 14px; color: #6b7280;">Thank you for shopping with Becha Bikri!</p>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
+                <p style="font-size: 12px; color: #9ca3af; text-align: center;">© 2024 Becha Bikri. All rights reserved.</p>
+              </div>`,
+          });
+        }
+      } catch (mailErr) {
+        console.error("Payment Success Email Error:", mailErr.message);
+      }
     } else if (updatedOrder.paymentStatus === "due") {
       notificationConfig.title = "Payment Due ⏳";
       notificationConfig.message = `Payment is due for order #${updatedOrder.orderId}. Please complete it soon.`;
@@ -693,6 +754,7 @@ const markOrderAsPaid = async (req, res) => {
 
     res.json(updatedOrder);
   } catch (error) {
+    console.error("Mark Order Paid Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };

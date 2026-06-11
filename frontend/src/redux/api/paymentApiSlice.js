@@ -64,6 +64,24 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
         "Order",
       ],
     }),
+
+    initSSLCommerz: builder.mutation({
+      query: (orderId) => ({
+        url: `${PAYMENTS_URL}/sslcommerz/init`,
+        method: "POST",
+        body: { orderId },
+      }),
+      invalidatesTags: ["Order"], // অর্ডার আপডেট করার জন্য ক্যাশ ইনভ্যালিডেট
+    }),
+
+    validateSSLCommerzPayment: builder.mutation({
+      query: (val_id) => ({
+        url: `${PAYMENTS_URL}/sslcommerz/validate`,
+        method: "POST",
+        body: { val_id },
+      }),
+      invalidatesTags: ["Order"], // অর্ডার আপডেট করার জন্য ক্যাশ ইনভ্যালিডেট
+    }),
   }),
 });
 
@@ -75,4 +93,6 @@ export const {
   useDeletePaymentMethodMutation,
   useSubmitManualPaymentMutation,
   useVerifyManualPaymentMutation,
+  useInitSSLCommerzMutation, // ✅ নতুন হুক এক্সপোর্ট
+  useValidateSSLCommerzPaymentMutation,
 } = paymentApiSlice;
