@@ -42,8 +42,8 @@ const app = express();
 // ==========================================
 const corsOptions = {
   origin: [
-    "https://becha-bikri-9ygt.vercel.app", // আপনার Vercel frontend
-    "http://localhost:5173", // Local development
+    "https://arixco.vercel.app/", 
+    "http://localhost:5173", 
     "http://localhost:3000",
   ],
   credentials: true,

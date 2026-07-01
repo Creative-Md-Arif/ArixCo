@@ -3,7 +3,7 @@ const isDevelopment = import.meta.env.DEV;
 // Read from .env (VITE_API_URL). Falls back to the Render URL if the env
 // variable isn't set, so nothing breaks if someone forgets to configure .env.
 const BACKEND_URL =
-  import.meta.env.VITE_API_URL || "https://bechabikri-1.onrender.com";
+  import.meta.env.VITE_API_URL || "https://arixco.onrender.com/";
 
 export const BASE_URL = isDevelopment ? "" : BACKEND_URL;
 export const API_URL = isDevelopment ? "" : BACKEND_URL;
