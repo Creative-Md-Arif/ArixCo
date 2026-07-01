@@ -8,7 +8,7 @@ const Home = () => {
   const keyword = window.location.search.includes('keyword') ? new URLSearchParams(window.location.search).get('keyword') : null;
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#FFFFFF] min-h-screen">
       <HeroBanner />
       {!keyword && <Category />}
       {!keyword && <NewArrivals />}

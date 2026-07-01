@@ -74,7 +74,7 @@ const HeroBanner = () => {
         setIsTransitioning(false); // Start fade in
       }, 400); // Time matches CSS transition duration
     },
-    [isTransitioning, banners]
+    [isTransitioning, banners],
   );
 
   /* auto-advance */
@@ -127,9 +127,8 @@ const HeroBanner = () => {
   const multi = banners.length > 1;
 
   return (
-    <section aria-label="Hero banner" className="font-sans">
+    <section aria-label="Hero banner" className="font-sans mt-5">
       <div className="relative w-full h-[260px] sm:h-[360px] md:h-[460px] lg:h-[540px] xl:h-[600px] overflow-hidden bg-gray-900">
-        
         {/* ── Slide Container ── */}
         <div
           className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
@@ -138,7 +137,10 @@ const HeroBanner = () => {
         >
           {/* Image with responsive src */}
           <picture>
-            <source media="(max-width: 640px)" srcSet={b.mobileImage || b.image} />
+            <source
+              media="(max-width: 640px)"
+              srcSet={b.mobileImage || b.image}
+            />
             <img
               src={b.image}
               alt={b.headline}
@@ -149,19 +151,18 @@ const HeroBanner = () => {
             />
           </picture>
 
-          {/* Soft Overlay - Protects text readability */}
+          {/* Optimized Radial Overlay */}
           <div
             aria-hidden="true"
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.75) 100%)`,
+              background: `radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.6) 100%)`,
             }}
           />
 
           {/* Centered Content Container */}
           <div className="absolute inset-0 flex items-center justify-center text-center px-6 sm:px-12 md:px-20">
             <div className="max-w-3xl w-full space-y-3 sm:space-y-4 md:space-y-5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
-              
               {/* Badges row */}
               <div className="flex justify-center flex-wrap gap-2 sm:gap-3">
                 {b.buttonType && b.buttonType !== "default" && (
@@ -178,13 +179,13 @@ const HeroBanner = () => {
               </div>
 
               {/* ✅ Headline - Fixed Text Color for Maximum Visibility */}
-              <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight uppercase text-white">
+              <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-playfair leading-[1.05] tracking-px uppercase text-white">
                 {b.headline}
               </h2>
 
               {/* ✅ Sub-headline - Fixed Text Color */}
               {b.subHeadline && (
-                <p className="text-[11px] sm:text-sm md:text-base lg:text-lg leading-relaxed mx-auto max-w-xl text-white/90">
+                <p className="text-sm sm:text-base font-light font-poppins leading-relaxed mx-auto max-w-xl text-gray-200 mb-8 italic">
                   {b.subHeadline}
                 </p>
               )}
@@ -195,14 +196,15 @@ const HeroBanner = () => {
                   to={b.link || "/shop"}
                   onClick={() => handleClick(b)}
                   aria-label={`${b.buttonText} — ${b.headline}`}
-                  className="inline-flex items-center gap-2 px-5 py-2 sm:px-7 sm:py-2.5 md:px-10 md:py-3 text-[9px] sm:text-[11px] md:text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] rounded-sm transition-transform hover:scale-105 shadow-lg"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-3.5 text-[10px] sm:text-[11px] md:text-[12px] font-bold font-poppins uppercase tracking-[0.2em] rounded-sm transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
                   style={{
-                    backgroundColor: b.buttonColor || "#DC2626", // Default red if not set
+                    backgroundColor: b.buttonColor || "#B88E2F",
                     color: b.buttonTextColor || "#FFFFFF",
                   }}
                 >
-                  {b.buttonText}
-                  <FaArrowRight className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                  <span className="leading-none mt-[1px]">{b.buttonText}</span>
+
+                  <FaArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
             </div>

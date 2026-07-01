@@ -1,9 +1,13 @@
-/** @type {import('tailwindcss').Config} */
+import typographyPlugin from "@tailwindcss/typography";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      letterSpacing: {
+        px: "1px",
+      },
       animation: {
         ripple: "ripple 0.6s linear",
         swing: "swing 2s ease-in-out infinite",
@@ -21,7 +25,6 @@ export default {
             opacity: "0",
           },
         },
-
         swing: {
           "0%, 100%": { transform: "rotate(0deg)" },
           "20%": { transform: "rotate(15deg)" },
@@ -44,7 +47,7 @@ export default {
           900: "#1e3a8a",
           950: "#172554",
         },
-        brand: "#B88E2F", // আপনার লোগোর গোল্ডেন কালারটি এখানে সেট করে দিলাম
+        brand: "#B88E2F",
       },
       screens: {
         xs: "420px",
@@ -60,5 +63,5 @@ export default {
       },
     },
   },
-  plugins: [require("@tailwindcss/typography")],
+  plugins: [typographyPlugin],
 };

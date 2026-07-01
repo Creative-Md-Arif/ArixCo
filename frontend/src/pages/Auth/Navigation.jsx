@@ -29,7 +29,6 @@ const STATIC_NAV_LINKS = [
 const MOBILE_MENU_SECTIONS = [
   { to: "/", icon: <SlHome size={18} />, label: "Home" },
   { to: "/shop", icon: <CiShop size={18} />, label: "Shop" },
-  { to: "/favorite", icon: <FavoriteIcon size={18} />, label: "Favorites" },
 ];
 
 const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
@@ -142,252 +141,317 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
       {/* ── Fixed Header ── */}
       <header
         id="main-header-nav"
-        className={`fixed top-0 left-0 w-full z-[1000] px-3 sm:px-4 bg-[#1A1A1A] transition-all duration-300 ${
-          scrolled ? "bg-[#1A1A1A]/95 backdrop-blur-md" : ""
+        className={`fixed top-0 left-0 w-full z-[1000] py-3 bg-[#1A1A1A] transition-all duration-300 ${
+          scrolled ? "lg:bg-[#1A1A1A]/95 lg:backdrop-blur-md" : ""
         }`}
       >
-        <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 md:h-[68px] relative">
-          {/* Logo */}
-          <Link
-            to="/"
-            onClick={handleNavClick}
-            className="flex-shrink-0 scale-90 sm:scale-100 origin-left z-10"
-          >
-            <Logo />
-          </Link>
-
-          {/* Desktop Links & Mega Menu */}
-          <ul className="hidden md:flex items-center gap-1 lg:gap-2 h-full">
-            {STATIC_NAV_LINKS.map((link) => (
-              <li key={link.to} className="h-full flex items-center">
-                <Link
-                  to={link.to}
-                  className={`relative px-2 py-1 lg:px-3 text-[11px] lg:text-xs font-extrabold tracking-[0.12em] lg:tracking-[0.14em] uppercase rounded transition-colors whitespace-nowrap ${
-                    isActive(link.to)
-                      ? "text-[#D4A843]"
-                      : "text-gray-300 hover:text-white hover:bg-white/10"
+        <div className="container mx-auto h-14 sm:h-16 lg:h-[68px] relative px-4">
+          {/* ── MOBILE/TABLET BAR (white bg — matches reference image, shows up to lg) ── */}
+          <div className="flex lg:hidden items-center justify-between h-full">
+            <div className="flex items-center gap-5">
+              <button
+                className="relative flex flex-col items-center justify-center gap-[6px] w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-300 hover:bg-white group"
+                onClick={toggleMenu}
+                aria-label="Toggle Menu"
+              >
+                <span
+                  className={`block h-[1.5px] w-5 rounded-full bg-white transition-all duration-300 ease-in-out group-hover:bg-[#D4A843] ${
+                    isMenuOpen
+                      ? "translate-y-[7.5px] rotate-45 !bg-[#D4A843]"
+                      : ""
                   }`}
-                >
-                  {link.label}
-                  {isActive(link.to) && (
-                    <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-[#D4A843] rounded-full"></span>
-                  )}
-                </Link>
-              </li>
-            ))}
+                ></span>
+                <span
+                  className={`block h-[1.5px] w-5 rounded-full bg-white transition-all duration-300 ease-in-out group-hover:bg-[#D4A843] ${
+                    isMenuOpen ? "opacity-0 translate-x-2" : ""
+                  }`}
+                ></span>
+                <span
+                  className={`block h-[1.5px] w-5 rounded-full bg-white transition-all duration-300 ease-in-out group-hover:bg-[#D4A843] ${
+                    isMenuOpen
+                      ? "-translate-y-[7.5px] -rotate-45 !bg-[#D4A843]"
+                      : ""
+                  }`}
+                ></span>
+              </button>
 
-            {/* Dynamic Category Links & Skeleton Loading */}
-            {categoriesLoading ? (
-              <>
-                {[1, 2, 3].map((i) => (
-                  <li
-                    key={`skel-top-${i}`}
-                    className="h-full flex items-center group relative"
-                  >
-                    <div className="relative px-2 py-1 lg:px-3 flex items-center gap-1 whitespace-nowrap">
-                      <div className="w-16 lg:w-20 h-3 bg-white/20 animate-pulse rounded"></div>
-                      <div className="w-2 h-2 bg-white/20 animate-pulse rounded-full"></div>
-                    </div>
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="relative group block"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ">
+                  <IoSearchOutline
+                    className="text-white group-hover:text-[#D4A843] transition-colors"
+                    size={17}
+                  />
+                </div>
+              </button>
+            </div>
+            {/* Hamburger — pinned left */}
 
-                    {/* ── SKELETON MEGA MENU DROPDOWN ── */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-screen max-w-7xl bg-white border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 mt-0 rounded-b-lg border-t-2 z-50">
-                      <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
-                        {[1, 2, 3, 4].map((j) => (
-                          <div key={`skel-mega-${j}`} className="space-y-3">
-                            <div className="w-24 h-3 bg-gray-200 animate-pulse rounded"></div>
-                            <div className="space-y-2 pt-2">
-                              <div className="w-full h-2 bg-gray-100 animate-pulse rounded"></div>
-                              <div className="w-3/4 h-2 bg-gray-100 animate-pulse rounded"></div>
-                              <div className="w-5/6 h-2 bg-gray-100 animate-pulse rounded"></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </>
-            ) : (
-              categories?.map((cat) => (
-                <li
-                  key={cat._id}
-                  className="h-full flex items-center group relative"
-                >
+            {/* Search + Logo + User + Cart — clustered together */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* Search */}
+
+              {/* Logo — centered between search & user/cart */}
+              <Link
+                to="/"
+                onClick={handleNavClick}
+                className="flex-shrink-0 scale-90 origin-center"
+              >
+                <Logo />
+              </Link>
+
+              {/* User */}
+            </div>
+
+            <div className="flex items-center gap-5">
+              <Link
+                to={userInfo ? "/profile" : "/login"}
+                onClick={handleNavClick}
+                className="relative group block"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 group-hover:bg-black/5">
+                  <CiUser
+                    className="text-white group-hover:text-[#D4A843] transition-colors"
+                    size={17}
+                  />
+                </div>
+              </Link>
+
+              <div
+                onClick={() => dispatch(toggleCartSidebar(true))}
+                className="cursor-pointer"
+              >
+                <CartIcon cartCount={cartItemsCount} />
+              </div>
+            </div>
+            {/* Cart — pinned right */}
+          </div>
+
+          {/* ── DESKTOP BAR (dark theme — shows from lg) ── */}
+          <div className="hidden lg:flex items-center justify-between h-full">
+            {/* Logo */}
+            <Link
+              to="/"
+              onClick={handleNavClick}
+              className="flex-shrink-0 z-10"
+            >
+              <Logo />
+            </Link>
+
+            {/* Desktop Links & Mega Menu */}
+            <ul className="flex items-center gap-1 lg:gap-2 h-full">
+              {STATIC_NAV_LINKS.map((link) => (
+                <li key={link.to} className="h-full flex items-center">
                   <Link
-                    to={`/shop?category=${cat._id}`}
-                    className={`relative px-2 py-1 lg:px-3 text-[11px] lg:text-xs font-extrabold tracking-[0.12em] lg:tracking-[0.14em] uppercase rounded transition-colors flex items-center gap-1 whitespace-nowrap ${
-                      isActive(`/shop?category=${cat._id}`)
+                    to={link.to}
+                    className={`relative px-2 py-1 lg:px-3 text-[14px] font-trebuchet text-white font-semibold tracking-px uppercase rounded transition-colors whitespace-nowrap ${
+                      isActive(link.to)
                         ? "text-[#D4A843]"
                         : "text-gray-300 hover:text-white hover:bg-white/10"
                     }`}
                   >
-                    {cat.name}
-                    {cat.children?.length > 0 && (
-                      <IoChevronDownOutline
-                        size={10}
-                        className="mt-0.5 transition-transform duration-200 group-hover:rotate-180"
-                      />
+                    {link.label}
+                    {isActive(link.to) && (
+                      <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-[#D4A843] rounded-full"></span>
                     )}
                   </Link>
-
-                  {/* ── MEGA MENU DROPDOWN ── */}
-                  {cat.children?.length > 0 && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-screen max-w-7xl bg-white border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 mt-0 rounded-b-lg border-t-2 z-50">
-                      <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
-                        {cat.children.map((subCat) => (
-                          <div key={subCat._id}>
-                            <Link
-                              to={`/shop?category=${subCat._id}`}
-                              className="text-[11px] md:text-[12px] font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-2 mb-3 block hover:text-[#D4A843] transition-colors"
-                            >
-                              {subCat.name}
-                            </Link>
-                            {subCat.children?.length > 0 && (
-                              <ul className="space-y-2 mt-3">
-                                {subCat.children.map((subSubCat) => (
-                                  <li key={subSubCat._id}>
-                                    <Link
-                                      to={`/shop?category=${subSubCat._id}`}
-                                      className="text-[12px] md:text-[13px] text-gray-600 hover:text-[#D4A843] transition-colors font-medium"
-                                    >
-                                      {subSubCat.name}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </li>
-              ))
-            )}
-          </ul>
+              ))}
 
-          {/* Actions (Right Side) */}
-          <div className="flex items-center sm:gap-2 z-10">
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="relative group block p-0.5 sm:p-1"
-            >
-              <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-300 group-hover:bg-white/10">
-                <IoSearchOutline
-                  className="text-gray-400 group-hover:text-[#D4A843] transition-colors"
-                  size={16}
-                />
-              </div>
-            </button>
+              {categoriesLoading ? (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <li
+                      key={`skel-top-${i}`}
+                      className="h-full flex items-center group relative"
+                    >
+                      <div className="relative px-2 py-1 lg:px-3 flex items-center gap-1 whitespace-nowrap">
+                        <div className="w-16 lg:w-20 h-3 bg-white/20 animate-pulse rounded"></div>
+                        <div className="w-2 h-2 bg-white/20 animate-pulse rounded-full"></div>
+                      </div>
+                      <div className="fixed top-14 sm:top-16 lg:top-[68px] left-0 right-0 w-full bg-white border-t border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
+                          {[1, 2, 3, 4].map((j) => (
+                            <div key={`skel-mega-${j}`} className="space-y-3">
+                              <div className="w-24 h-3 bg-gray-200 animate-pulse rounded"></div>
+                              <div className="space-y-2 pt-2">
+                                <div className="w-full h-2 bg-gray-100 animate-pulse rounded"></div>
+                                <div className="w-3/4 h-2 bg-gray-100 animate-pulse rounded"></div>
+                                <div className="w-5/6 h-2 bg-gray-100 animate-pulse rounded"></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </>
+              ) : (
+                categories?.map((cat) => (
+                  <li
+                    key={cat._id}
+                    className="h-full flex items-center group relative"
+                  >
+                    <Link
+                      to={`/shop?category=${cat._id}`}
+                      className={`relative px-2 py-1 lg:px-3 font-trebuchet text-[14px] font-semibold uppercase tracking-px rounded transition-colors flex items-center gap-1 whitespace-nowrap ${
+                        isActive(`/shop?category=${cat._id}`)
+                          ? "text-[#D4A843]"
+                          : "text-gray-300 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {cat.name}
+                      {cat.children?.length > 0 && (
+                        <IoChevronDownOutline
+                          size={10}
+                          className="mt-0.5 transition-transform duration-200 group-hover:rotate-180"
+                        />
+                      )}
+                    </Link>
 
-            <div className="scale-90 sm:block hidden sm:scale-100 text-gray-300 hover:text-[#D4A843] transition-colors">
-              <FavoriteIcon onClick={handleNavClick} />
-            </div>
-            <div
-              onClick={() => dispatch(toggleCartSidebar(true))}
-              className="cursor-pointer scale-90 sm:scale-100"
-            >
-              <CartIcon cartCount={cartItemsCount} />
-            </div>
-            {userInfo && (
-              <div className="hidden sm:block scale-90 sm:scale-100 text-gray-300 hover:text-[#D4A843] transition-colors">
-                <NotificationBell />
-              </div>
-            )}
-
-            {userInfo ? (
-              <div className="relative hidden sm:block">
-                <button
-                  className="profile-btn flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-3 sm:py-1.5 bg-white/10 border border-white/10 rounded-md hover:border-[#D4A843] transition-colors text-white"
-                  onClick={toggleTab}
-                >
-                  <span className="hidden sm:block text-[10px] lg:text-[11px] font-extrabold text-gray-200 max-w-[70px] lg:max-w-[90px] truncate">
-                    {userInfo.username}
-                  </span>
-                  <CiUser size={15} className="text-[#D4A843]" />
-                </button>
-
-                <div
-                  className={`dropdown-menu absolute top-full right-0 mt-2 w-44 sm:w-52 bg-[#252525] border border-white/10 rounded-lg overflow-hidden transition-all duration-200 ${
-                    tabOpen
-                      ? "opacity-100 visible translate-y-0"
-                      : "opacity-0 invisible -translate-y-2"
-                  }`}
-                >
-                  <div className="p-3 bg-[#2A2A2A] border-b border-white/10">
-                    <span className="block text-[11px] font-black text-white">
-                      {userInfo.username}
-                    </span>
-                    <span className="block text-[9px] text-gray-400 truncate">
-                      {userInfo.email}
-                    </span>
-                  </div>
-                  <div className="p-1.5">
-                    {userInfo.isAdmin && (
-                      <Link
-                        to="/admin/dashboard"
-                        onClick={handleNavClick}
-                        className="flex items-center gap-2 p-2 rounded-md text-[10px] sm:text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843]"
-                      >
-                        <MdOutlineDashboard size={14} /> <span>Dashboard</span>
-                      </Link>
+                    {cat.children?.length > 0 && (
+                      <div className="fixed top-14 sm:top-16 lg:top-[90px] left-0 right-0 w-full bg-white border-t-2 border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
+                          {cat.children.map((subCat) => (
+                            <div key={subCat._id}>
+                              <Link
+                                to={`/shop?category=${subCat._id}`}
+                                className="text-[14px] font-trebuchet font-medium uppercase tracking-px text-gray-900 border-b border-gray-200 pb-2 mb-3 block"
+                              >
+                                {subCat.name}
+                              </Link>
+                              {subCat.children?.length > 0 && (
+                                <ul className="space-y-2 mt-3">
+                                  {subCat.children.map((subSubCat) => (
+                                    <li key={subSubCat._id}>
+                                      <Link
+                                        to={`/shop?category=${subSubCat._id}`}
+                                        className="text-[14px] text-gray-700 font-trebuchet tracking-px font-normal hover:text-black hover:underline transition-colors"
+                                      >
+                                        {subSubCat.name}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    <Link
-                      to="/profile"
-                      onClick={handleNavClick}
-                      className="flex items-center gap-2 p-2 rounded-md text-[10px] sm:text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843]"
-                    >
-                      <CgProfile size={14} /> <span>Profile</span>
-                    </Link>
-                    <Link
-                      to="/user-orders"
-                      onClick={handleNavClick}
-                      className="flex items-center gap-2 p-2 rounded-md text-[10px] sm:text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843]"
-                    >
-                      <LiaClipboardListSolid size={14} /> <span>My Orders</span>
-                    </Link>
-                  </div>
-                  <div className="p-1.5 border-t border-white/10">
-                    <button
-                      onClick={logoutHandler}
-                      className="flex items-center gap-2 w-full p-2 rounded-md text-[10px] sm:text-[11px] font-bold text-red-400 hover:bg-red-900/20"
-                    >
-                      <IoIosLogOut size={14} /> <span>Logout</span>
-                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+
+            {/* Desktop Actions */}
+            <div className="flex items-center z-10">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="relative group block p-0.5 sm:p-1"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 group-hover:bg-white/10">
+                  <IoSearchOutline
+                    className="text-gray-400 group-hover:text-[#D4A843] transition-colors"
+                    size={17}
+                  />
+                </div>
+              </button>
+
+              <div className="text-gray-300 hover:text-[#D4A843] transition-colors">
+                <FavoriteIcon onClick={handleNavClick} />
+              </div>
+              <div
+                onClick={() => dispatch(toggleCartSidebar(true))}
+                className="cursor-pointer"
+              >
+                <CartIcon cartCount={cartItemsCount} />
+              </div>
+              {userInfo && (
+                <div className="text-gray-300 hover:text-[#D4A843] transition-colors">
+                  <NotificationBell />
+                </div>
+              )}
+
+              {userInfo ? (
+                <div className="relative">
+                  <button
+                    className="profile-btn flex items-center ml-2 px-2 py-1 bg-white/10 border border-white/10 rounded-md hover:border-[#D4A843] transition-colors text-white"
+                    onClick={toggleTab}
+                  >
+                    <CiUser size={17} className="text-[#D4A843]" />
+                  </button>
+
+                  <div
+                    className={`dropdown-menu absolute top-full right-0 mt-2 w-44 sm:w-52 bg-[#252525] border border-white/10 rounded-lg overflow-hidden transition-all duration-200 ${
+                      tabOpen
+                        ? "opacity-100 visible translate-y-0"
+                        : "opacity-0 invisible -translate-y-2"
+                    }`}
+                  >
+                    <div className="p-3 bg-[#2A2A2A] border-b border-white/10">
+                      <span className="block font-poppins text-sm font-medium tracking-px text-white">
+                        {userInfo.username}
+                      </span>
+                      <span className="block font-poppins text-xs font-medium tracking-px text-gray-400 truncate">
+                        {userInfo.email}
+                      </span>
+                    </div>
+                    <div className="p-1.5">
+                      {userInfo.isAdmin && (
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={handleNavClick}
+                          className="flex items-center gap-2 p-2 rounded-md font-poppins text-sm font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843]"
+                        >
+                          <MdOutlineDashboard size={14} />{" "}
+                          <span>Dashboard</span>
+                        </Link>
+                      )}
+                      <Link
+                        to="/profile"
+                        onClick={handleNavClick}
+                        className="flex items-center gap-2 p-2 rounded-md font-poppins text-sm font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843]"
+                      >
+                        <CgProfile size={14} /> <span>Profile</span>
+                      </Link>
+                      <Link
+                        to="/user-orders"
+                        onClick={handleNavClick}
+                        className="flex items-center gap-2 p-2 rounded-md font-poppins text-sm font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843]"
+                      >
+                        <LiaClipboardListSolid size={14} />{" "}
+                        <span>My Orders</span>
+                      </Link>
+                    </div>
+                    <div className="p-1.5 border-t border-white/10">
+                      <button
+                        onClick={logoutHandler}
+                        className="flex items-center gap-2 w-full p-2 rounded-md font-poppins text-sm font-medium tracking-px text-red-400 hover:bg-red-900/20"
+                      >
+                        <IoIosLogOut size={14} /> <span>Logout</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                onClick={handleNavClick}
-                className="hidden sm:block px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[10px] lg:text-[11px] font-extrabold tracking-wider uppercase text-[#D4A843] border border-[#D4A843] rounded-md hover:bg-[#D4A843] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
-              >
-                Login
-              </Link>
-            )}
-
-            {/* Hamburger */}
-            <button
-              className="flex flex-col justify-center gap-[4px] sm:gap-[5px] w-8 h-8 sm:w-9 sm:h-9 p-1.5 sm:p-2 border border-white/10 rounded-md md:hidden hover:border-[#D4A843] transition-all"
-              onClick={toggleMenu}
-            >
-              <span
-                className={`block h-[1.5px] w-full bg-gray-300 rounded transition-all ${isMenuOpen ? "translate-y-[5.5px] sm:translate-y-[6.5px] rotate-45 !bg-[#D4A843]" : ""}`}
-              ></span>
-              <span
-                className={`block h-[1.5px] w-full bg-gray-300 rounded transition-all ${isMenuOpen ? "opacity-0 w-0" : ""}`}
-              ></span>
-              <span
-                className={`block h-[1.5px] w-full bg-gray-300 rounded transition-all ${isMenuOpen ? "-translate-y-[5.5px] sm:-translate-y-[6.5px] -rotate-45 !bg-[#D4A843]" : ""}`}
-              ></span>
-            </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={handleNavClick}
+                  className="px-2 py-1 sm:px-3 sm:py-1.5 ml-2 text-[14px] font-poppins font-medium tracking-px uppercase text-[#D4A843] border border-[#D4A843] rounded-md hover:bg-[#D4A843] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
+                >
+                  Login
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Spacer */}
-      <div className="h-14 sm:h-16 md:h-[68px]"></div>
+      <div className="h-14 sm:h-16 lg:h-[68px]"></div>
 
       {/* Sidebar Overlay */}
       <div
@@ -415,26 +479,19 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 <Link
                   to={item.to}
                   onClick={handleNavClick}
-                  className={`flex items-center gap-3 p-2 rounded-lg text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors min-h-[40px] sm:min-h-[44px] ${
+                  className={`flex items-center gap-3 p-2 rounded-lg text-[14px] font-normal font-trebuchet tracking-px text-white uppercase transition-colors min-h-[40px] sm:min-h-[44px] ${
                     isActive(item.to)
                       ? "bg-white/10 text-[#D4A843] border-l-2 border-[#D4A843]"
                       : "text-gray-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  {item.renderIcon === "cart" ? (
-                    <CartIcon cartCount={cartItemsCount} />
-                  ) : item.renderIcon === "favorite" ? (
-                    <FavoriteIcon />
-                  ) : (
-                    item.icon
-                  )}
                   <span>{item.label}</span>
                 </Link>
               </li>
             ))}
 
             <li className="mt-3 sm:mt-4 border-t border-white/10 pt-3 sm:pt-4">
-              <p className="px-3 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-gray-500 mb-2">
+              <p className="px-3 text-[12px] font-extrabold font-trebuchet uppercase text-brand/50 mb-2">
                 Categories
               </p>
             </li>
@@ -455,7 +512,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               categories?.map((cat) => (
                 <li key={cat._id}>
                   <div
-                    className={`flex items-center justify-between p-2.5 sm:p-3 rounded-lg text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors min-h-[40px] sm:min-h-[44px] cursor-pointer ${
+                    className={`flex items-center justify-between p-2.5 sm:p-3 rounded-lg font-trebuchet text-[14px] font-semibold text-white tracking-px uppercase transition-colors min-h-[40px] sm:min-h-[44px] cursor-pointer ${
                       mobileOpenCatId === cat._id
                         ? "bg-white/10 text-[#D4A843]"
                         : "text-gray-300 hover:bg-white/5 hover:text-white"
@@ -492,7 +549,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                               <Link
                                 to={`/shop?category=${subCat._id}`}
                                 onClick={handleNavClick}
-                                className="block p-2 sm:p-2.5 rounded-md text-[11px] font-bold text-gray-400 hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px]"
+                                className="block p-2 sm:p-2.5 rounded-md text-[14px] font-trebuchet font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px]"
                               >
                                 {subCat.name}
                               </Link>
@@ -502,7 +559,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                                 <Link
                                   to={`/shop?category=${subSubCat._id}`}
                                   onClick={handleNavClick}
-                                  className="block pl-4 p-2 rounded-md text-[10px] font-medium text-gray-500 hover:bg-white/10 hover:text-white min-h-[32px] sm:min-h-[36px]"
+                                  className="block pl-4 p-2 rounded-md text-[14px] font-normal font-trebuchet tracking-px text-gray-400 hover:bg-white/10 hover:text-red-500 min-h-[32px] sm:min-h-[36px]"
                                 >
                                   {subSubCat.name}
                                 </Link>
@@ -519,25 +576,27 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
           </ul>
         </nav>
 
-        <div className="p-2 border-t border-white/10">
+        <div className="p-2 border-t border-white/10 font-poppins">
           {userInfo ? (
             <div>
               <button
-                className="flex items-center gap-2 sm:gap-3 w-full p-2 sm:p-3 bg-white/5 border border-white/10 rounded-lg min-h-[40px] sm:min-h-[44px] text-white"
+                className="flex items-center gap-2 sm:gap-3 w-full p-2 sm:p-3 bg-white/5 border border-white/10 rounded-lg min-h-[40px] sm:min-h-[44px] text-white hover:bg-white/10 transition-colors"
                 onClick={toggleTab}
               >
                 <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#B88E2F] to-[#D4A843] flex items-center justify-center text-white flex-shrink-0">
                   <CiUser size={14} />
                 </span>
-                <span className="flex-1 text-left text-[11px] sm:text-[12px] font-extrabold text-gray-200 truncate">
+
+                <span className="flex-1 text-left text-[14px] font-semibold text-gray-200 tracking-px truncate">
                   {userInfo.username}
                 </span>
                 <span
-                  className={`text-[8px] text-gray-400 transition-transform ${tabOpen ? "rotate-180" : ""}`}
+                  className={`text-[8px] text-gray-400 transition-transform duration-200 ${tabOpen ? "rotate-180" : ""}`}
                 >
                   &#9660;
                 </span>
               </button>
+
               <div
                 className={`overflow-hidden transition-all duration-300 ${tabOpen ? "max-h-[300px] mt-2" : "max-h-0"}`}
               >
@@ -547,9 +606,9 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                       <Link
                         to="/admin/dashboard"
                         onClick={handleNavClick}
-                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px]"
+                        className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[14px] font-medium text-gray-300 tracking-px hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px] transition-colors"
                       >
-                        <MdOutlineDashboard size={13} /> <span>Dashboard</span>
+                        <MdOutlineDashboard size={14} /> <span>Dashboard</span>
                       </Link>
                     </li>
                   )}
@@ -557,26 +616,26 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                     <Link
                       to="/profile"
                       onClick={handleNavClick}
-                      className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px]"
+                      className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[14px] font-medium text-gray-300 tracking-px hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px] transition-colors"
                     >
-                      <CgProfile size={13} /> <span>Profile</span>
+                      <CgProfile size={14} /> <span>Profile</span>
                     </Link>
                   </li>
                   <li>
                     <Link
                       to="/user-orders"
                       onClick={handleNavClick}
-                      className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[11px] font-bold text-gray-300 hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px]"
+                      className="flex items-center gap-2 p-2 sm:p-2.5 rounded-md text-[14px] font-medium text-gray-300 tracking-px hover:bg-white/10 hover:text-[#D4A843] min-h-[36px] sm:min-h-[40px] transition-colors"
                     >
-                      <LiaClipboardListSolid size={13} /> <span>My Orders</span>
+                      <LiaClipboardListSolid size={14} /> <span>My Orders</span>
                     </Link>
                   </li>
                   <li>
                     <button
                       onClick={logoutHandler}
-                      className="flex items-center gap-2 w-full p-2 sm:p-2.5 rounded-md text-[11px] font-bold text-red-400 hover:bg-red-900/20 min-h-[36px] sm:min-h-[40px]"
+                      className="flex items-center gap-2 w-full p-2 sm:p-2.5 rounded-md text-[14px] font-medium text-red-400 tracking-px hover:bg-red-950/30 min-h-[36px] sm:min-h-[40px] transition-colors"
                     >
-                      <IoIosLogOut size={13} /> <span>Logout</span>
+                      <IoIosLogOut size={14} /> <span>Logout</span>
                     </button>
                   </li>
                 </ul>
@@ -587,14 +646,14 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               <Link
                 to="/login"
                 onClick={handleNavClick}
-                className="block text-center p-2 sm:p-2.5 border border-[#D4A843] text-[#D4A843] rounded-lg text-[11px] sm:text-[12px] font-extrabold uppercase tracking-wider hover:bg-[#D4A843] hover:text-[#1A1A1A] transition-colors"
+                className="block text-center p-2 sm:p-2.5 border border-[#D4A843] text-[#D4A843] rounded-lg text-[14px] font-semibold uppercase tracking-px hover:bg-[#D4A843] hover:text-[#1A1A1A] transition-all"
               >
                 Login
               </Link>
               <Link
                 to="/register"
                 onClick={handleNavClick}
-                className="block text-center p-2 sm:p-2.5 bg-gradient-to-r from-[#B88E2F] to-[#D4A843] text-white rounded-lg text-[11px] sm:text-[12px] font-extrabold uppercase tracking-wider hover:opacity-90 transition-opacity"
+                className="block text-center p-2 sm:p-2.5 bg-gradient-to-r from-[#B88E2F] to-[#D4A843] text-white rounded-lg text-[14px] font-semibold uppercase tracking-px hover:opacity-90 transition-all shadow-md shadow-black/10"
               >
                 Register
               </Link>

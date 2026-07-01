@@ -1,11 +1,6 @@
 import { Link } from "react-router-dom";
 
-// Shared Pattern Background
-const BG = {
-  backgroundColor: "#FFFFFF",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect width='60' height='60' fill='none'/%3E%3Crect x='2' y='2' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.04' stroke-width='1'/%3E%3Crect x='32' y='32' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.04' stroke-width='1'/%3E%3Crect x='32' y='2' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.025' stroke-width='1'/%3E%3Crect x='2' y='32' width='26' height='26' rx='2' fill='none' stroke='%23B88E2F' stroke-opacity='0.025' stroke-width='1'/%3E%3C/svg%3E")`,
-  backgroundSize: "60px 60px",
-};
+
 
 // Shared Button Style
 const btnClass =
@@ -13,7 +8,6 @@ const btnClass =
 
 
 export const DoubleBanner = () => {
-  // ✅ _id যোগ করা হয়েছে (আপনার ব্যাকএন্ড থেকে আসা আসল _id দিয়ে এগুলো রিপ্লেস করে দিবেন)
   const banners = [
     {
       _id: "mens_category_id", 
@@ -39,14 +33,11 @@ export const DoubleBanner = () => {
   ];
 
   return (
-    <section className="py-10 sm:py-14 font-sans" style={BG}>
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6">
+    <section className="py-10 sm:py-14 font-sans">
+      <div className="container mx-auto px-4">
         <div className="flex flex-col items-center mb-8 text-center gap-2">
-          <span className="text-[10px] sm:text-[11px] font-black text-[#B88E2F] uppercase tracking-[0.3em]">
-            Categories
-          </span>
-          <h2 className="text-xl sm:text-2xl md:text-4xl font-black text-gray-900 uppercase tracking-[0.1em]">
-            Shop By <span className="text-[#B88E2F]">Department</span>
+          <h2  className="font-trebuchet text-[14px] md:text-[24px] font-bold tracking-px text-gray-900 uppercase">
+            Shop By Department
           </h2>
           <div className="h-[2px] w-12 bg-[#B88E2F] rounded-full" />
         </div>
@@ -55,7 +46,7 @@ export const DoubleBanner = () => {
           {banners.map((b, i) => (
             <Link
               key={i}
-              to={`/shop?category=${b._id}`} // ✅ ডাইনামিক ক্যাটাগরি আইডি দিয়ে লিংক
+              to={`/shop?category=${b._id}`} 
               className="group relative rounded-sm overflow-hidden h-56 sm:h-72 bg-black cursor-pointer border border-transparent hover:border-[#B88E2F] transition-all duration-300 flex items-end"
             >
               <img
@@ -65,16 +56,16 @@ export const DoubleBanner = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="relative z-10 p-5 sm:p-6 flex flex-col gap-2">
-                <p className="text-[#B88E2F] text-[10px] sm:text-[11px] font-black tracking-[0.3em] uppercase">
+                <p className="text-[#B88E2F] font-trebuchet text-[11px] font-black tracking-px uppercase">
                   {b.eyebrow}
                 </p>
-                <p className="text-white font-black text-lg sm:text-xl uppercase tracking-tight">
+                <p className="text-white font-trebuchet font-black text-xl uppercase tracking-px">
                   {b.title}
                 </p>
                 <span
                   className={`w-fit ${btnClass} opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0`}
                 >
-                  {b.btn} <span className="text-[8px]">→</span>
+                  {b.btn} <span className="text-[10px] font-trebuchet text-white font-medium tracking-px">→</span>
                 </span>
               </div>
             </Link>
@@ -87,10 +78,10 @@ export const DoubleBanner = () => {
 
 export const WideBanner = () => {
   return (
-    <section className="py-10 sm:py-14 font-sans" style={BG}>
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6">
+    <section className="py-10 sm:py-14 font-sans">
+      <div className="container mx-auto px-4">
         <Link
-          to="/shop" // এটি সাইটওয়াইড সেল, তাই এখানে ক্যাটাগরি আইডি লাগানো হয়নি, চাইলে এখানেও দিতে পারেন
+          to="/shop" 
           className="group relative rounded-sm overflow-hidden h-48 sm:h-64 bg-black cursor-pointer border border-transparent hover:border-[#B88E2F] transition-all duration-300 flex items-center"
         >
           <img
@@ -101,14 +92,14 @@ export const WideBanner = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between w-full px-6 sm:px-10 gap-4">
             <div>
-              <p className="text-[#B88E2F] text-[10px] sm:text-[11px] font-black tracking-[0.3em] uppercase mb-1">
+              <p className="text-[#B88E2F] text-[11px] font-trebuchet font-black tracking-[0.3em] uppercase mb-1">
                 Flash Sale · Ends Tonight
               </p>
-              <p className="text-white text-xl sm:text-2xl font-black uppercase tracking-tight">
+              <p className="text-white font-trebuchet text-xl sm:text-2xl font-black uppercase tracking-tight">
                 Extra 20% Off Sitewide
               </p>
             </div>
-            <span className="bg-[#B88E2F] group-hover:bg-black text-white text-[11px] uppercase tracking-widest px-6 py-2.5 font-black rounded-sm flex-shrink-0 transition-colors duration-200">
+            <span className="bg-[#B88E2F] group-hover:bg-black text-white text-[11px] uppercase font-trebuchet tracking-widest px-6 py-2.5 font-black rounded-sm flex-shrink-0 transition-colors duration-200">
               Claim Offer
             </span>
           </div>
