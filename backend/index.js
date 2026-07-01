@@ -42,7 +42,7 @@ const app = express();
 // ==========================================
 const corsOptions = {
   origin: [
-    "https://arixco.vercel.app/", 
+    "https://arixco.vercel.app", 
     "http://localhost:5173", 
     "http://localhost:3000",
   ],
