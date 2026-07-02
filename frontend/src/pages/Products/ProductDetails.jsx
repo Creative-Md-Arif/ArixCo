@@ -11,7 +11,7 @@ import Loader from "../../components/Loader";
 import Message from "../../components/Message";
 import ProductTabs from "./ProductTabs";
 import ProductCard from "./ProductCard";
-import { FaPlus, FaMinus, FaCheck } from "react-icons/fa";
+
 import AddToCartButton from "../../components/AddToCartButton";
 import { motion } from "framer-motion";
 import Breadcrumb from "../../components/breadcrumb/Breadcrumb";
@@ -199,8 +199,8 @@ const ProductDetails = () => {
   if (error) return <Message variant="danger">{error?.data?.message}</Message>;
 
   return (
-    <div className="bg-white min-h-screen font-figtree selection:bg-[#1A1A1A] selection:text-white px-3 sm:px-4">
-      <div className="container mx-auto mt-2 border-b border-gray-200">
+    <div className="bg-white min-h-screen pt-10">
+      <div className="container mx-auto mt-2 px-4">
         <Breadcrumb
           items={[
             { label: "Shop", href: "/shop" },
@@ -215,7 +215,7 @@ const ProductDetails = () => {
         />
       </div>
 
-      <div className="container mx-auto py-6 sm:py-10 lg:py-12">
+      <div className="container mx-auto py-6 px-4">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           {/* ── Image Gallery ── */}
           <div className="lg:w-[45%]">
@@ -231,157 +231,121 @@ const ProductDetails = () => {
                       src={img}
                       alt="thumbnail"
                       onClick={() => setActiveImage(img)}
-                      className={`w-14 h-14 sm:w-[70px] sm:h-[70px] object-cover rounded-lg cursor-pointer border-2 transition-all duration-300 ${
+                      className={`w-14 h-14 sm:w-[70px] sm:h-[70px] object-contain bg-white p-0.5 rounded-lg cursor-pointer transition-all duration-300 ${
                         activeImage === img
-                          ? "border-[#1A1A1A] scale-105"
-                          : "border-gray-200 opacity-60 grayscale group-hover/thumb:grayscale-0 group-hover/thumb:opacity-100 hover:border-gray-400"
+                          ? "ring-2 ring-neutral-950 scale-105"
+                          : "opacity-70 hover:opacity-100"
                       }`}
                     />
-                    {activeImage === img && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#1A1A1A] rounded-r-full hidden lg:block"
-                      />
-                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Main Image */}
-              <div className="relative flex-1 bg-[#F9F9F9] rounded-2xl overflow-hidden aspect-square flex items-center justify-center p-4 sm:p-8 border border-gray-200 group">
+              {/* Main Image Container */}
+              {/* এখানে bg-[#F9F9F9], border, শ্যাডো এবং mix-blend-multiply সরিয়ে একদম ক্লিন করা হয়েছে */}
+              <div className="relative flex-1 bg-white rounded-2xl overflow-hidden aspect-square flex items-center justify-center p-2 group">
                 {displayDiscountPercent > 0 && (
-                  <div className="absolute top-3 left-3 sm:top-5 sm:left-5 z-10">
-                    <div className="bg-white border border-gray-200 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg flex flex-col items-center">
-                      <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-widest text-gray-500">
-                        Offer
+                  <div className="absolute top-4 left-0 z-10">
+                    <div className="bg-[#6E2594] border border-neutral-100 px-3 py-1 min-w-[120px] rounded-r-xl flex items-center gap-1.5">
+                      <span className="text-[14px] font-trebuchet font-bold uppercase tracking-px text-white">
+                        Save
                       </span>
-                      <span className="text-base sm:text-xl font-black text-[#1A1A1A]">
+                      <span className="text-sm font-medium font-trebuchet text-white tracking-px">
                         -{Math.round(displayDiscountPercent)}%
                       </span>
                     </div>
                   </div>
                 )}
 
-                <motion.img
-                  key={activeImage}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                <img
                   src={activeImage}
-                  className="max-h-full object-contain mix-blend-multiply transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+                  alt="Product view"
+                  className="max-h-full max-w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
-
-                <div className="absolute bottom-3 sm:bottom-5 flex flex-col items-center gap-1 opacity-40">
-                  <div className="w-8 h-[2px] bg-gray-300 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ x: "-100%" }}
-                      animate={{ x: "100%" }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 2,
-                        ease: "linear",
-                      }}
-                      className="w-full h-full bg-gray-500"
-                    />
-                  </div>
-                  <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.3em] text-gray-500">
-                    AriX GeaR
-                  </span>
-                </div>
               </div>
             </div>
           </div>
 
           {/* ── Product Info ── */}
-          <div className="lg:w-[55%] space-y-4 sm:space-y-6">
+          <div className="lg:w-[55%] space-y-4">
             {/* Title */}
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#111827] leading-snug tracking-tight">
+            <h1 className="text-[20px] md:text-[22px] font-normal font-trebuchet text-[#3749BB] tracking-tight">
               {product.name}
             </h1>
 
-            {/* Variant Label */}
-            {product.hasVariants && (
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] sm:text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                  Selected:
-                </span>
-                <span className="text-[10px] sm:text-[12px] font-semibold text-[#1A1A1A] bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-full">
-                  {product.variants[selectedColorIndex]?.color?.name} /{" "}
-                  {
-                    product.variants[selectedColorIndex]?.sizes[
-                      selectedSizeIndex
-                    ]?.size
-                  }
-                </span>
-              </div>
-            )}
-
             {/* Info Badges */}
-            <div className="flex items-center flex-wrap gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 sm:py-2 rounded-lg">
-                <span className="text-[10px] sm:text-[13px] text-gray-600 font-medium">
+            <div className="flex items-center flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Price:
                 </span>
-                <span className="text-[12px] sm:text-[16px] font-bold text-[#1A1A1A]">
-                  ৳{Math.round(finalPrice * qty).toLocaleString()}
+                <span className="text-[16px] font-trebuchet font-bold text-[#000000]">
+                  {Math.round(finalPrice * qty).toLocaleString()}৳
                 </span>
                 {displayDiscountPercent > 0 && (
-                  <span className="text-[10px] sm:text-[12px] text-gray-400 line-through ml-1">
-                    ৳{Math.round(basePrice * qty).toLocaleString()}
+                  <span className="text-[12px] text-gray-600 font-trebuchet font-semibold line-through ml-1">
+                    {Math.round(basePrice * qty).toLocaleString()}৳
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 sm:py-2 rounded-lg">
-                <span className="text-[10px] sm:text-[13px] text-gray-600 font-medium">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
+                <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Status:
                 </span>
                 <span
-                  className={`text-[10px] sm:text-[13px] font-bold ${currentStock > 0 ? "text-emerald-600" : "text-red-500"}`}
+                  className={`text-[14px] font-trebuchet font-bold ${currentStock > 0 ? "text-[#000000]" : "text-red-500"}`}
                 >
-                  {currentStock > 0
-                    ? `In Stock (${currentStock})`
-                    : "Out of Stock"}
+                  {currentStock > 0 ? `In Stock ` : "Out of Stock"}
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 sm:py-2 rounded-lg">
-                <span className="text-[10px] sm:text-[13px] text-gray-600 font-medium">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 sm:py-2 rounded-lg">
+                <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Brand:
                 </span>
-                <span className="text-[10px] sm:text-[13px] font-bold text-[#1A1A1A]">
-                  {product.brand || "AriX GeaR"}
+                <span className="text-[14px] font-trebuchet font-bold text-[#000000]">
+                  {product.brand || "AriX co"}
                 </span>
               </div>
             </div>
 
-            {/* Color Selection */}
+            {/* Variant Label */}
+            {product.hasVariants && (
+              <div className="flex items-center gap-1.5 font-playfair">
+                <span className="text-[12px] font-bold text-black">Color:</span>
+                <span className="text-[12px] font-black text-black">
+                  {product.variants[selectedColorIndex]?.color?.name}
+                </span>
+                {product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]
+                  ?.size && (
+                  <span className="text-[12px] text-gray-400 font-medium ml-1">
+                    (
+                    {
+                      product.variants[selectedColorIndex]?.sizes[
+                        selectedSizeIndex
+                      ]?.size
+                    }
+                    )
+                  </span>
+                )}
+              </div>
+            )}
+
             {product.hasVariants && product.variants?.length > 0 && (
-              <div className="space-y-2.5 pt-1">
-                <h4 className="text-[10px] sm:text-[12px] font-bold text-gray-800 uppercase tracking-widest">
-                  Select Color
-                </h4>
-                <div className="flex flex-wrap gap-2">
+              <div className="pt-1 font-playfair">
+                <div className="flex flex-wrap gap-1">
                   {product.variants.map((variant, index) => (
                     <button
                       key={index}
                       onClick={() => handleColorChange(index)}
-                      className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 transition-all duration-200 text-[10px] sm:text-[12px] font-semibold ${
+                      className={`px-3 py-1 text-[13px] transition-all duration-150 border uppercase tracking-wider ${
                         selectedColorIndex === index
-                          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
-                          : "border-gray-200 bg-white text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-95"
+                          ? "border-[#E04F23] bg-[#E04F23] text-white font-medium"
+                          : "border-blue-700 bg-white text-black hover:bg-gray-50 font-normal"
                       }`}
                     >
-                      <span
-                        className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border border-gray-300 flex-shrink-0"
-                        style={{
-                          backgroundColor: variant.color.hexCode || "#ccc",
-                        }}
-                      />
                       {variant.color.name}
-                      {selectedColorIndex === index && (
-                        <FaCheck className="text-[8px] ml-0.5" />
-                      )}
                     </button>
                   ))}
                 </div>
@@ -391,34 +355,23 @@ const ProductDetails = () => {
             {/* Size Selection */}
             {product.hasVariants &&
               product.variants[selectedColorIndex]?.sizes?.length > 0 && (
-                <div className="space-y-2.5">
-                  <h4 className="text-[10px] sm:text-[12px] font-bold text-gray-800 uppercase tracking-widest">
-                    Select Size
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
+                <div className="pt-3 font-playfair">
+                  <div className="flex flex-wrap gap-1">
                     {product.variants[selectedColorIndex].sizes.map(
                       (size, index) => (
                         <button
                           key={index}
                           onClick={() => setSelectedSizeIndex(index)}
                           disabled={size.countInStock === 0}
-                          className={`relative px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 transition-all duration-200 min-w-[48px] sm:min-w-[56px] text-[10px] sm:text-[12px] font-semibold ${
+                          className={`px-3 py-1 text-[13px] transition-all duration-150 border min-w-[40px] ${
                             selectedSizeIndex === index
-                              ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                              ? "border-[#E04F23] bg-[#E04F23] text-white font-medium"
                               : size.countInStock === 0
-                                ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
-                                : "border-gray-200 bg-white text-gray-800 hover:border-gray-400 hover:bg-gray-50 active:scale-95"
+                                ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                                : "border-blue-700 bg-white text-black hover:bg-gray-50 font-normal"
                           }`}
                         >
                           {size.size}
-                          {selectedSizeIndex === index && (
-                            <FaCheck className="text-[7px] absolute -top-1.5 -right-1.5 bg-[#B88E2F] text-white rounded-full p-0.5" />
-                          )}
-                          {size.countInStock === 0 && (
-                            <span className="text-[6px] sm:text-[7px] block text-gray-400 normal-case">
-                              Out
-                            </span>
-                          )}
                         </button>
                       ),
                     )}
@@ -429,19 +382,16 @@ const ProductDetails = () => {
             {/* Key Features */}
             {product.specifications?.length > 0 && (
               <div className="pt-2">
-                <h4 className="text-sm sm:text-lg font-bold text-[#1A1A1A] mb-3">
+                <h4 className="text-[18px] font-normal font-trebuchet tracking-wide text-[#1A1A1A] mb-2">
                   Key Features
                 </h4>
-                <div className="space-y-2 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
+                <div className="space-y-2">
                   {product.specifications.slice(0, 5).map((spec, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-baseline gap-3 border-b border-gray-200 pb-2 last:border-0 last:pb-0"
-                    >
-                      <span className="text-[9px] sm:text-[12px] font-semibold text-gray-500 uppercase min-w-[80px] sm:min-w-[120px]">
+                    <div key={idx} className="flex gap-1">
+                      <span className="text-[15px] font-normal font-trebuchet text-[#000000] capitalize min-w-[80px] sm:min-w-[120px]">
                         {spec.label}
                       </span>
-                      <span className="text-[10px] sm:text-[13px] font-medium text-gray-900">
+                      <span className="text-[15px] font-normal font-trebuchet text-[#000000] capitalize">
                         {spec.value}
                       </span>
                     </div>
@@ -454,7 +404,7 @@ const ProductDetails = () => {
                         .getElementById("product-tabs-section")
                         ?.scrollIntoView({ behavior: "smooth" })
                     }
-                    className="mt-3 text-[#B88E2F] text-[10px] sm:text-[13px] font-semibold hover:underline underline-offset-4 decoration-[#B88E2F]/50 transition-all"
+                    className="mt-3 text-red-500 font-trebuchet text-[15px] font-medium underline decoration-[#B88E2F]/40 underline-offset-4 hover:decoration-[#B88E2F] hover:text-red-600 transition-all duration-200"
                   >
                     View More Info →
                   </button>
@@ -462,124 +412,140 @@ const ProductDetails = () => {
               </div>
             )}
 
- 
             {/* Qty + Add to Cart + Order Now */}
-            <div className="pt-4 border-t border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-              {/* Row 1: Qty & Add to Cart (Side by side on Mobile & Desktop) */}
-              <div className="flex items-stretch gap-3 flex-1">
-                <div className="flex items-center bg-white rounded-xl border-2 border-gray-300 px-1.5 py-1 sm:px-2 sm:py-1">
+            <div className="pt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                <div className="flex items-center border border-gray-200 bg-white h-8 w-24 font-playfair select-none rounded-[4px] overflow-hidden flex-shrink-0">
                   <button
                     onClick={() => setQty(Math.max(1, qty - 1))}
-                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                    className="w-8 h-full flex items-center justify-center bg-gray-50 text-black text-[14px] font-medium border-r border-gray-200 hover:bg-gray-100 transition-colors"
                   >
-                    <FaMinus size={10} />
+                    —
                   </button>
-                  <span className="w-7 sm:w-8 text-center text-sm font-semibold text-[#1A1A1A]">
+
+                  <span className="flex-1 h-full flex items-center justify-center text-[13px] font-medium text-black bg-white">
                     {qty}
                   </span>
+
                   <button
                     onClick={() =>
                       setQty(Math.min(currentStock || 10, qty + 1))
                     }
                     disabled={qty >= currentStock}
-                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-md text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
+                    className="w-8 h-full flex items-center justify-center bg-white text-black text-[14px] font-medium border-l border-gray-100 hover:bg-gray-50 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
                   >
-                    <FaPlus size={10} />
+                    +
                   </button>
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 sm:w-[110px] sm:flex-initial h-8">
                   <AddToCartButton
                     product={getProductForCart()}
                     qty={qty}
-                    buttonText="Add to Cart"
-                    variant="add" // Renders only Add to Cart button
-                    className="w-full py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm tracking-wide transition-all duration-200 bg-[#B88E2F] hover:bg-[#9a7828] text-white border-[#B88E2F] active:scale-[0.98]"
+                    buttonText="Add"
+                    addedText="Added"
+                    variant="add"
+                    customStyles="h-8 !rounded-[4px]"
                   />
                 </div>
               </div>
 
-              {/* Row 2: Order Now (Full width on Mobile, inline on Desktop) */}
-              <div className="sm:flex-1">
+              <div className="flex-1 sm:w-[110px] sm:flex-initial h-8">
                 <AddToCartButton
                   product={getProductForCart()}
                   qty={qty}
                   isOrderNow={true}
-                  variant="order" // Renders only Order Now button
+                  variant="order"
+                  customStyles="h-8 !rounded-[4px]"
                 />
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Reviews */}
-        <div
-          id="product-tabs-section"
-          className="mt-12 sm:mt-20 pt-8 sm:pt-14 border-t border-gray-200"
-        >
-          <ProductTabs
-            {...{
-              loadingProductReview,
-              userInfo,
-              submitHandler,
-              rating,
-              setRating,
-              comment,
-              setComment,
-              product,
-            }}
-          />
-        </div>
+      {/* ── Tabs + Related Products (sidebar layout on desktop) ── */}
+      <div className="bg-[#F9F9F9] py-6">
+        <div id="product-tabs-section" className="container mx-auto px-4 mt-12">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+            {/* Reviews / Tabs — main column */}
+            <div className="flex-1 min-w-0 w-full">
+              <ProductTabs
+                {...{
+                  loadingProductReview,
+                  userInfo,
+                  submitHandler,
+                  rating,
+                  setRating,
+                  comment,
+                  setComment,
+                  product,
+                }}
+              />
+            </div>
 
-        {/* Related Products */}
-        <div className="mt-12 sm:mt-20 pt-8 sm:pt-14 border-t border-gray-200">
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-2xl font-bold flex items-center gap-3 text-[#1A1A1A]">
-              <span className="w-1.5 h-6 bg-[#B88E2F] rounded-full" /> Related
-              Products
-            </h2>
-            <p className="text-gray-500 text-[10px] sm:text-sm mt-2 ml-4">
-              More products you might be interested in
-            </p>
+            {/* Related Products — sidebar column */}
+            <div className="w-full lg:w-[300px] flex-shrink-0">
+              <div className="bg-white border border-neutral-200 rounded-[4px] overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-3.5 border-b border-neutral-200 bg-white">
+                  <h2
+                    className="text-[16px] font-bold text-[#2031B8] text-center"
+                    style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
+                  >
+                    Similar Product
+                  </h2>
+                </div>
+
+                {/* Content States */}
+                {relatedLoading ? (
+                  <div className="p-4 space-y-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="h-[76px] bg-gray-100 rounded-[4px] animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : relatedError ? (
+                  <div className="p-4">
+                    <Message variant="danger">
+                      Failed to load related products
+                    </Message>
+                  </div>
+                ) : relatedProducts?.length > 0 ? (
+                  // এখানে ভেতরের আইটেমগুলোর বর্ডার এবং প্যাডিং স্ক্রিনশটের মতো সেট করা হয়েছে
+                  <div className="px-4 divide-y divide-neutral-100">
+                    {relatedProducts
+                      .slice(0, 5)
+                      .map((relatedProduct, index) => (
+                        <motion.div
+                          key={relatedProduct._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.06 }}
+                        >
+                          {/* viewMode পরিবর্তন করে "similar" করা হয়েছে */}
+                          <ProductCard p={relatedProduct} viewMode="similar" />
+                        </motion.div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 px-4">
+                    <p className="text-gray-600 font-medium text-sm">
+                      No related products found
+                    </p>
+                    <Link
+                      to="/shop"
+                      className="text-[#B88E2F] font-semibold mt-2 inline-block hover:underline text-xs sm:text-sm"
+                    >
+                      Browse all products
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-
-          {relatedLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="h-[300px] sm:h-[400px] bg-gray-100 rounded-lg animate-pulse"
-                />
-              ))}
-            </div>
-          ) : relatedError ? (
-            <Message variant="danger">Failed to load related products</Message>
-          ) : relatedProducts?.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              {relatedProducts.map((relatedProduct, index) => (
-                <motion.div
-                  key={relatedProduct._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                >
-                  <ProductCard p={relatedProduct} viewMode="grid" />
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-600 font-medium text-sm">
-                No related products found
-              </p>
-              <Link
-                to="/shop"
-                className="text-[#B88E2F] font-semibold mt-2 inline-block hover:underline text-xs sm:text-sm"
-              >
-                Browse all products
-              </Link>
-            </div>
-          )}
         </div>
       </div>
     </div>

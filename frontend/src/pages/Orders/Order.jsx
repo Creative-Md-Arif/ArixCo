@@ -11,6 +11,8 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import InvoicePDF from "../../components/InvoicePDF";
+import { FaHome } from "react-icons/fa";
+import { HiChevronRight } from "react-icons/hi";
 
 const Order = () => {
   const { id: orderId } = useParams();
@@ -45,25 +47,46 @@ const Order = () => {
   if (error) return <Message variant="danger">{error.data.message}</Message>;
 
   return (
-    <div className="bg-white min-h-screen pb-16">
+    <div className="bg-[#F9FAFB] min-h-screen pt-10 pb-16">
       {/* ── Top bar with breadcrumb ── */}
-      <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center gap-1.5 font-mono text-[11px] sm:text-xs uppercase tracking-[0.18em] flex-wrap">
-          <Link to="/" className="text-gray-400 hover:text-black transition-colors">
-            Home
-          </Link>
-          <span className="text-gray-200">/</span>
-          <Link to="/profile" className="text-gray-400 hover:text-black transition-colors">
-            My Orders
-          </Link>
-          <span className="text-gray-200">/</span>
-          <span className="text-black font-bold truncate max-w-[120px] sm:max-w-none">
-            {order?.orderId || orderId}
-          </span>
-        </div>
-      </div>
+     <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
+  <div className="container mx-auto px-4">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+    >
+      {/* Home Link with FaHome Icon */}
+      <Link
+        to="/"
+        className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+      >
+        <FaHome className="text-[14px]" />
+        <span>Home</span>
+      </Link>
 
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 mt-[60px]">
+      {/* My Orders Link with HiChevronRight Icon */}
+      <span className="contents">
+        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+        <Link
+          to="/profile"
+          className="text-black hover:underline text-[14px] font-medium"
+        >
+          My Orders
+        </Link>
+      </span>
+
+      {/* Current Page: Order ID */}
+      <span className="contents">
+        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+        <span className="text-black font-black text-[14px] truncate max-w-[120px] sm:max-w-none">
+          {order?.orderId || orderId}
+        </span>
+      </span>
+    </nav>
+  </div>
+</div>
+
+      <div className="container mx-auto px-4 py-8 sm:py-12 mt-[60px]">
 
         {/* ── Success Header ── */}
         <motion.div
@@ -98,7 +121,7 @@ const Order = () => {
           </p>
 
           {/* Order ID pill */}
-          <div className="mt-5 inline-flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 sm:px-6 py-2 rounded-full">
+          <div className="mt-5 inline-flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 rounded-full">
             <span className="text-gray-400 font-mono text-[11px] sm:text-xs font-bold uppercase">
               Order ID:
             </span>
@@ -122,7 +145,7 @@ const Order = () => {
             <div className="border border-gray-200 rounded-2xl overflow-hidden">
 
               {/* Card header */}
-              <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
+              <div className="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
                 <h3 className="text-sm sm:text-base font-mono font-black uppercase tracking-tight text-gray-900">
                   Ordered Items
                 </h3>
@@ -136,13 +159,13 @@ const Order = () => {
                 <table className="w-full min-w-[420px] border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-4 sm:px-6 py-3 text-left text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-4 py-3 text-left text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest">
                         Product
                       </th>
-                      <th className="px-4 sm:px-6 py-3 text-center text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest w-16">
+                      <th className="px-4  py-3 text-center text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest w-16">
                         Qty
                       </th>
-                      <th className="px-4 sm:px-6 py-3 text-right text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-4 py-3 text-right text-[10px] sm:text-[11px] font-mono font-black text-gray-400 uppercase tracking-widest">
                         Total
                       </th>
                     </tr>
@@ -154,7 +177,7 @@ const Order = () => {
                         className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60 transition-colors"
                       >
                         {/* Product cell */}
-                        <td className="px-4 sm:px-6 py-4">
+                        <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <img
                               src={item.image}
@@ -198,14 +221,14 @@ const Order = () => {
                         </td>
 
                         {/* Qty cell */}
-                        <td className="px-4 sm:px-6 py-4 text-center">
+                        <td className="px-4  py-4 text-center">
                           <span className="inline-block min-w-[28px] bg-gray-100 text-gray-700 font-mono font-black text-xs sm:text-sm px-2 py-0.5 rounded-lg border border-gray-200">
                             {item.qty}
                           </span>
                         </td>
 
                         {/* Total cell */}
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono font-black text-sm sm:text-base text-gray-900 whitespace-nowrap">
+                        <td className="px-4 py-4 text-right font-mono font-black text-sm sm:text-base text-gray-900 whitespace-nowrap">
                           ৳
                           {(
                             item.qty * Number(calculateFinalPrice(item))
@@ -218,7 +241,7 @@ const Order = () => {
               </div>
 
               {/* Summary */}
-              <div className="px-4 sm:px-6 py-5 bg-gray-50/70 border-t border-gray-100">
+              <div className="px-4 py-5 bg-gray-50/70 border-t border-gray-100">
                 <div className="space-y-2.5 max-w-[220px] sm:max-w-xs ml-auto">
                   <div className="flex justify-between text-xs sm:text-sm font-mono text-gray-400 font-bold uppercase">
                     <span>Subtotal</span>
@@ -256,7 +279,7 @@ const Order = () => {
           >
             {/* Customer Info */}
             <div className="border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center gap-3 bg-white">
+              <div className="px-4  py-4 border-b border-gray-100 flex items-center gap-3 bg-white">
                 <div className="p-2 bg-blue-50 rounded-xl text-blue-500 border border-blue-100">
                   <FaUser size={16} />
                 </div>
@@ -265,7 +288,7 @@ const Order = () => {
                 </h3>
               </div>
 
-              <div className="px-4 sm:px-6 py-5 space-y-4 font-mono bg-white">
+              <div className="px-4  py-5 space-y-4 font-mono bg-white">
                 {/* Name */}
                 <div className="pb-4 border-b border-gray-100">
                   <label className="text-[10px] sm:text-[11px] text-gray-400 font-black uppercase tracking-widest block mb-1">
@@ -303,7 +326,7 @@ const Order = () => {
 
             {/* Status */}
             <div className="border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center gap-3 bg-white">
+              <div className="px-4 py-4 border-b border-gray-100 flex items-center gap-3 bg-white">
                 <div className="p-2 bg-blue-50 rounded-xl text-blue-500 border border-blue-100">
                   <FaCreditCard size={16} />
                 </div>
@@ -312,7 +335,7 @@ const Order = () => {
                 </h3>
               </div>
 
-              <div className="px-4 sm:px-6 py-5 space-y-3 bg-white font-mono">
+              <div className="px-4 py-5 space-y-3 bg-white font-mono">
                 {/* Payment */}
                 <div className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-xl border border-gray-100">
                   <span className="text-[11px] sm:text-xs font-black text-gray-400 uppercase tracking-widest">

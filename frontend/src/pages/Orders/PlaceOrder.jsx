@@ -40,7 +40,7 @@ const InlineItems = () => {
     dispatch(addToCart({ ...product, qty }));
 
   return (
-    <div>
+    <div >
       <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
         <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-black">
           Your Items ({cartItems.length})

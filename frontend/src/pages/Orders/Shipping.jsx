@@ -14,13 +14,15 @@ import {
   FaMoneyBillWaveAlt,
   FaUniversity,
   FaSpinner,
-  FaCreditCard, // ✅ নতুন আইকন ইম্পোর্ট
+  FaCreditCard,
+  FaHome, // ✅ নতুন আইকন ইম্পোর্ট
 } from "react-icons/fa";
 
 // ✅ BD Location Data Import
 import bd from "@bd-geo-data/bd-location-data";
 // ✅ Dynamic Shipping API Import
 import { useCalculateShippingMutation } from "@redux/api/shippingApiSlice";
+import { HiChevronRight } from "react-icons/hi";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const getItemFinalPrice = (item) =>
@@ -49,7 +51,7 @@ const Field = ({ label, error, touched, children }) => (
 );
 
 const inputBase =
-  "w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border font-mono text-xs sm:text-sm text-black placeholder-gray-400 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 rounded-md appearance-none";
+  "w-full py-2.5 px-4 sm:py-3 bg-white border font-mono text-xs sm:text-sm text-black placeholder-gray-400 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 rounded-md appearance-none";
 
 const inputStyle = (fieldName, errors, touched) =>
   `${inputBase} ${errors[fieldName] && touched[fieldName] ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-gray-300 hover:border-gray-400"}`;
@@ -421,29 +423,46 @@ const Shipping = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen pt-10">
       {/* ── Breadcrumb ── */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center gap-2 font-mono text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em]">
-          <Link
-            to="/"
-            className="text-gray-400 hover:text-black transition-colors"
-          >
-            Home
-          </Link>
-          <span className="text-gray-300">/</span>
-          <Link
-            to="/cart"
-            className="text-gray-400 hover:text-black transition-colors"
-          >
-            Cart
-          </Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-black font-bold">Checkout</span>
-        </div>
-      </div>
+      <div className="bg-white border-b border-gray-100">
+  <div className="container mx-auto px-4">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+    >
+      {/* Home Link with FaHome Icon */}
+      <Link
+        to="/"
+        className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+      >
+        <FaHome className="text-[14px]" />
+        <span>Home</span>
+      </Link>
 
-      <div className="container mx-auto py-6 sm:py-10 px-4 sm:px-6">
+      {/* Cart Link with HiChevronRight Icon */}
+      <span className="contents">
+        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+        <Link
+          to="/cart"
+          className="text-black hover:underline text-[14px] font-medium"
+        >
+          Cart
+        </Link>
+      </span>
+
+      {/* Current Page: Checkout */}
+      <span className="contents">
+        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+        <span className="text-black font-black text-[14px]">
+          Checkout
+        </span>
+      </span>
+    </nav>
+  </div>
+</div>
+
+      <div className="container mx-auto py-6 sm:py-10 px-4">
         <div className="mb-6 sm:mb-10 border-b-2 border-black pb-4">
           <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-1">
             Step 1 of 2

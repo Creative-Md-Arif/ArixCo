@@ -2,6 +2,8 @@ import Message from "../../components/Message";
 import { Link, NavLink } from "react-router-dom";
 import { useGetMyOrdersQuery } from "../../redux/api/orderApiSlice";
 import { BsEye, BsBagCheck, BsPersonCircle } from "react-icons/bs";
+import { FaHome } from "react-icons/fa";
+import { HiChevronRight } from "react-icons/hi";
 
 /* ── Custom Skeleton Loader ── */
 const OrderSkeleton = () => (
@@ -63,23 +65,41 @@ const UserOrder = () => {
   const { data: orders, isLoading, error } = useGetMyOrdersQuery();
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#F9FAFB] min-h-screen pt-10">
       {/* ✅ Unified Breadcrumb (Exactly same as Profile) */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <nav className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-            <Link to="/" className="hover:text-blue-600 transition-colors">
-              Home
-            </Link>
-            <span className="text-gray-300">/</span>
+        <div className="container mx-auto px-4">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+          >
+            {/* Home Link with FaHome Icon */}
             <Link
-              to="/profile"
-              className="hover:text-blue-600 transition-colors"
+              to="/"
+              className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
             >
-              Profile
+              <FaHome className="text-[14px]" />
+              <span>Home</span>
             </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-blue-600 font-black">Order History</span>
+
+            {/* Profile Link with HiChevronRight Icon */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <Link
+                to="/profile"
+                className="text-black hover:underline text-[14px] font-medium"
+              >
+                Profile
+              </Link>
+            </span>
+
+            {/* Current Page: Order History */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <span className="text-black font-black text-[14px]">
+                Order History
+              </span>
+            </span>
           </nav>
         </div>
       </div>

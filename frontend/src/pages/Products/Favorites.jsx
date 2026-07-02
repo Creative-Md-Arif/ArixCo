@@ -8,7 +8,8 @@ import Product from "../Products/Product";
 import { Link } from "react-router-dom";
 import { LuHeart } from "react-icons/lu";
 import { IoMdClose } from "react-icons/io";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowRight, FaHome } from "react-icons/fa";
+import { HiChevronRight } from "react-icons/hi";
 
 const Favorites = () => {
   const dispatch = useDispatch();
@@ -20,31 +21,45 @@ const Favorites = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-[#F9FAFB] pt-10 pb-16">
       {/* Breadcrumb & Header Section */}
-      <div className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
-          {/* Breadcrumb */}
-          <nav className="mb-4 flex items-center gap-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400">
-            <Link to="/" className="hover:text-[#D4A843] transition-colors">
-              Home
-            </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-gray-900">Wishlist</span>
-          </nav>
+   <div className="bg-white border-b border-gray-100 shadow-sm">
+  <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {/* Breadcrumb */}
+    <nav
+      aria-label="Breadcrumb"
+      className="mb-4 flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap bg-white"
+    >
+      {/* Home Link with FaHome Icon */}
+      <Link
+        to="/"
+        className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+      >
+        <FaHome className="text-[14px]" />
+        <span>Home</span>
+      </Link>
 
-          {/* Title */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 uppercase tracking-wider font-mono border-l-4 border-[#D4A843] pl-3">
-              My Wishlist
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 font-medium">
-              {favorites.length} saved{" "}
-              {favorites.length === 1 ? "item" : "items"}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Current Page: Wishlist */}
+      <span className="contents">
+        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+        <span className="text-black font-black text-[14px]">
+          Wishlist
+        </span>
+      </span>
+    </nav>
+
+    {/* Title */}
+    <div className="flex items-center justify-between">
+      <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 uppercase tracking-wider font-mono border-l-4 border-[#D4A843] pl-3">
+        My Wishlist
+      </h1>
+      <p className="text-xs sm:text-sm text-gray-500 font-medium">
+        {favorites.length} saved{" "}
+        {favorites.length === 1 ? "item" : "items"}
+      </p>
+    </div>
+  </div>
+</div>
 
       {/* Content Section */}
       <div className="max-w-7xl mx-auto px-4 mt-8 sm:mt-10">

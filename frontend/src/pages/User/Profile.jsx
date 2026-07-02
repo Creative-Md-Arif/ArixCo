@@ -7,6 +7,8 @@ import { Link, useNavigate, NavLink } from "react-router-dom";
 
 import Swal from "sweetalert2";
 import { BsPersonCircle, BsShieldLock, BsBagCheck } from "react-icons/bs";
+import { FaHome } from "react-icons/fa";
+import { HiChevronRight } from "react-icons/hi";
 
 const Profile = () => {
   const [username, setUserName] = useState("");
@@ -124,34 +126,54 @@ const Profile = () => {
       }
     }
   };
-  
+
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#F9FAFB] min-h-screen pt-10">
       {/* ✅ Unified Breadcrumb */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <nav className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-            <Link to="/" className="hover:text-blue-600 transition-colors">
-              Home
+        <div className="container mx-auto px-4">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+          >
+            {/* Home Link with FaHome Icon */}
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+            >
+              <FaHome className="text-[14px]" />
+              <span>Home</span>
             </Link>
-            <span className="text-gray-300">/</span>
-            <Link to="/profile" className="hover:text-blue-600 transition-colors">
-              Profile
-            </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-blue-600 font-black">Settings</span>
+
+            {/* Profile Link with HiChevronRight Icon */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <Link
+                to="/profile"
+                className="text-black hover:underline text-[14px] font-medium"
+              >
+                Profile
+              </Link>
+            </span>
+
+            {/* Current Page: Settings */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <span className="text-black font-black text-[14px]">
+                Settings
+              </span>
+            </span>
           </nav>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
         {/* ✅ Unified Tab Navigation */}
         <div className="flex gap-2 border-b border-gray-200 mb-8 overflow-x-auto pb-px">
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-5 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
+              `flex items-center gap-2 px-4 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
                 isActive
                   ? "bg-gray-900 text-white"
                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
@@ -163,7 +185,7 @@ const Profile = () => {
           <NavLink
             to="/user-orders"
             className={({ isActive }) =>
-              `flex items-center gap-2 px-5 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
+              `flex items-center gap-2 px-4 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
                 isActive
                   ? "bg-gray-900 text-white"
                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
@@ -187,7 +209,10 @@ const Profile = () => {
               </p>
             </div>
 
-            <form onSubmit={submitHandler} className="p-5 md:p-8 space-y-6 md:space-y-8">
+            <form
+              onSubmit={submitHandler}
+              className="p-5 md:p-8 space-y-6 md:space-y-8"
+            >
               <div className="space-y-5 md:space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                   <div className="space-y-2">
@@ -277,14 +302,14 @@ const Profile = () => {
 
               <div className="pt-5 flex flex-col md:flex-row items-center justify-between gap-4">
                 <p className="text-xs text-gray-500 font-mono italic text-center md:text-left">
-                  * Current password required for email/password changes.
-                  Leave new password blank to keep current.
+                  * Current password required for email/password changes. Leave
+                  new password blank to keep current.
                 </p>
 
                 <button
                   disabled={loadingUpdateProfile}
                   type="submit"
-                  className="w-full md:w-auto bg-gray-900 text-white px-6 md:px-10 py-3 md:py-3.5 rounded-xl text-sm font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
+                  className="w-full md:w-auto bg-gray-900 text-white px-4 py-3 md:py-3.5 rounded-xl text-sm font-mono font-black uppercase tracking-widest hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50"
                 >
                   {loadingUpdateProfile ? "Processing..." : "Update Profile"}
                 </button>

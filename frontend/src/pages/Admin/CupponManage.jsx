@@ -195,7 +195,7 @@ const CupponManage = () => {
     <div className="min-h-screen bg-[#fdfdfd] font-mono pt-10 pb-16 transition-all duration-500">
       <div className="flex flex-col 2xl:flex-row">
         <AdminMenu />
-        <div className="flex-1 px-4 sm:px-6 lg:px-12">
+        <div className="flex-1 px-4">
           <div className="max-w-[1500px] mx-auto">
             
             {/* Header Section */}

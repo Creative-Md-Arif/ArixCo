@@ -299,7 +299,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                       className={`relative px-2 py-1 lg:px-3 font-trebuchet text-[14px] font-semibold uppercase tracking-px rounded transition-colors flex items-center gap-1 whitespace-nowrap ${
                         isActive(`/shop?category=${cat._id}`)
                           ? "text-[#D4A843]"
-                          : "text-gray-300 hover:text-white hover:bg-white/10"
+                          : "text-white hover:text-white hover:bg-white/10"
                       }`}
                     >
                       {cat.name}

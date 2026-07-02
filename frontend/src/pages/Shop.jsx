@@ -485,7 +485,7 @@ const Shop = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-white pt-10 pb-20">
       <Breadcrumb
         items={[
           { label: "Shop", href: "/shop" },

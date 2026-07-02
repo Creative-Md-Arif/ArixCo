@@ -10,6 +10,8 @@ const Product = ({ product }) => {
   const dispatch = useDispatch();
 
   /* ── unchanged logic ──────────────────────────────────── */
+
+
   const getVariantPrice = (product) => {
     if (!product.hasVariants || !product.variants) return product?.price || 0;
     const colorIndex = product.defaultColorIndex || 0;

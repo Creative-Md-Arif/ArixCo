@@ -4,17 +4,17 @@ import { addToCart } from "../redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { CiShoppingCart } from "react-icons/ci";
-import { FaLongArrowAltRight, FaCheck } from "react-icons/fa";
+import { FaCheck } from "react-icons/fa";
 import { motion } from "framer-motion";
 
 const AddToCartButton = ({
   product,
   qty = 1,
-  buttonText = "Add to Cart",
-  addedText = "Added to Cart",
+  buttonText = "Add", // নাম ন্যারো করার জন্য ডিফল্ট টেক্সট ছোট করা হয়েছে
+  addedText = "Added",
   customStyles = "",
-  isOrderNow = false,
-  variant = "both", // "add", "order", "both"
+  isOrderNow = true,
+  variant = "both",
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -24,9 +24,9 @@ const AddToCartButton = ({
     return (
       <button
         disabled
-        className="opacity-50 cursor-not-allowed px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-gray-100 text-gray-400 font-medium text-[11px] sm:text-sm border border-gray-200 h-full"
+        className="opacity-50 cursor-not-allowed px-2 py-2 border border-neutral-200 bg-neutral-50 text-neutral-400 font-medium text-[12px] h-8 w-20"
       >
-        Loading...
+        ...
       </button>
     );
   }
@@ -77,7 +77,7 @@ const AddToCartButton = ({
     if (product.variantInfo?.hasVariants) {
       const stock = product.variantInfo.countInStock;
       if (stock !== undefined && stock < qty) {
-        toast.error(`Only ${stock} units available for this variant!`);
+        toast.error(`Only ${stock} units available!`);
         return;
       }
     } else if (product.countInStock < qty) {
@@ -87,13 +87,6 @@ const AddToCartButton = ({
 
     if (!isAdded) {
       dispatch(addToCart(createCartItem()));
-      const variantText = product.variantInfo?.hasVariants
-        ? ` (${product.variantInfo.colorName} / ${product.variantInfo.sizeName})`
-        : "";
-      toast.success(`${product.name}${variantText} added to cart!`, {
-        position: "bottom-right",
-        autoClose: 2000,
-      });
     }
   };
 
@@ -101,7 +94,7 @@ const AddToCartButton = ({
     if (product.variantInfo?.hasVariants) {
       const stock = product.variantInfo.countInStock;
       if (stock !== undefined && stock < qty) {
-        toast.error(`Only ${stock} units available for this variant!`);
+        toast.error(`Only ${stock} units available!`);
         return;
       }
     } else if (product.countInStock < qty) {
@@ -114,57 +107,50 @@ const AddToCartButton = ({
 
   const renderAddToCartBtn = () => (
     <motion.button
-      whileTap={!isAdded && product.countInStock !== 0 ? { scale: 0.96 } : {}}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      whileTap={!isAdded && product.countInStock !== 0 ? { scale: 0.98 } : {}}
       onClick={handleAddToCart}
       disabled={isAdded || product.countInStock === 0}
-      className={`group relative flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:px-4 sm:py-3 font-semibold text-[11px] sm:text-[13px] uppercase tracking-wider rounded-xl border-2 overflow-hidden transition-all duration-300 ease-out outline-none focus:outline-none w-full h-full
+      className={`group relative flex items-center justify-center gap-1 h-8 px-2 max-w-[100px] rounded-[4px] border border-neutral-900 font-playfair font-medium text-[14px] uppercase tracking-wide overflow-hidden transition-colors duration-300 w-full outline-none
         ${
           isAdded
-            ? "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-            : "border-[#1A1A1A] text-[#1A1A1A] bg-white hover:bg-[#1A1A1A] hover:text-white active:bg-gray-800"
+            ? "border-neutral-200 text-neutral-400 bg-neutral-50 cursor-not-allowed"
+            : "text-neutral-900 bg-white"
         } ${customStyles}`}
     >
-      {isAdded ? (
-        <FaCheck className="text-sm transition-all duration-300" />
-      ) : (
-        <CiShoppingCart className="text-base sm:text-lg transition-all duration-300 group-hover:scale-110" />
+      {!isAdded && (
+        <span className="absolute inset-0 bg-neutral-100 -translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
       )}
-      <span className="relative transition-all duration-300">
+
+      <span className="relative flex items-center gap-1 z-10 truncate">
+        {isAdded ? (
+          <FaCheck className="text-[10px]" />
+        ) : (
+          <CiShoppingCart className="text-[13px]" />
+        )}
         {isAdded ? addedText : buttonText}
       </span>
     </motion.button>
   );
 
   const renderOrderNowBtn = () => (
-    <div className="w-full flex flex-col h-full">
+    <div className="w-full max-w-[100px] flex flex-col">
       <motion.button
-        whileTap={product.countInStock !== 0 ? { scale: 0.97 } : {}}
-        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        whileTap={product.countInStock !== 0 ? { scale: 0.98 } : {}}
         onClick={handleOrderNow}
         disabled={product.countInStock === 0}
-        className="group relative flex items-center justify-center px-4 py-2.5 sm:px-5 sm:py-3 bg-[#B88E2F] text-white rounded-xl font-semibold text-[11px] sm:text-[13px] uppercase tracking-wider transition-all duration-300 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed hover:bg-[#9a7828] active:bg-[#8a6a1f] border-2 border-[#B88E2F] disabled:border-gray-200 outline-none focus:outline-none w-full h-full"
+        className="group relative flex items-center justify-center h-8 px-2 bg-[#314ec9] border border-[#314ec9] text-white rounded-[4px] font-playfair font-medium text-[14px] uppercase tracking-wide overflow-hidden transition-all duration-300 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:border-neutral-100 disabled:cursor-not-allowed outline-none w-full"
       >
-        <span className="relative flex items-center gap-2">
-          Order Now
-          <FaLongArrowAltRight className="text-sm sm:text-base group-hover:translate-x-1 transition-transform duration-300" />
-        </span>
+        <span className="absolute inset-0 bg-[#233ca3] -translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+        <span className="relative z-10 truncate">Buy Now</span>
       </motion.button>
-
-      {product.countInStock <= 5 && product.countInStock > 0 && (
-        <p className="text-center text-[9px] sm:text-[11px] font-bold text-orange-600 mt-1.5 tracking-wide">
-          Only {product.countInStock} units left!
-        </p>
-      )}
     </div>
   );
 
   if (variant === "add") return renderAddToCartBtn();
   if (variant === "order") return renderOrderNowBtn();
 
-  // Default "both" layout for other pages if needed
   return (
-    <div className="w-full flex flex-col sm:flex-row items-stretch gap-2 sm:gap-3">
+    <div className="flex items-center gap-1.5">
       {renderAddToCartBtn()}
       {isOrderNow && renderOrderNowBtn()}
     </div>

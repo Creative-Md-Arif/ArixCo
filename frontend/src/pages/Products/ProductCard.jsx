@@ -38,7 +38,46 @@ const ProductCard = ({ p, viewMode }) => {
     toast.success("Added to cart");
   };
 
-  // List view mode
+  // ── 1. Similar Products Sidebar Mode (আপনার দেওয়া স্ক্রিনশট অনুযায়ী লেআউট) ──
+  if (viewMode === "similar") {
+    return (
+      <div className="flex gap-4 items-start py-4 border-b border-gray-100 last:border-0 font-sans">
+        {/* Left Side Image */}
+        <Link to={productPath} className="w-[80px] h-[80px] flex-shrink-0 bg-white flex items-center justify-center overflow-hidden">
+          <img
+            src={mainImage}
+            alt={p?.name}
+            className="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105"
+            loading="lazy"
+          />
+        </Link>
+
+        {/* Right Side Info */}
+        <div className="flex-1 min-w-0">
+          <Link to={productPath} className="block group">
+            <h4 className="text-[14px] font-normal text-[#111111] leading-[18px] line-clamp-2 group-hover:text-[#EE4622] group-hover:underline transition-colors duration-200">
+              {p?.name}
+            </h4>
+          </Link>
+          
+          <div className="flex items-center gap-2 mt-1.5 font-sans">
+            {/* Final Active Price */}
+            <span className="text-[15px] font-bold text-[#D63031]">
+              {Math.round(finalPrice).toLocaleString("en-BD")}৳
+            </span>
+            {/* Crossed Out Original Price */}
+            {displayDiscountPercent > 0 && (
+              <span className="text-[13px] text-gray-400 line-through">
+                {originalPrice.toLocaleString("en-BD")}৳
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 2. List View Mode (Unchanged) ──
   if (viewMode === "list") {
     return (
       <motion.div
@@ -114,7 +153,7 @@ const ProductCard = ({ p, viewMode }) => {
     );
   }
 
-  // Grid view
+  // ── 3. Grid View Mode (Unchanged) ──
   return (
     <div
       className="group bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden min-h-fit flex flex-col"

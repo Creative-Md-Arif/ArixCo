@@ -26,7 +26,7 @@ const LoadingSpinner = () => (
 
 const OrderList = ({
   showAdminMenu = true,
-  className = "pt-10 pb-16",
+  className = "pb-16",
   isDashboard = false,
 }) => {
   const { data: orders, isLoading, error, refetch } = useGetOrdersQuery();
@@ -123,7 +123,7 @@ const OrderList = ({
 
   return (
     <div className={`w-full h-fit bg-[#fdfdfd] font-mono ${className}`}>
-      <div className="container mx-auto px-4 sm:px-6">
+      <div className="container mx-auto px-4">
         {isLoading ? (
           <LoadingSpinner />
         ) : error ? (
