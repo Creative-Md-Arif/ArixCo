@@ -70,7 +70,7 @@ const BestSellers = () => {
         <div className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2">
           <h2
             id="best-sellers-heading"
-            className="font-trebuchet text-[14px] md:text-[24px] font-bold tracking-px text-gray-900 uppercase"
+            className="font-trebuchet text-[24px] font-bold tracking-px text-gray-900 uppercase"
           >
             Best Sellers
           </h2>
@@ -96,10 +96,11 @@ const BestSellers = () => {
             <div className="flex justify-center mt-10">
               <Link
                 to="/shop?sort=top-rated"
-                className="group inline-flex items-center gap-2 px-6 py-2.5 border border-gray-300 rounded-sm text-[11px] font-black uppercase tracking-widest text-gray-800 hover:border-[#B88E2F] hover:text-[#B88E2F] transition-colors duration-200 bg-white"
+                className="group inline-flex items-center gap-2 px-6 py-2.5 border border-[#B88E2F] rounded-none text-[14px] font-bold uppercase tracking-[0.18em] text-[#B88E2F] hover:bg-[#B88E2F] hover:text-white transition-all duration-300 bg-white"
+                style={{ fontFamily: '"Playfair Display", "Georgia", serif' }}
               >
-                View All Best Sellers
-                <FaLongArrowAltRight className="w-[12px] h-[12px] shrink-0 group-hover:translate-x-1 transition-transform duration-200" />
+                View All
+                <FaLongArrowAltRight className="w-[13px] h-[13px] shrink-0 text-[#B88E2F] group-hover:text-white group-hover:translate-x-1.5 transition-all duration-300" />
               </Link>
             </div>
           </>

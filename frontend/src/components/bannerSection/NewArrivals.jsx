@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useGetNewArrivalsQuery } from "../../redux/api/productApiSlice";
 import Product from "../../pages/Products/Product";
 import Message from "../Message";
-import { FaLongArrowAltRight, FaShoppingBag } from "react-icons/fa";
+import {  FaShoppingBag } from "react-icons/fa";
 
 const NEW_ARRIVALS_LIMIT = 10;
 
@@ -76,7 +76,7 @@ const NewArrivals = () => {
         <div className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2">
           <h2
             id="new-arrivals-heading"
-            className="font-trebuchet text-[14px] md:text-[24px] font-bold tracking-px text-gray-900 uppercase"
+            className="font-trebuchet text-[24px] font-bold tracking-px text-gray-900 uppercase"
           >
             New Arrivals
           </h2>
@@ -102,10 +102,14 @@ const NewArrivals = () => {
             <div className="flex justify-center mt-10">
               <Link
                 to="/shop?sort=newest"
-                className="group inline-flex items-center gap-2 px-6 py-2.5 border border-gray-300 rounded-sm text-[11px] font-black uppercase tracking-widest text-gray-800 hover:border-[#B88E2F] hover:text-[#B88E2F] transition-colors duration-200 bg-white"
+                className="group inline-flex items-center justify-center gap-3 px-6 py-2.5 border border-[#B88E2F] rounded-[4px] text-[14px] font-bold uppercase tracking-[0.18em] text-[#B88E2F] hover:bg-[#B88E2F] hover:text-white transition-all duration-300 bg-white"
+                style={{ fontFamily: '"Playfair Display", "Georgia", serif' }}
               >
-                View All New Arrivals
-                <FaLongArrowAltRight className="w-[12px] h-[12px] shrink-0 group-hover:translate-x-1 transition-transform duration-200" />
+                <span>View All</span>
+              
+                <span className="text-[14px] leading-none transition-transform duration-300 group-hover:translate-x-1">
+                  ➔
+                </span>
               </Link>
             </div>
           </>
