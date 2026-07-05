@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Footer from "./components/Footer";
 import { useNotifications } from "./hooks/useNotifications";
 import { Helmet } from "react-helmet-async";
-import Cart from "./pages/Cart"; // ✅ কার্ট কম্পোনেন্ট ইম্পোর্ট করা হয়েছে (আপনার ফাইল পাথ অনুযায়ী সেট করুন)
+import Cart from "./pages/Cart"; 
 
 function App() {
   useNotifications();
@@ -15,7 +15,6 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
- 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
     return () => {
@@ -31,8 +30,8 @@ function App() {
 
   // Routes where Footer and FooterBanners should be hidden
   const hiddenPaths = [
-    "/login",
-    "/register",
+    // "/login",
+    // "/register",
     "/admin/dashboard",
     "/admin/categorylist",
     "/admin/userlist",
@@ -41,10 +40,10 @@ function App() {
     "/admin/orderlist",
     "/admin/bannerlist",
     "/admin/banner/create",
-    "/verify-otp",
-    "/forgot-password",
-    "/verify-reset-otp",
-    "/reset-password",
+    // "/verify-otp",
+    // "/forgot-password",
+    // "/verify-reset-otp",
+    // "/reset-password",
   ];
 
   const shouldShowExtras =
@@ -62,7 +61,6 @@ function App() {
         />
         <meta name="theme-color" content="#B88E2F" />
       </Helmet>
-
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -71,9 +69,7 @@ function App() {
         closeOnClick
         style={{ zIndex: 99999 }}
       />
-
       <ScrollRestoration />
-
       {loading ? (
         <div
           className="flex items-center justify-center min-h-screen bg-white"
@@ -83,26 +79,27 @@ function App() {
           <Loader />
         </div>
       ) : (
-        <div className="relative flex flex-col min-h-screen  overflow-x-hidden bg-white">
-          {/* Skip to main content link for accessibility */}
+        <div
+          className={`relative flex flex-col overflow-x-hidden bg-white ${
+            shouldShowExtras ? "min-h-screen" : "h-screen overflow-hidden"
+          }`}
+        >
+    
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[9999] bg-[#B88E2F] text-white px-4 py-2 rounded text-sm font-bold transition-all duration-200"
           >
             Skip to main content
           </a>
-
           <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-
           <main
             id="main-content"
-            className="flex-grow"
+            className={`flex-grow ${!shouldShowExtras ? "overflow-hidden" : ""}`}
             role="main"
             aria-label="Main content"
           >
             <Outlet />
           </main>
-
           {shouldShowExtras && (
             <>
               <Footer />
@@ -110,7 +107,6 @@ function App() {
           )}
         </div>
       )}
-
       <Cart />
     </>
   );

@@ -1,5 +1,11 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { SlHome } from "react-icons/sl";
 import { MdOutlineDashboard } from "react-icons/md";
 import { CgProfile } from "react-icons/cg";
@@ -114,25 +120,15 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
     };
   }, [tabOpen]);
 
-  useEffect(() => {
-    const scrollbarWidth =
-      window.innerWidth - document.documentElement.clientWidth;
-    const headerEl = document.getElementById("main-header-nav");
-
+  useLayoutEffect(() => {
     if (isMenuOpen || isCartOpen) {
       document.body.style.overflow = "hidden";
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-      if (headerEl) headerEl.style.paddingRight = `${scrollbarWidth}px`;
     } else {
       document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-      if (headerEl) headerEl.style.paddingRight = "0px";
     }
 
     return () => {
       document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-      if (headerEl) headerEl.style.paddingRight = "0px";
     };
   }, [isMenuOpen, isCartOpen]);
 

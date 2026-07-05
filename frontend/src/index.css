@@ -13,6 +13,10 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html {
+  scrollbar-gutter: stable;
+}
+
   /* --- Premium Custom Scrollbar --- */
   ::-webkit-scrollbar {
     width: 8px;
