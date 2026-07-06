@@ -93,11 +93,11 @@ function App() {
           </a>
           <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
           <main
-            id="main-content"
-            className={`flex-grow ${!shouldShowExtras ? "overflow-hidden" : ""}`}
-            role="main"
-            aria-label="Main content"
-          >
+  id="main-content"
+  className={`flex-grow ${!shouldShowExtras ? "overflow-y-auto" : ""}`}
+  role="main"
+  aria-label="Main content"
+>
             <Outlet />
           </main>
           {shouldShowExtras && (
