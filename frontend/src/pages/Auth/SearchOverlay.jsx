@@ -1,14 +1,20 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
 import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetProductsQuery } from "../../redux/api/productApiSlice";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 export default function SearchOverlay({ open, onClose }) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [pendingNavigateTo, setPendingNavigateTo] = useState(null);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
+
+  // কেন্দ্রীয় hook দিয়ে scroll lock — Navigation-এর lock এর সাথে সংঘর্ষ হবে না
+  useBodyScrollLock(open);
 
   // focus input when overlay opens
   useEffect(() => {
@@ -28,33 +34,6 @@ export default function SearchOverlay({ open, onClose }) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, open]);
 
-  // ✅ জাম্পিং ফিক্স: lock body scroll & add padding for scrollbar
-  useEffect(() => {
-    const headerEl = document.getElementById("main-header-nav");
-
-    if (open) {
-      // স্ক্রলবার হাইড হওয়ার আগে এর উইডথ বের করা
-      const scrollbarWidth =
-        window.innerWidth - document.documentElement.clientWidth;
-
-      document.body.style.overflow = "hidden";
-      document.body.style.paddingRight = `${scrollbarWidth}px`; // বডি জাম্প ফিক্স
-
-      // নেভিগেশনবার জাম্প ফিক্স (আগের স্টেপে আমরা হেডারে id="main-header-nav" দিয়েছিলাম)
-      if (headerEl) headerEl.style.paddingRight = `${scrollbarWidth}px`;
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-      if (headerEl) headerEl.style.paddingRight = "0px";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-      if (headerEl) headerEl.style.paddingRight = "0px";
-    };
-  }, [open]);
-
   // debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
@@ -68,16 +47,33 @@ export default function SearchOverlay({ open, onClose }) {
 
   const results = data?.products ?? [];
 
+  // ফলাফলে ক্লিক করলে সাথে সাথে navigate না করে
+  // আগে overlay বন্ধ করি, এক্সিট অ্যানিমেশন শেষ হওয়ার পর navigate করি —
+  // এতে scroll-unlock আর route-change একসাথে ঘটে না, জাম্প হয় না।
+  const handleResultClick = (e, to) => {
+    e.preventDefault();
+    setPendingNavigateTo(to);
+    onClose();
+  };
+
+  const handleExitComplete = () => {
+    if (pendingNavigateTo) {
+      navigate(pendingNavigateTo);
+      setPendingNavigateTo(null);
+    }
+  };
+
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={handleExitComplete}>
       {open && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          // নাভবারের ঠিক নিচ থেকে শুরু হবে (নাভবারের হাইট + গোল্ডেন লাইন)
-          className="fixed inset-x-0 bottom-0 top-[53px] sm:top-[59px] md:top-[63px] lg:top-[67px] z-[1000] bg-[#1A1A1A] border-t border-white/10 flex flex-col"
+          // top offset হেডারের প্রকৃত height-এর সাথে মিলিয়ে দেওয়া হয়েছে
+          // (Navigation.jsx-এ h-14 sm:h-16 lg:h-[68px])
+          className="fixed inset-x-0 bottom-0 top-14 sm:top-16 lg:top-[68px] z-[1000] bg-[#1A1A1A] border-t border-white/10 flex flex-col"
         >
           {/* Search Input Area */}
           <div className="w-full border-b border-white/10 px-4 sm:px-6 md:px-8 py-4 bg-[#1A1A1A]">
@@ -136,30 +132,33 @@ export default function SearchOverlay({ open, onClose }) {
                     &quot;
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                    {results.map((product) => (
-                      <Link
-                        key={product._id}
-                        to={`/product/${product.slug || product._id}`}
-                        onClick={onClose}
-                        className="group flex flex-col gap-2 sm:gap-3"
-                      >
-                        <div className="aspect-square bg-[#252525] rounded-lg overflow-hidden border border-white/5 group-hover:border-[#D4A843]/30 transition-colors">
-                          <img
-                            src={product.images?.[0]}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                        <div>
-                          <p className="text-[11px] sm:text-[12px] font-semibold text-gray-300 line-clamp-2 leading-snug group-hover:text-[#D4A843] transition-colors">
-                            {product.name}
-                          </p>
-                          <p className="text-[11px] sm:text-[12px] font-bold text-[#D4A843] mt-0.5 sm:mt-1">
-                            ৳{product.price?.toLocaleString()}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
+                    {results.map((product) => {
+                      const to = `/product/${product.slug || product._id}`;
+                      return (
+                        <Link
+                          key={product._id}
+                          to={to}
+                          onClick={(e) => handleResultClick(e, to)}
+                          className="group flex flex-col gap-2 sm:gap-3"
+                        >
+                          <div className="aspect-square bg-[#252525] rounded-lg overflow-hidden border border-white/5 group-hover:border-[#D4A843]/30 transition-colors">
+                            <img
+                              src={product.images?.[0]}
+                              alt={product.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-[11px] sm:text-[12px] font-semibold text-gray-300 line-clamp-2 leading-snug group-hover:text-[#D4A843] transition-colors">
+                              {product.name}
+                            </p>
+                            <p className="text-[11px] sm:text-[12px] font-bold text-[#D4A843] mt-0.5 sm:mt-1">
+                              ৳{product.price?.toLocaleString()}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </>
               )}

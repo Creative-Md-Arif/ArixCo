@@ -17,8 +17,8 @@ import Whatsapp from "./Whatsapp";
 const LINKS = {
   support: [
     { name: "Help Center", path: "#" },
-    { name: "Track Order", path: "#" },
-    { name: "Returns & Refunds", path: "#" },
+    { name: "Track Order", path: "/track-order" },
+    { name: "Returns & Refunds", path: "/my-returns" },
     { name: "Shipping Info", path: "#" },
     { name: "FAQ", path: "#" },
   ],

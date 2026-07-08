@@ -12,7 +12,7 @@ import {
   calcualteTotalSalesByDate,
   findOrderById,
   markOrderAsPaid,
-  markOrderAsDelivered,
+
   countTotalOrdersByDate,
   updateOrderStatus,
 } from "../controllers/orderController.js";
@@ -45,9 +45,8 @@ router
   .get(authenticate, authorizeAdmin, calcualteTotalSalesByDate);
 router.route("/:id").get(authenticate, findOrderById);
 router.route("/:id/pay").put(authenticate, markOrderAsPaid);
-router
-  .route("/:id/deliver")
-  .put(authenticate, authorizeAdmin, markOrderAsDelivered);
+
+
   router
   .route("/:id/status")
   .put(authenticate, authorizeAdmin, updateOrderStatus);

@@ -4,9 +4,9 @@ import {
   useState,
   useCallback,
   useRef,
-  useLayoutEffect,
 } from "react";
 import { SlHome } from "react-icons/sl";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { MdOutlineDashboard } from "react-icons/md";
 import { CgProfile } from "react-icons/cg";
 import { LiaClipboardListSolid } from "react-icons/lia";
@@ -120,17 +120,9 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
     };
   }, [tabOpen]);
 
-  useLayoutEffect(() => {
-    if (isMenuOpen || isCartOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMenuOpen, isCartOpen]);
+
+  useBodyScrollLock(isMenuOpen || isCartOpen);
 
   return (
     <>

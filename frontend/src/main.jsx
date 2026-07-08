@@ -16,8 +16,6 @@ import Loader from "./components/Loader";
 import AllNotifications from "./components/AllNotifications";
 import { HelmetProvider } from "react-helmet-async";
 
-
-
 // Lazy Loading Components
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -41,24 +39,29 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Shop = lazy(() => import("./pages/Shop"));
 const Shipping = lazy(() => import("./pages/Orders/Shipping"));
 const PlaceOrder = lazy(() => import("./pages/Orders/PlaceOrder"));
-const Order = lazy(() => import("./pages/Orders/Order"));
+// const Order = lazy(() => import("./pages/Orders/Order"));
+const OrderDetails = lazy(() => import("./pages/User/OrderDetails"));
 const UserOrder = lazy(() => import("./pages/User/UserOrder"));
 const OrderList = lazy(() => import("./pages/Admin/OrderList"));
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/Auth/ResetPassword"));
 const VerifyResetOtp = lazy(() => import("./pages/Auth/VerifyResetOtp"));
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PaymentInstruction = lazy(
   () => import("./pages/Orders/PaymentInstruction"),
 );
 const CupponManage = lazy(() => import("./pages/Admin/CupponManage"));
 const ShippingManage = lazy(() => import("./pages/Admin/ShippingManage"));
 const PaymentSettings = lazy(() => import("./pages/Admin/PaymentSettings"));
+const UserReturns = lazy(() => import("./pages/User/UserReturns"));
+const ReturnManagement = lazy(() => import("./pages/Admin/ReturnManagement"));
 
 // 🆕 BANNER COMPONENTS
 const BannerList = lazy(() => import("./pages/Admin/BannerList"));
 const BannerCreate = lazy(() => import("./pages/Admin/BannerCreate"));
 const BannerUpdate = lazy(() => import("./pages/Admin/BannerUpdate"));
+const OrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
 
 const NotFound = () => (
   <div className="flex flex-col items-center justify-center min-h-screen px-4">
@@ -129,6 +132,23 @@ const router = createBrowserRouter(
         element={
           <Suspense fallback={<Loader />}>
             <ResetPassword />
+          </Suspense>
+        }
+      />
+
+      <Route
+        path="/track-order"
+        element={
+          <Suspense fallback={<Loader />}>
+            <TrackOrder />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/my-returns"
+        element={
+          <Suspense fallback={<Loader />}>
+            <UserReturns />
           </Suspense>
         }
       />
@@ -222,8 +242,8 @@ const router = createBrowserRouter(
           </Suspense>
         }
       />
-  
-        <Route
+
+      <Route
         path="/payment/fail"
         element={
           <Suspense fallback={<Loader />}>
@@ -239,8 +259,6 @@ const router = createBrowserRouter(
           </Suspense>
         }
       />
-
-
 
       {/* Private Routes */}
       <Route
@@ -275,11 +293,19 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
-        <Route
+        {/* <Route
           path="/order/:id"
           element={
             <Suspense fallback={<Loader />}>
               <Order />
+            </Suspense>
+          }
+        /> */}
+                <Route
+          path="/order/:id"
+          element={
+            <Suspense fallback={<Loader />}>
+              <OrderDetails /> 
             </Suspense>
           }
         />
@@ -319,6 +345,14 @@ const router = createBrowserRouter(
           }
         />
         <Route
+          path="orderlist/:id"
+          element={
+            <Suspense fallback={<Loader />}>
+              <OrderDetail />
+            </Suspense>
+          }
+        />
+        <Route
           path="productlist"
           element={
             <Suspense fallback={<Loader />}>
@@ -339,6 +373,14 @@ const router = createBrowserRouter(
           element={
             <Suspense fallback={<Loader />}>
               <OrderList />
+            </Suspense>
+          }
+        />
+                <Route
+          path="return-management"
+          element={
+            <Suspense fallback={<Loader />}>
+              <ReturnManagement />
             </Suspense>
           }
         />

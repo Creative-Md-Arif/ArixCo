@@ -105,9 +105,9 @@ const orderSchema = mongoose.Schema(
         if (["bKash", "Nagad", "Rocket", "Bank"].includes(this.paymentMethod)) {
           return "awaiting_verification";
         }
-          if (this.paymentMethod === "SSLCommerz") {
-            return "pending";
-          }
+        if (this.paymentMethod === "SSLCommerz") {
+          return "pending";
+        }
         return this.paymentMethod === "Cash on Delivery" ? "due" : "pending";
       },
     },
@@ -175,17 +175,37 @@ const orderSchema = mongoose.Schema(
       type: String,
       enum: [
         "Order Placed",
+        "Confirmed",
         "Processing",
-        "Shipped",
+        "Packed",
+        "Picked Up by Courier",
+        "In Transit",
+        "At Local Hub",
         "Out for Delivery",
         "Delivered",
         "Cancelled",
+        "Returned",
       ],
       default: "Order Placed",
     },
 
+    hasActiveReturn: {
+      type: Boolean,
+      default: false,
+    },
+
     deliveredAt: {
       type: Date,
+    },
+
+
+    courierName: {
+      type: String,
+      default: "",
+    },
+    courierTrackingId: {
+      type: String,
+      default: "",
     },
   },
   {

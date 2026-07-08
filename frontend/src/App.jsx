@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import { useNotifications } from "./hooks/useNotifications";
 import { Helmet } from "react-helmet-async";
 import Cart from "./pages/Cart"; 
+import useBodyScrollLock from "./hooks/useBodyScrollLock";
 
 function App() {
   useNotifications();
@@ -15,13 +16,8 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMenuOpen]);
 
+useBodyScrollLock(isMenuOpen);
   // Initial loading simulation
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);

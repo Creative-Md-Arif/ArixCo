@@ -241,7 +241,7 @@ const CategoryList = () => {
     "text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1";
 
   return (
-    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-10 pb-16 transition-all duration-500">
+    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-28 pb-16 transition-all duration-500">
       <div className="flex flex-col 2xl:flex-row">
         <AdminMenu />
         <div className="flex-1 px-4">

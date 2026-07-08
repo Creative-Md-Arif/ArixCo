@@ -17,6 +17,8 @@ export const BANNER_URL = "/api/banners";
 export const PAYMENTS_URL = "/api/payments";
 export const CUPPON_URL = "/api/cuppons";
 export const SHIPPING_URL = "/api/shipping";
+export const TRACKING_URL = "/api/track";
+export const RETURNS_URL = "/api/returns";
 export const ORDER_PAY_URL = (orderId) => `/api/orders/${orderId}/pay`;
 export const SOCKET_URL = isDevelopment ? "http://localhost:8000" : BACKEND_URL;
 export const UPLOADS_URL = isDevelopment

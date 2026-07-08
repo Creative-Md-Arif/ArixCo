@@ -87,15 +87,22 @@ export const orderApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 5,
     }),
 
+    // endpoints: (builder) => ({ ... }) এর ভিতরে এটি যোগ করুন
+    getOrderTrackingHistory: builder.query({
+      query: (orderId) => `/api/track/${orderId}`, // আপনার ব্যাকএন্ডের ট্র্যাকিং রাউট
+      providesTags: (result, error, id) => [{ type: "Order", id }],
+    }),
+
     updateOrderStatus: builder.mutation({
-      query: ({ orderId, status }) => ({
+      query: ({ orderId, status, courierName, courierTrackingId }) => ({
+        // ✅ নতুন প্যারামিটার যোগ করা হলো
         url: `${ORDERS_URL}/${orderId}/status`,
         method: "PUT",
-        body: { status },
+        body: { status, courierName, courierTrackingId },
       }),
       invalidatesTags: (result, error, { orderId }) => [
         { type: "Order", id: orderId },
-        "Order", // লিস্ট রিফ্রেশ করার জন্য
+        "Order",
       ],
     }),
   }),
@@ -115,5 +122,6 @@ export const {
   useGetMyOrdersQuery,
   useDeliverOrderMutation,
   useGetOrdersQuery,
+  useGetOrderTrackingHistoryQuery,
   useUpdateOrderStatusMutation,
 } = orderApiSlice;

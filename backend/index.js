@@ -13,6 +13,8 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import returnRoutes from "./routes/returnRoutes.js";
+import orderTrackingRoutes from "./routes/orderTrackingRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -42,8 +44,8 @@ const app = express();
 // ==========================================
 const corsOptions = {
   origin: [
-    "https://arixco.vercel.app", 
-    "http://localhost:5173", 
+    "https://arixco.vercel.app",
+    "http://localhost:5173",
     "http://localhost:3000",
   ],
   credentials: true,
@@ -124,6 +126,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/track", orderTrackingRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/cuppons", cupponRoutes);

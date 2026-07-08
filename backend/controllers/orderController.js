@@ -5,6 +5,7 @@ import Cuppon from "../models/cupponModel.js";
 import sendEmail from "../utils/sendEmail.js";
 import { calculateDynamicShipping } from "./shippingController.js";
 import { createAndSendNotification } from "./notificationController.js";
+import OrderTracking from "../models/orderTrackingModel.js";
 
 // Helper function to calculate effective price (standard discount only)
 const calculateEffectivePrice = (product, variantPrice = null) => {
@@ -588,39 +589,6 @@ const findOrderById = async (req, res) => {
   }
 };
 
-const markOrderAsDelivered = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (order) {
-      const newStatus = req.body.status || "Delivered";
-
-      if (
-        ![
-          "Order Placed",
-          "Processing",
-          "Shipped",
-          "Out for Delivery",
-          "Delivered",
-          "Cancelled",
-        ].includes(newStatus)
-      ) {
-        return res.status(400).json({ error: "Invalid delivery status" });
-      }
-
-      order.isDelivered = newStatus;
-      order.deliveredAt = new Date();
-
-      const updatedOrder = await order.save();
-      res.json(updatedOrder);
-    } else {
-      res.status(404).json({ error: "Order not found" });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 const markOrderAsPaid = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -629,28 +597,65 @@ const markOrderAsPaid = async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const { status } = req.body;
-    const validStatuses = ["paid", "due", "pending", "failed"];
+    // ==========================================
+    //  ১. বেসিক ভ্যালিডেশন
+    // ==========================================
+    const validStatuses = [
+      "paid",
+      "due",
+      "pending",
+      "failed",
+      "awaiting_verification",
+      "refunded", // ✅ স্কিমা অনুযায়ী রিফান্ড অ্যাড করা হলো
+    ];
 
-    if (status && !validStatuses.includes(status)) {
+    // যদি ফ্রন্টএন্ড থেকে কোনো স্টেটাস না পাঠানো হয়, তাহলে ধরে নেওয়া হবে অ্যাডমিন/সিস্টেম এটাকে "paid" করতে চাচ্ছে
+    const targetStatus = req.body.status || "paid";
+
+    if (!validStatuses.includes(targetStatus)) {
       return res.status(400).json({ error: "Invalid payment status" });
     }
 
-    if (!status) {
+    // ==========================================
+    //  ২. ✅ সেফ গার্ড (Payment Status Transition Logic)
+    // ==========================================
+    const currentStatus = order.paymentStatus;
+
+    const allowedPaymentTransitions = {
+      pending: ["paid", "failed", "awaiting_verification"],
+      awaiting_verification: ["paid", "failed", "pending"], // ভেরিফিকেশন ব্যর্থ হলে pending বা failed করা যাবে
+      due: ["paid"], // ক্যাশ অন ডেলিভারি শুধু paid এ যাবে
+      paid: ["refunded"], // ✅ paid থেকে শুধু রিফান্ডে যাওয়া যাবে, আর কোথাও নয়
+      failed: ["pending", "due"], // ফেইল হলে রিট্রাই করতে পারে বা COD এ কনভার্ট করতে পারে
+      refunded: [], // ✅ একবার রিফান্ড হলে আর কোনো অবস্থায় যাওয়া যাবে না
+    };
+
+    // চেক করা হচ্ছে বর্তমান স্টেটাস থেকে টার্গেট স্টেটাসে যাওয়ার অনুমতি আছে কি না
+    if (!allowedPaymentTransitions[currentStatus]?.includes(targetStatus)) {
+      return res.status(400).json({
+        error: `Invalid payment transition! Cannot change from '${currentStatus}' to '${targetStatus}'.`,
+      });
+    }
+
+    // ==========================================
+    //  ৩. পেমেন্ট ডেটা আপডেট (কোড ডুপ্লিকেশন রিমুভ করা হয়েছে)
+    // ==========================================
+    order.paymentStatus = targetStatus;
+    order.isPaid = targetStatus === "paid";
+
+    if (targetStatus === "paid") {
       const paidAtTime = req.body.paidAt
         ? new Date(req.body.paidAt)
         : new Date();
-      order.isPaid = true;
       order.paidAt = paidAtTime;
-      order.paymentStatus = "paid";
 
+      // SSLCommerz বা অন্য গেটওয়ে হলে paymentResult সেভ করা
       if (order.paymentMethod !== "Cash on Delivery") {
         order.paymentResult = {
           id: req.body.id || "N/A",
-          status: req.body.status || "Completed",
+          status: req.body.gateway_status || "Completed", // ✅ নাম পরিবর্তন করা হয়েছে কনফ্লিক্ট এড়ানোর জন্য
           update_time: req.body.update_time || paidAtTime.toISOString(),
           email_address: req.body.payer?.email_address || "N/A",
-          // ✅ SSLCommerz Specific Data
           val_id: req.body.val_id || undefined,
           bank_tran_id: req.body.bank_tran_id || undefined,
           card_type: req.body.card_type || undefined,
@@ -662,55 +667,32 @@ const markOrderAsPaid = async (req, res) => {
         };
       }
     } else {
-      order.paymentStatus = status;
-      order.isPaid = status === "paid";
-
-      if (status === "paid") {
-        order.paidAt = req.body.paidAt ? new Date(req.body.paidAt) : new Date();
-        if (order.paymentMethod !== "Cash on Delivery") {
-          order.paymentResult = {
-            id: req.body.id || "N/A",
-            status: req.body.status || "Completed",
-            update_time: req.body.update_time || order.paidAt.toISOString(),
-            email_address: req.body.payer?.email_address || "N/A",
-            // ✅ SSLCommerz Specific Data
-            val_id: req.body.val_id || undefined,
-            bank_tran_id: req.body.bank_tran_id || undefined,
-            card_type: req.body.card_type || undefined,
-            card_no: req.body.card_no || undefined,
-            currency_type: req.body.currency_type || undefined,
-            gateway_type:
-              req.body.gateway_type ||
-              (order.paymentMethod === "SSLCommerz" ? "SSLCommerz" : undefined),
-          };
-        }
-      } else {
-        order.paidAt = null;
-        order.paymentResult = undefined;
-      }
+      // paid না হলে paidAt এবং paymentResult ক্লিয়ার করে দেওয়া হলো
+      order.paidAt = null;
+      order.paymentResult = undefined;
     }
 
     const updatedOrder = await order.save();
 
     // ==========================================
-    //  NOTIFICATION & EMAIL LOGIC
+    //  ৪. NOTIFICATION & EMAIL LOGIC
     // ==========================================
     let notificationConfig = {
       userId: updatedOrder.user,
       type: "order",
       actionUrl: `/order/${updatedOrder.orderId}`,
-      sendEmailFlag: false, 
+      sendEmailFlag: false,
     };
 
     if (updatedOrder.paymentStatus === "paid") {
       notificationConfig.title = "Payment Received ✅";
       notificationConfig.message = `Payment for order #${updatedOrder.orderId} is successful.`;
 
-
       try {
         const populatedPaidOrder = await Order.findById(
           updatedOrder._id,
         ).populate("user", "username email");
+
         if (populatedPaidOrder && populatedPaidOrder.user.email) {
           await sendEmail({
             to: populatedPaidOrder.user.email,
@@ -746,6 +728,10 @@ const markOrderAsPaid = async (req, res) => {
     } else if (updatedOrder.paymentStatus === "failed") {
       notificationConfig.title = "Payment Failed ❌";
       notificationConfig.message = `Unfortunately, the payment for order #${updatedOrder.orderId} has failed.`;
+    } else if (updatedOrder.paymentStatus === "refunded") {
+      // ✅ নতুন যোগ করা হয়েছে
+      notificationConfig.title = "Payment Refunded 💸";
+      notificationConfig.message = `Your payment for order #${updatedOrder.orderId} has been refunded. It may take 3-5 business days to appear in your account.`;
     }
 
     if (notificationConfig.title) {
@@ -767,32 +753,143 @@ const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const { status } = req.body;
+    const { status, courierName, courierTrackingId } = req.body;
+
     const validStatuses = [
       "Order Placed",
+      "Confirmed",
       "Processing",
-      "Shipped",
+      "Packed",
+      "Picked Up by Courier",
+      "In Transit",
+      "At Local Hub",
       "Out for Delivery",
       "Delivered",
       "Cancelled",
+      "Returned",
     ];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid order status" });
     }
 
+    const allowedTransitions = {
+      "Order Placed": ["Confirmed", "Processing", "Cancelled"],
+      Confirmed: ["Processing", "Cancelled"],
+      Processing: ["Packed", "Cancelled"],
+      Packed: ["Picked Up by Courier", "Cancelled"],
+      "Picked Up by Courier": ["In Transit", "At Local Hub", "Returned"],
+      "In Transit": ["At Local Hub", "Out for Delivery", "Returned"],
+      "At Local Hub": ["Out for Delivery", "Returned"],
+      "Out for Delivery": ["Delivered", "At Local Hub", "Returned"],
+      Delivered: ["Returned"],
+      Cancelled: [],
+      Returned: [],
+    };
+
+    const currentStatus = order.isDelivered;
+
+    // চেক করা হচ্ছে বর্তমান স্টেটাস থেকে নতুন স্টেটাসে যাওয়ার অনুমতি আছে কি না
+    if (!allowedTransitions[currentStatus]?.includes(status)) {
+      return res.status(400).json({
+        error: `Invalid transition! You cannot change order status from '${currentStatus}' to '${status}'.`,
+      });
+    }
+
+    if (
+      [
+        "Picked Up by Courier",
+        "In Transit",
+        "At Local Hub",
+        "Out for Delivery",
+      ].includes(status)
+    ) {
+      // যদি আগে থেকে কোনো ট্র্যাকিং নম্বর না থাকে, তাহলেই নতুন করে চাইবে
+      if (!order.courierTrackingId && !courierTrackingId) {
+        return res.status(400).json({
+          error:
+            "Courier tracking ID is required when marking an order as shipped.",
+        });
+      }
+      // নতুন ভ্যালু পেলে আপডেট করবে, না পেলে আগেরটাই রাখবে
+      if (courierTrackingId) order.courierTrackingId = courierTrackingId;
+      if (courierName) order.courierName = courierName;
+    }
+
+    // ==========================================
+    //  ৪. অর্ডার আপডেট
+    // ==========================================
     order.isDelivered = status;
 
     if (status === "Delivered") {
       order.deliveredAt = new Date();
     }
 
+    // ক্যান্সেল বা রিটার্ন হলে ডেলিভারি ডেট রিমুভ করা (যদি ভুলবশত ডেলিভার্ড থেকে রিটার্ন নেওয়া হয়)
+    if (["Cancelled", "Returned"].includes(status)) {
+      order.deliveredAt = null;
+    }
+
     const updatedOrder = await order.save();
+
+    // ==========================================
+    //  ৫. অটোমেটিক ট্র্যাকিং লগে পুশ করা
+    // ==========================================
+    // ==========================================
+    //  ✅ অটোমেটিক ট্র্যাকিং লগে পুশ করা (Courier API রেডি)
+    // ==========================================
+    let trackingMessage = `Order status updated to ${status}.`;
+    let eventObj = {
+      status: status,
+      message: trackingMessage,
+    };
+
+    if (["Shipped", "Picked Up by Courier"].includes(status)) {
+      trackingMessage = `Package handed over to ${courierName || "Courier"}. Tracking ID: ${courierTrackingId}`;
+      eventObj = {
+        status: status,
+        message: trackingMessage,
+        location: "Seller Warehouse",
+        courierName: courierName || "",
+        trackingId: courierTrackingId || "",
+      };
+    }
+
+    await OrderTracking.findOneAndUpdate(
+      { orderId: updatedOrder.orderId },
+      {
+        // ✅ নতুন ডকুমেন্ট তৈরি হলে শুধুমাত্র এই দুটো ফিল্ড সেট হবে
+        $setOnInsert: {
+          order: updatedOrder._id,
+          orderId: updatedOrder.orderId,
+        },
+        $push: {
+          events: eventObj,
+        },
+      },
+      { new: true, upsert: true },
+    );
+
+    // ==========================================
+    //  ৬. নোটিফিকেশন ও ইমেইল লজিক
+    // ==========================================
+    let notificationMessage = `Your order #${updatedOrder.orderId} has been updated to ${status}.`;
+
+    if (["Picked Up by Courier"].includes(status) && courierTrackingId) {
+      notificationMessage = `Your order #${updatedOrder.orderId} has been shipped via ${courierName}. Tracking ID: ${courierTrackingId}`;
+    }
+
+    // ক্যান্সেল বা রিটার্নের জন্য আলাদা মেসেজ (ঐচ্ছিক, আপনার প্রয়োজনমতো পরিবর্তন করতে পারেন)
+    if (status === "Cancelled") {
+      notificationMessage = `Your order #${updatedOrder.orderId} has been cancelled.`;
+    } else if (status === "Returned") {
+      notificationMessage = `Your order #${updatedOrder.orderId} return process has been initiated.`;
+    }
 
     await createAndSendNotification(req, {
       userId: updatedOrder.user,
-      title: `Order Status: ${status}`,
-      message: `Your order #${updatedOrder.orderId} has been updated to ${status}.`,
+      title: `Order Update: ${status}`,
+      message: notificationMessage,
       type: "order",
       actionUrl: `/order/${updatedOrder.orderId}`,
       sendEmailFlag: true,
@@ -800,6 +897,7 @@ const updateOrderStatus = async (req, res) => {
 
     res.json(updatedOrder);
   } catch (error) {
+    console.error("Update Order Status Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -814,7 +912,6 @@ export {
   calcualteTotalSalesByDate,
   findOrderById,
   markOrderAsPaid,
-  markOrderAsDelivered,
   countTotalOrdersByDate,
   getDeliverySummary,
   updateOrderStatus,
