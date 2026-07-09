@@ -61,7 +61,7 @@ const ReturnManagement = lazy(() => import("./pages/Admin/ReturnManagement"));
 const BannerList = lazy(() => import("./pages/Admin/BannerList"));
 const BannerCreate = lazy(() => import("./pages/Admin/BannerCreate"));
 const BannerUpdate = lazy(() => import("./pages/Admin/BannerUpdate"));
-const OrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
+const OrderDetail = lazy(() => import("./pages/Admin/OrderDetail"));
 
 const NotFound = () => (
   <div className="flex flex-col items-center justify-center min-h-screen px-4">
