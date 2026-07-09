@@ -304,7 +304,7 @@ const CupponManage = () => {
                 {/* ============================================ */}
                 {/* DESKTOP VIEW: Table Layout (Visible >= md) */}
                 {/* ============================================ */}
-                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-sm">
+                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-sm pt-20">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
@@ -392,7 +392,7 @@ const CupponManage = () => {
 
       {/* ============ CREATE / EDIT MODAL ============ */}
       {isFormModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-start z-50 p-4 pt-10 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-start z-50 p-4 pt-28 overflow-y-auto">
           <div className="bg-white border border-gray-200 rounded-sm w-full max-w-3xl mb-10">
             <div className="flex justify-between items-center p-5 border-b border-gray-200">
               <h2 className="text-sm font-black text-black uppercase tracking-wider">{editingCupponId ? "Update Coupon" : "Create New Coupon"}</h2>

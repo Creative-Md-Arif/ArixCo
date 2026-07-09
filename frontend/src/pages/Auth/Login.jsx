@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useLoginMutation } from "@redux/api/usersApiSlice";
 import { setCredentials } from "../../redux/features/auth/authSlice";
@@ -17,6 +17,9 @@ const Login = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
+  const isCheckoutRedirect = redirect === "/shipping";
 
   const [login, { isLoading }] = useLoginMutation();
   useEffect(() => {
@@ -62,7 +65,7 @@ const Login = () => {
 
       dispatch(setCredentials({ ...res }));
       toast.success("Welcome back! Login successful.");
-      navigate("/");
+      navigate(redirect);
     } catch (err) {
       const errorMessage = err?.data?.message || err?.error || "Login failed";
       // সার্ভার এরর ফিল্ডের নিচে দেখানোর জন্য স্টেটে সেট করা হলো
@@ -93,6 +96,22 @@ const Login = () => {
                 Please enter your details to sign in
               </p>
             </div>
+
+            {/* Checkout Reassurance Message */}
+            {isCheckoutRedirect && (
+              <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
+                <span className="text-[#007EFC] mt-0.5 flex-shrink-0">
+                  <FaLock size={12} />
+                </span>
+                <p className="text-[12px] text-gray-600 leading-relaxed">
+                  Please sign in to continue to checkout.{" "}
+                  <span className="font-semibold text-gray-800">
+                    Your cart items are safe
+                  </span>{" "}
+                  and will be here after you log in.
+                </p>
+              </div>
+            )}
 
             <form onSubmit={submitHandler} className="space-y-3">
               {/* Email Field */}

@@ -7,7 +7,7 @@ import {
   savePaymentMethod,
 } from "../../redux/features/cart/cartSlice";
 import PlaceOrder from "./PlaceOrder";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   FaMoneyBillWave,
@@ -23,6 +23,7 @@ import bd from "@bd-geo-data/bd-location-data";
 // ✅ Dynamic Shipping API Import
 import { useCalculateShippingMutation } from "@redux/api/shippingApiSlice";
 import { HiChevronRight } from "react-icons/hi";
+import { FaLock } from "react-icons/fa6";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const getItemFinalPrice = (item) =>
@@ -62,7 +63,9 @@ const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
 const Shipping = () => {
   const cart = useSelector((state) => state.cart);
   const { cartItems, shippingAddress } = cart;
+  const { userInfo } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [calculateShipping, { isLoading: isCalculating }] =
     useCalculateShippingMutation();
@@ -206,7 +209,7 @@ const Shipping = () => {
       }));
     }
     const pending = localStorage.getItem("pendingOrderData");
-    
+
     if (pending) {
       try {
         localStorage.setItem(
@@ -359,6 +362,11 @@ const Shipping = () => {
   }, [division, district, thana, cartItems]);
 
   const handleShippingDetails = () => {
+    if (!userInfo) {
+      toast.error("Please sign in to continue checkout");
+      navigate("/login?redirect=/shipping");
+      return null;
+    }
     if (!validateAll()) {
       toast.error("Please fill all required fields correctly!");
       return null;
@@ -426,41 +434,68 @@ const Shipping = () => {
     <div className="bg-gray-50 min-h-screen pt-10">
       {/* ── Breadcrumb ── */}
       <div className="bg-white border-b border-gray-100">
-  <div className="container mx-auto px-4">
-    <nav
-      aria-label="Breadcrumb"
-      className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
-    >
-      {/* Home Link with FaHome Icon */}
-      <Link
-        to="/"
-        className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
-      >
-        <FaHome className="text-[14px]" />
-        <span>Home</span>
-      </Link>
+        <div className="container mx-auto px-4">
+          {/* ── Sign In Reminder Banner ── */}
+          {!userInfo && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+              <span className="text-[#007EFC] mt-0.5 flex-shrink-0">
+                <FaLock size={16} />
+              </span>
+              <div className="flex-1">
+                <p className="text-[13px] sm:text-sm text-gray-700 font-medium">
+                  You need to sign in before placing your order.
+                </p>
+                <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">
+                  Don&apos;t worry —{" "}
+                  <span className="font-semibold text-gray-700">
+                    your cart items are safe
+                  </span>{" "}
+                  and won&apos;t be lost. You can fill in your delivery details
+                  now.
+                </p>
+              </div>
+              <Link
+                to="/login?redirect=/shipping"
+                className="flex-shrink-0 bg-[#007EFC] text-white text-[12px] sm:text-[13px] font-bold px-4 py-2 rounded-lg hover:bg-[#006ee0] transition-colors whitespace-nowrap"
+              >
+                Sign In
+              </Link>
+            </div>
+          )}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+          >
+            {/* Home Link with FaHome Icon */}
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+            >
+              <FaHome className="text-[14px]" />
+              <span>Home</span>
+            </Link>
 
-      {/* Cart Link with HiChevronRight Icon */}
-      <span className="contents">
-        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
-        <Link
-          to="/cart"
-          className="text-black hover:underline text-[14px] font-medium"
-        >
-          Cart
-        </Link>
-      </span>
+            {/* Cart Link with HiChevronRight Icon */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <Link
+                to="/cart"
+                className="text-black hover:underline text-[14px] font-medium"
+              >
+                Cart
+              </Link>
+            </span>
 
-      {/* Current Page: Checkout */}
-      <span className="contents">
-        <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
-        <span className="text-black font-black text-[14px]">
-          Checkout
-        </span>
-      </span>
-    </nav>
-  </div>
-</div>
+            {/* Current Page: Checkout */}
+            <span className="contents">
+              <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
+              <span className="text-black font-black text-[14px]">
+                Checkout
+              </span>
+            </span>
+          </nav>
+        </div>
+      </div>
 
       <div className="container mx-auto py-6 sm:py-10 px-4">
         <div className="mb-6 sm:mb-10 border-b-2 border-black pb-4">

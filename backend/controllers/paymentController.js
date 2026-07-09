@@ -247,13 +247,12 @@ const verifyManualPayment = asyncHandler(async (req, res) => {
 // @desc    Get payment statistics
 // @route   GET /api/payments/stats
 // @access  Admin
+// @desc    Get payment statistics
+// @route   GET /api/payments/stats
+// @access  Admin
 const getPaymentStats = asyncHandler(async (req, res) => {
+  // ✅ সব paymentMethod ধরা হচ্ছে (SSLCommerz সহ), filter সরিয়ে দেওয়া হলো
   const stats = await Order.aggregate([
-    {
-      $match: {
-        paymentMethod: { $in: ["bKash", "Nagad", "Rocket", "Bank"] },
-      },
-    },
     {
       $group: {
         _id: "$paymentMethod",
@@ -274,7 +273,15 @@ const getPaymentStats = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const overall = await Order.aggregate([
+  // ✅ Manual methods (bKash/Nagad/Rocket/Bank) এবং SSLCommerz আলাদা করে ভাগ করা হচ্ছে,
+  // যাতে frontend-এ আর কোনো filter করা না লাগে
+  const manualMethods = stats.filter((s) =>
+    ["bKash", "Nagad", "Rocket", "Bank"].includes(s._id),
+  );
+  const gatewayMethods = stats.filter((s) => s._id === "SSLCommerz");
+
+  // ✅ শুধু Manual method-এর revenue (আগের মতোই, "Payment Verification" section-এর জন্য)
+  const manualOverall = await Order.aggregate([
     {
       $match: {
         paymentMethod: { $in: ["bKash", "Nagad", "Rocket", "Bank"] },
@@ -290,9 +297,27 @@ const getPaymentStats = asyncHandler(async (req, res) => {
     },
   ]);
 
+  // ✅ সব method মিলিয়ে (SSLCommerz + Manual) সত্যিকারের total revenue
+  const grandOverall = await Order.aggregate([
+    {
+      $match: {
+        paymentStatus: "paid",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: "$totalPrice" },
+        totalTransactions: { $sum: 1 },
+      },
+    },
+  ]);
+
   res.json({
-    byMethod: stats,
-    overall: overall[0] || { totalRevenue: 0, totalTransactions: 0 },
+    byMethod: manualMethods, // ✅ আগের মতোই শুধু manual method list (backward compatible)
+    gatewayMethod: gatewayMethods[0] || { _id: "SSLCommerz", totalAmount: 0, count: 0, pending: 0, verified: 0, failed: 0 },
+    overall: manualOverall[0] || { totalRevenue: 0, totalTransactions: 0 }, // ✅ আগের মতোই (manual-only)
+    grandOverall: grandOverall[0] || { totalRevenue: 0, totalTransactions: 0 }, // ✅ নতুন: সব মিলিয়ে total
   });
 });
 

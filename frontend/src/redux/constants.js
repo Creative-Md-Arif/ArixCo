@@ -11,6 +11,7 @@ export const USERS_URL = "/api/users";
 export const CATEGORY_URL = "/api/category";
 export const PRODUCT_URL = "/api/products";
 export const UPLOAD_URL = "/api/upload";
+export const DASHBOARD_URL = "/api/dashboard";
 export const ORDERS_URL = "/api/orders";
 export const NOTIFICATIONS_URL = "/api/notifications";
 export const BANNER_URL = "/api/banners";

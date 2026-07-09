@@ -260,6 +260,15 @@ const router = createBrowserRouter(
         }
       />
 
+      <Route
+        path="/shipping"
+        element={
+          <Suspense fallback={<Loader />}>
+            <Shipping />
+          </Suspense>
+        }
+      />
+
       {/* Private Routes */}
       <Route
         path="/"
@@ -277,14 +286,7 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
-        <Route
-          path="/shipping"
-          element={
-            <Suspense fallback={<Loader />}>
-              <Shipping />
-            </Suspense>
-          }
-        />
+
         <Route
           path="/placeorder"
           element={
@@ -301,11 +303,11 @@ const router = createBrowserRouter(
             </Suspense>
           }
         /> */}
-                <Route
+        <Route
           path="/order/:id"
           element={
             <Suspense fallback={<Loader />}>
-              <OrderDetails /> 
+              <OrderDetails />
             </Suspense>
           }
         />
@@ -376,7 +378,7 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
-                <Route
+        <Route
           path="return-management"
           element={
             <Suspense fallback={<Loader />}>

@@ -41,17 +41,6 @@ const InlineItems = () => {
 
   return (
     <div >
-      <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-4">
-        <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-black">
-          Your Items ({cartItems.length})
-        </span>
-        <Link
-          to="/cart"
-          className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 hover:text-black border-b border-gray-300 hover:border-black transition-colors"
-        >
-          Edit Cart
-        </Link>
-      </div>
       <div
         className="space-y-0 max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-1"
         style={{ scrollbarWidth: "thin" }}

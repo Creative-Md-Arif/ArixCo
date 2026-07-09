@@ -20,7 +20,7 @@ import { IoMdClose } from "react-icons/io";
 const Cart = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { userInfo } = useSelector((state) => state.auth);
+
 
   const cart = useSelector((state) => state.cart) || {};
   const { cartItems = [], isCartOpen = false } = cart;
@@ -49,14 +49,10 @@ const Cart = () => {
     dispatch(toggleCartSidebar(false));
   };
 
-  const checkoutHandler = () => {
-    closeCartSidebar();
-    if (userInfo) {
-      navigate("/shipping");
-    } else {
-      navigate("/login?redirect=/shipping");
-    }
-  };
+const checkoutHandler = () => {
+  closeCartSidebar();
+  navigate("/shipping");
+};
 
   const subtotal = cartItems.reduce((acc, item) => {
     const finalPrice =
