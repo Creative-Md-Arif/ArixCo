@@ -16,6 +16,7 @@ const orderSchema = mongoose.Schema(
         qty: { type: Number, required: true },
         image: { type: String, required: true },
         price: { type: Number, required: true },
+        finalPrice: { type: Number, required: true },
         discountPercentage: { type: Number, default: 0 },
         offer: { type: String, default: "" },
         weight: { type: Number, default: 0 },

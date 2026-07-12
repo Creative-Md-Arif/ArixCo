@@ -2,7 +2,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { updateCart } from "../../../Utils/cart";
 
-// ✅ বাগ ফিক্স: Duplicate keys এরর সমাধান করে ক্লিন কোড
 const getInitialState = () => {
   try {
     const cartData = localStorage.getItem("cart");
@@ -15,11 +14,10 @@ const getInitialState = () => {
         shippingAddress: parsedCart.shippingAddress || {},
         paymentMethod: parsedCart.paymentMethod || "Cash on Delivery",
         itemsPrice: parsedCart.itemsPrice || 0,
-        shippingPrice: 0, // ✅ No longer managed by Redux, always 0 here
         taxPrice: parsedCart.taxPrice || 0,
-        totalPrice: parsedCart.itemsPrice || 0, // ✅ totalPrice = Subtotal only (items + tax)
+        totalPrice: parsedCart.totalPrice || 0, // ✅ ফিক্স: আগে ভুলে itemsPrice ব্যবহার হচ্ছিল
         totalSavings: parsedCart.totalSavings || 0,
-        isCartOpen: false, // ✅ Always false on page refresh (Don't persist in local storage)
+        isCartOpen: false,
       };
     }
   } catch (error) {
@@ -31,17 +29,15 @@ const getInitialState = () => {
     shippingAddress: {},
     paymentMethod: "Cash on Delivery",
     itemsPrice: 0,
-    shippingPrice: 0,
     taxPrice: 0,
     totalPrice: 0,
     totalSavings: 0,
-    isCartOpen: false, // ✅ New State Added
+    isCartOpen: false,
   };
 };
 
 const initialState = getInitialState();
 
-// Helper to check if two items are the same (including variants)
 const isSameItem = (item1, item2) => {
   if (item1._id !== item2._id) return false;
 
@@ -59,26 +55,54 @@ const isSameItem = (item1, item2) => {
   return false;
 };
 
-// Simplified item price normalizer (Standard discount only)
+/**
+ * ✅ FIXED: Variant-aware price normalizer
+ *
+ * আগে campaign থাকলে সরাসরি item.campaignPrice (backend থেকে আসা flat/fixed
+ * value, variant-অনুযায়ী বদলায় না) কে finalPrice হিসেবে বসানো হতো। এতে
+ * XXL/other higher-priced variant এও একই flat campaign price দেখাতো।
+ *
+ * এখন campaign discount সবসময় basePrice (= নির্বাচিত variant এর আসল দাম)
+ * থেকে calculate হয়, discountType/discountValue দিয়ে। campaignPrice শুধু
+ * তখনই fallback হিসেবে ব্যবহার হয় যদি discount type/value পাওয়া না যায়।
+ */
 const normalizeItemPrices = (item) => {
   if (!item) return null;
 
-  const price = Number(item.price) || 0;
-  const basePrice = Number(item.basePrice) || price || 0;
+  const basePrice = Number(item.basePrice) || Number(item.price) || 0;
 
-  let finalPrice = price || basePrice;
-  let appliedDiscountPercent = 0;
+  let finalPrice = basePrice;
+  let appliedDiscountPercent = Number(item.discountPercentage) || 0;
   let savings = 0;
 
-  if (item.discountPercentage) {
-    appliedDiscountPercent = Number(item.discountPercentage) || 0;
+  const hasCampaign = item.appliedCampaigns && item.appliedCampaigns.length > 0;
+
+  if (hasCampaign) {
+    const camp = item.appliedCampaigns[0];
+
+    if (camp.discountType === "percentage" && camp.discountValue) {
+      finalPrice = basePrice - (basePrice * camp.discountValue) / 100;
+    } else if (camp.discountType === "fixed" && camp.discountValue) {
+      finalPrice = basePrice - camp.discountValue;
+    } else if (item.campaignPrice) {
+      // ⚠️ শুধু fallback: discount type/value পাওয়া না গেলে backend এর flat মান
+      finalPrice = Number(item.campaignPrice);
+    }
+
+    if (camp.maxDiscountAmount) {
+      finalPrice = Math.max(finalPrice, basePrice - camp.maxDiscountAmount);
+    }
+
+    finalPrice = Math.max(Math.round(finalPrice), 0);
+    savings = basePrice - finalPrice;
+  } else if (appliedDiscountPercent > 0) {
     finalPrice = basePrice - (basePrice * appliedDiscountPercent) / 100;
     savings = (basePrice * appliedDiscountPercent) / 100;
   }
 
   return {
     ...item,
-    price: price,
+    price: basePrice,
     basePrice: basePrice,
     _finalPrice: finalPrice,
     finalPrice: finalPrice,
@@ -114,6 +138,8 @@ const cartSlice = createSlice({
         state.cartItems[existItemIndex].qty = normalizedItem.qty;
         state.cartItems[existItemIndex] = {
           ...state.cartItems[existItemIndex],
+          appliedCampaigns: normalizedItem.appliedCampaigns,
+          campaignPrice: normalizedItem.campaignPrice,
           _finalPrice: normalizedItem._finalPrice,
           finalPrice: normalizedItem.finalPrice,
           _effectivePrice: normalizedItem._effectivePrice,
@@ -158,13 +184,11 @@ const cartSlice = createSlice({
         return false;
       });
 
-      // ✅ Removed state.shippingAddress parameter
       return updateCart(state);
     },
 
     saveShippingAddress: (state, action) => {
       state.shippingAddress = action.payload;
-      // ✅ Shipping address saves, but DOES NOT trigger shipping price calculation here anymore
       localStorage.setItem("cart", JSON.stringify(state));
       return state;
     },
@@ -177,7 +201,6 @@ const cartSlice = createSlice({
     clearCartItems: (state) => {
       state.cartItems = [];
       state.itemsPrice = 0;
-      state.shippingPrice = 0;
       state.taxPrice = 0;
       state.totalPrice = 0;
       state.totalSavings = 0;
@@ -191,7 +214,6 @@ const cartSlice = createSlice({
         shippingAddress: {},
         paymentMethod: "Cash on Delivery",
         itemsPrice: 0,
-        shippingPrice: 0,
         taxPrice: 0,
         totalPrice: 0,
         totalSavings: 0,
@@ -199,11 +221,8 @@ const cartSlice = createSlice({
       };
     },
 
-    // ✅ New Reducer to toggle the Cart Sidebar
     toggleCartSidebar: (state, action) => {
       state.isCartOpen = action.payload;
-      // We are not calling localStorage here because we don't want
-      // the sidebar open state to persist after a page refresh
     },
   },
 });
@@ -215,7 +234,7 @@ export const {
   savePaymentMethod,
   clearCartItems,
   resetCart,
-  toggleCartSidebar, // ✅ Exported the new action
+  toggleCartSidebar,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

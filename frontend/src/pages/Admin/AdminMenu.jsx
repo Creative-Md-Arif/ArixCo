@@ -50,6 +50,7 @@ const AdminMenu = () => {
     { to: "/admin/orderlist", icon: <CiShoppingCart />, label: "Orders" },
     { to: "/admin/return-management", icon: <CiShoppingCart />, label: "Returns" },
     { to: "/admin/bannerlist", icon: <RiImageLine />, label: "Banners" },
+    { to: "/admin/campaign-manage", icon: <AiOutlinePlusSquare />, label: "Campaigns" },
     { to: "/admin/cuppon-manage", icon: <AiOutlinePlusSquare />, label: "Cuppons" },
     { to: "/admin/shipping-manage", icon: <AiOutlinePlusSquare />, label: "Shipping" },
     {

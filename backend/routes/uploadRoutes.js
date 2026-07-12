@@ -32,7 +32,6 @@ const bannerStorage = new CloudinaryStorage({
   params: {
     folder: "uploads/banners",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    // ব্যানারের জন্য হাই রেজোলিউশন (3000px width)
     transformation: [{ width: 3000, quality: "auto", fetch_format: "auto" }],
   },
 });

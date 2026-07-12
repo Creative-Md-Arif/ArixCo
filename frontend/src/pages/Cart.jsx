@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -21,7 +20,6 @@ const Cart = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-
   const cart = useSelector((state) => state.cart) || {};
   const { cartItems = [], isCartOpen = false } = cart;
 
@@ -32,6 +30,9 @@ const Cart = () => {
       discountPercentage: product.discountPercentage,
       weight: product.weight,
       variantInfo: product.variantInfo,
+      // নিশ্চিত করা হচ্ছে কার্টে ক্যাম্পেইন ডাটা হারিয়ে না যায়
+      campaignPrice: product.campaignPrice,
+      appliedCampaigns: product.appliedCampaigns,
     };
     dispatch(addToCart(cartItem));
   };
@@ -49,10 +50,10 @@ const Cart = () => {
     dispatch(toggleCartSidebar(false));
   };
 
-const checkoutHandler = () => {
-  closeCartSidebar();
-  navigate("/shipping");
-};
+  const checkoutHandler = () => {
+    closeCartSidebar();
+    navigate("/shipping");
+  };
 
   const subtotal = cartItems.reduce((acc, item) => {
     const finalPrice =
@@ -60,12 +61,10 @@ const checkoutHandler = () => {
     return acc + finalPrice * item.qty;
   }, 0);
 
+  // ✅ আপডেটেড: cartSlice থেকে আসা savings ব্যবহার করা হচ্ছে (ক্যাম্পেইন সেভিংসসহ)
   const totalSavings = cartItems.reduce((acc, item) => {
-    const basePrice = Number(item.basePrice) || Number(item.price) || 0;
-    const finalPrice =
-      Number(item.finalPrice) || Number(item._finalPrice) || item.price || 0;
-    const savingsPerItem = basePrice - finalPrice;
-    return acc + savingsPerItem * item.qty;
+    const savings = Number(item.savings) || 0;
+    return acc + savings * item.qty;
   }, 0);
 
   return (
@@ -122,13 +121,13 @@ const checkoutHandler = () => {
             <div className="space-y-3">
               {cartItems.map((item) => {
                 const finalPrice =
-                  Number(item.finalPrice) ||
-                  Number(item._finalPrice) ||
-                  item.price ||
-                  0;
+                  Number(item.finalPrice) || Number(item._finalPrice) || item.price || 0;
                 const basePrice =
                   Number(item.basePrice) || Number(item.price) || 0;
-                const savingsPerItem = basePrice - finalPrice;
+                
+                // ✅ নতুন লজিক: cartSlice থেকে আসা savings অনুযায়ী
+                const savingsPerItem = Number(item.savings) || (basePrice - finalPrice);
+                const hasCampaign = item.appliedCampaigns && item.appliedCampaigns.length > 0;
                 const discountPercent = item.discountPercentage || 0;
 
                 const variantText = item.variantInfo?.hasVariants
@@ -146,11 +145,16 @@ const checkoutHandler = () => {
                         alt={item.name}
                         className="w-full h-full object-contain p-1"
                       />
-                      {discountPercent > 0 && (
+                      {/* ✅ আপডেটেড ব্যাজ লজিক */}
+                      {hasCampaign ? (
+                        <div className="absolute top-0 right-0 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-bl bg-red-600">
+                          Campaign
+                        </div>
+                      ) : discountPercent > 0 ? (
                         <div className="absolute top-0 right-0 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-bl bg-red-500">
                           {Math.round(discountPercent)}%
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
@@ -173,11 +177,12 @@ const checkoutHandler = () => {
 
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-gray-900 text-[14px] font-bold">
-                            ৳{finalPrice.toLocaleString()}
+                            ৳{Math.round(finalPrice).toLocaleString()}
                           </span>
+                          {/* ✅ আপডেটেড: সরাসরি basePrice কাটা থাকবে */}
                           {savingsPerItem > 0 && (
                             <span className="text-gray-400 text-[14px] line-through">
-                              ৳{Number(basePrice).toLocaleString()}
+                              ৳{Math.round(basePrice).toLocaleString()}
                             </span>
                           )}
                         </div>
@@ -209,7 +214,7 @@ const checkoutHandler = () => {
 
                         <div className="flex items-center gap-2">
                           <span className="text-[14px] font-bold text-gray-800">
-                            ৳{(item.qty * finalPrice).toFixed()}
+                            ৳{Math.round(item.qty * finalPrice).toLocaleString()}
                           </span>
                           <button
                             onClick={() => removeFromCartHandler(item)}
@@ -234,7 +239,7 @@ const checkoutHandler = () => {
               <div className="flex justify-between text-gray-500">
                 <span>Subtotal</span>
                 <span className="text-gray-800">
-                  ৳{(subtotal + totalSavings).toFixed()}
+                  ৳{Math.round(subtotal + totalSavings).toLocaleString()}
                 </span>
               </div>
 
@@ -244,7 +249,7 @@ const checkoutHandler = () => {
                     <FaTag size={10} /> Savings
                   </span>
                   <span className="font-bold">
-                    - ৳{totalSavings.toFixed()}
+                    - ৳{Math.round(totalSavings).toLocaleString()}
                   </span>
                 </div>
               )}
@@ -254,7 +259,7 @@ const checkoutHandler = () => {
               <div className="flex justify-between items-center py-1">
                 <span className="text-gray-800 font-bold">Total Amount</span>
                 <span className="text-[18px] font-bold text-red-600">
-                  ৳{subtotal.toLocaleString()}
+                  ৳{Math.round(subtotal).toLocaleString()}
                 </span>
               </div>
             </div>

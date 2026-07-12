@@ -32,6 +32,7 @@ const ButtonSpinner = () => (
   </div>
 );
 
+
 /* ─── Inline cart items ────────────────────────────────────── */
 const InlineItems = () => {
   const { cartItems } = useSelector((state) => state.cart);
@@ -40,7 +41,7 @@ const InlineItems = () => {
     dispatch(addToCart({ ...product, qty }));
 
   return (
-    <div >
+    <div>
       <div
         className="space-y-0 max-h-[280px] sm:max-h-[320px] overflow-y-auto pr-1"
         style={{ scrollbarWidth: "thin" }}
@@ -59,11 +60,35 @@ const InlineItems = () => {
             ? `${item.variantInfo.colorName} · ${item.variantInfo.sizeName}`
             : null;
 
+          // ✅ ব্যাজ লজিক (ছবি থেকে সরিয়ে টেক্সটের পাশে)
+          let badgeElement = null;
+          const hasCampaign = item.appliedCampaigns && item.appliedCampaigns.length > 0;
+          
+          if (hasCampaign) {
+            const camp = item.appliedCampaigns[0];
+            const typeName = (camp.type || "").replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const discountText = camp.discountType === "percentage" 
+              ? `-${camp.discountValue}%` 
+              : `-৳${camp.discountValue}`;
+            badgeElement = (
+              <span className="inline-flex items-center text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-sm uppercase tracking-wide leading-tight whitespace-nowrap">
+                {typeName} {discountText}
+              </span>
+            );
+          } else if (discountPercent > 0) {
+            badgeElement = (
+              <span className="inline-block text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 bg-green-50 text-green-600 border border-green-200 rounded-sm uppercase tracking-wide leading-tight">
+                −{Math.round(discountPercent)}% OFF
+              </span>
+            );
+          }
+
           return (
             <div
               key={`${item._id}-${item.variantInfo?.colorIndex}-${item.variantInfo?.sizeIndex}`}
               className={`flex items-start gap-3 py-3 ${idx !== cartItems.length - 1 ? "border-b border-gray-100" : ""}`}
             >
+              {/* এখানে আর কোনো absolute ব্যাজ নেই */}
               <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
                 <img
                   src={displayImage}
@@ -71,10 +96,16 @@ const InlineItems = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
+              
               <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-mono font-bold text-black uppercase tracking-tight line-clamp-2">
-                  {item.name}
-                </p>
+                {/* নাম এবং ব্যাজ একসাথে */}
+                <div className="flex items-center gap-2">
+                  <p className="text-xs sm:text-sm font-mono font-bold text-black uppercase tracking-tight line-clamp-2 flex-1 min-w-0">
+                    {item.name}
+                  </p>
+                  {badgeElement}
+                </div>
+
                 {variantText && (
                   <div className="flex items-center gap-1.5 mt-1">
                     {item.variantInfo?.colorHex && (
@@ -88,12 +119,8 @@ const InlineItems = () => {
                     </span>
                   </div>
                 )}
-                {discountPercent > 0 && (
-                  <span className="inline-block mt-1 text-[9px] sm:text-[10px] font-mono font-bold px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-200 uppercase tracking-wide rounded-sm">
-                    −{Math.round(discountPercent)}% OFF
-                  </span>
-                )}
               </div>
+
               <div className="flex flex-col items-end gap-2 flex-shrink-0">
                 <div className="text-right leading-none">
                   <p className="text-xs sm:text-sm font-mono font-black text-black">
@@ -157,9 +184,10 @@ const PlaceOrder = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [createOrder] = useCreateOrderMutation();
-  
+
   // ✅ SSLCommerz Hook
-  const [initSSLCommerz, { isLoading: isInitializingSSL }] = useInitSSLCommerzMutation();
+  const [initSSLCommerz, { isLoading: isInitializingSSL }] =
+    useInitSSLCommerzMutation();
 
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -179,9 +207,11 @@ const PlaceOrder = ({
 
   const effectivePaymentMethod =
     reduxPaymentMethod || shippingAddress?.paymentMethod || "Cash on Delivery";
-    
+
   // পেমেন্ট টাইপ চেক করা হচ্ছে
-  const isManualPayment = ["bKash", "Nagad", "Rocket", "Bank"].includes(effectivePaymentMethod);
+  const isManualPayment = ["bKash", "Nagad", "Rocket", "Bank"].includes(
+    effectivePaymentMethod,
+  );
   const isSSLCommerz = effectivePaymentMethod === "SSLCommerz";
 
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
@@ -258,7 +288,10 @@ const PlaceOrder = ({
         phoneNumber: freshAddress.phoneNumber || "",
       };
 
-      if (!safeShippingAddress.postalCode || safeShippingAddress.postalCode === "0000") {
+      if (
+        !safeShippingAddress.postalCode ||
+        safeShippingAddress.postalCode === "0000"
+      ) {
         toast.error("Please enter a valid postal code!");
         return;
       }
@@ -266,12 +299,17 @@ const PlaceOrder = ({
         toast.error("Please enter your country!");
         return;
       }
-      if (!safeShippingAddress.division || !safeShippingAddress.district || !safeShippingAddress.thana) {
+      if (
+        !safeShippingAddress.division ||
+        !safeShippingAddress.district ||
+        !safeShippingAddress.thana
+      ) {
         toast.error("Please select your Division, District and Thana!");
         return;
       }
 
-      const resolvedPaymentMethod = freshAddress.paymentMethod || effectivePaymentMethod;
+      const resolvedPaymentMethod =
+        freshAddress.paymentMethod || effectivePaymentMethod;
 
       const baseOrderData = {
         orderItems: orderItemsWithVariants,
@@ -297,10 +335,10 @@ const PlaceOrder = ({
       } else if (isSSLCommerz) {
         const orderRes = await createOrder(baseOrderData).unwrap();
         const sslRes = await initSSLCommerz(orderRes._id).unwrap();
-      
+
         if (sslRes.url) {
           localStorage.removeItem("pendingOrderData");
-          window.location.href = sslRes.url; 
+          window.location.href = sslRes.url;
         } else {
           toast.error("Failed to connect to payment gateway.");
         }
@@ -314,13 +352,19 @@ const PlaceOrder = ({
         navigate(`/order/${res._id}`);
       }
     } catch (error) {
-      toast.error(error?.data?.message || "Something went wrong while placing order.");
+      toast.error(
+        error?.data?.message || "Something went wrong while placing order.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isButtonDisabled = isLoading || cartItems.length === 0 || isShippingCalculating || isInitializingSSL;
+  const isButtonDisabled =
+    isLoading ||
+    cartItems.length === 0 ||
+    isShippingCalculating ||
+    isInitializingSSL;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -390,12 +434,18 @@ const PlaceOrder = ({
       {/* Price Breakdown */}
       <div className="mx-4 sm:mx-6 border-t border-gray-100 pt-3 pb-4 space-y-2.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">Subtotal</span>
-          <span className="text-xs sm:text-sm font-mono font-black text-black">৳{subtotal.toFixed(2)}</span>
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">
+            Subtotal
+          </span>
+          <span className="text-xs sm:text-sm font-mono font-black text-black">
+            ৳{subtotal.toFixed(2)}
+          </span>
         </div>
 
         <div className="flex justify-between items-start">
-          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">Shipping</span>
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-gray-500">
+            Shipping
+          </span>
           {isShippingCalculating ? (
             <span className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono text-gray-500">
               <FaSpinner className="animate-spin" size={10} /> Calculating...
@@ -412,33 +462,47 @@ const PlaceOrder = ({
               )}
             </div>
           ) : (
-            <span className="text-[10px] sm:text-xs font-mono text-gray-400 uppercase">Select address</span>
+            <span className="text-[10px] sm:text-xs font-mono text-gray-400 uppercase">
+              Select address
+            </span>
           )}
         </div>
 
         {appliedCoupon && (
           <div className="flex justify-between items-center py-1.5 px-2.5 bg-green-50 border border-green-100 rounded-md">
-            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">Coupon ({appliedCoupon.code})</span>
-            <span className="text-xs sm:text-sm font-mono font-black text-green-600">−৳{appliedCoupon.discountAmount.toFixed(2)}</span>
+            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">
+              Coupon ({appliedCoupon.code})
+            </span>
+            <span className="text-xs sm:text-sm font-mono font-black text-green-600">
+              −৳{appliedCoupon.discountAmount.toFixed(2)}
+            </span>
           </div>
         )}
 
         {totalSavings > 0 && (
           <div className="flex justify-between items-center py-1.5 px-2.5 bg-gray-50 border border-gray-100 rounded-md">
-            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">Product Savings</span>
-            <span className="text-xs sm:text-sm font-mono font-black text-green-600">−৳{totalSavings.toFixed(2)}</span>
+            <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-green-700">
+              Product Savings
+            </span>
+            <span className="text-xs sm:text-sm font-mono font-black text-green-600">
+              −৳{totalSavings.toFixed(2)}
+            </span>
           </div>
         )}
       </div>
 
       <div className="mx-4 sm:mx-6 border-t-2 border-black pt-3 pb-4 flex justify-between items-baseline">
-        <span className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-black">Total Payable</span>
+        <span className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-black">
+          Total Payable
+        </span>
         {isShippingCalculating ? (
           <span className="flex items-center gap-2 text-gray-500 font-mono font-black text-lg sm:text-xl">
             <FaSpinner className="animate-spin" size={14} /> Updating...
           </span>
         ) : (
-          <span className="text-2xl sm:text-3xl font-mono font-black text-black leading-none">৳{finalTotalPrice.toFixed(2)}</span>
+          <span className="text-2xl sm:text-3xl font-mono font-black text-black leading-none">
+            ৳{finalTotalPrice.toFixed(2)}
+          </span>
         )}
       </div>
 
@@ -447,7 +511,9 @@ const PlaceOrder = ({
           onClick={placeOrderHandler}
           disabled={isButtonDisabled}
           className={`w-full py-3.5 sm:py-4 font-mono font-black text-xs sm:text-sm uppercase tracking-widest rounded-md transition-colors duration-200 flex items-center justify-center ${
-            isButtonDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200" : "bg-black text-white hover:bg-gray-800"
+            isButtonDisabled
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+              : "bg-black text-white hover:bg-gray-800"
           }`}
         >
           {isLoading || isInitializingSSL ? (
@@ -466,8 +532,8 @@ const PlaceOrder = ({
           {isManualPayment
             ? "Payment first · then order is created"
             : isSSLCommerz
-            ? "You will be redirected to secure payment" // ✅ নতুন হেল্পার টেক্সট
-            : "By confirming, you agree to our terms"}
+              ? "You will be redirected to secure payment"
+              : "By confirming, you agree to our terms"}
         </p>
       </div>
     </div>

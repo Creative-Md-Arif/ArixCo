@@ -59,6 +59,7 @@ const ProductDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
+  // ── আগের ফাংশনগুলো ১০০% unchanged ──
   const getDisplayImages = () => {
     if (!product) return [];
     const isVariantSelected = product.variants?.some(
@@ -135,10 +136,55 @@ const ProductDetails = () => {
     ? product.variants?.[selectedColorIndex]?.sizes?.[selectedSizeIndex]
         ?.price || product.price
     : product?.price || 0;
+
   const finalPrice = getCurrentPrice();
   const currentStock = getCurrentStock();
   const displayImages = getDisplayImages();
   const displayDiscountPercent = product?.discountPercentage || 0;
+
+  // ── নতুন ক্যাম্পেইন লজিক (ভ্যারিয়েন্ট অনুযায়ী ক্যালকুলেশন সহ) ──
+  const hasCampaign =
+    product?.appliedCampaigns && product.appliedCampaigns.length > 0;
+
+  // ভ্যারিয়েন্ট পরিবর্তনের সাথে সাথে ডায়নামিক্যালি ক্যাম্পেইন প্রাইস বের করার ফাংশন (শুধু UI এর জন্য)
+  const getDynamicCampaignPrice = (currentBasePrice) => {
+    if (!hasCampaign) return null;
+    let calculatedPrice = currentBasePrice;
+
+    for (const camp of product.appliedCampaigns) {
+      let discountAmt =
+        camp.discountType === "percentage"
+          ? (calculatedPrice * camp.discountValue) / 100
+          : camp.discountValue;
+
+      if (camp.maxDiscountAmount) {
+        discountAmt = Math.min(discountAmt, camp.maxDiscountAmount);
+      }
+      calculatedPrice -= discountAmt;
+    }
+    return Math.max(Math.round(calculatedPrice * 100) / 100, 0);
+  };
+
+  // ব্যাজের টেক্সট তৈরি (Type + Discount Amount)
+  const getCampaignBadgeText = () => {
+    if (!hasCampaign) return null;
+    const camp = product.appliedCampaigns[0];
+    // "flash_sale" -> "Flash Sale"
+    const typeName = (camp.type || "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    const discountText =
+      camp.discountType === "percentage"
+        ? `-${camp.discountValue}%`
+        : `-৳${camp.discountValue}`;
+    return `${typeName} ${discountText}`;
+  };
+
+  // চূড়ান্ত ভ্যারিয়েবল
+  const dynamicCampaignPrice = getDynamicCampaignPrice(basePrice);
+  const priceToShow = hasCampaign ? dynamicCampaignPrice : finalPrice;
+  const crossedPrice = basePrice; // সরাসরি বেস প্রাইস কাটা দেখাবে
+  const campaignBadgeText = getCampaignBadgeText();
 
   const handleColorChange = (index) => {
     setSelectedColorIndex(index);
@@ -154,14 +200,16 @@ const ProductDetails = () => {
     return {
       _id: product._id,
       name: product.name,
-      price: finalPrice,
+      price: basePrice,
       basePrice,
       finalPrice,
+      campaignPrice: priceToShow, // ভ্যারিয়েন্ট অনুযায়ী ক্যাম্পেইন প্রাইস
+      appliedCampaigns: product?.appliedCampaigns || [],
       variantInfo: getVariantInfo(),
       image: displayImages[0] || product.images[0],
       images: displayImages,
-      _effectivePrice: finalPrice,
-      effectivePrice: finalPrice,
+      _effectivePrice: priceToShow,
+      effectivePrice: priceToShow,
       discountPercentage: product.discountPercentage,
       qty,
       countInStock: currentStock,
@@ -220,7 +268,6 @@ const ProductDetails = () => {
           {/* ── Image Gallery ── */}
           <div className="lg:w-[45%]">
             <div className="sticky top-20 sm:top-24 flex flex-col-reverse lg:flex-row gap-3 sm:gap-5">
-              {/* Thumbnails */}
               <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto no-scrollbar py-1 lg:max-h-[520px] flex-shrink-0">
                 {displayImages.map((img, index) => (
                   <div
@@ -241,10 +288,17 @@ const ProductDetails = () => {
                 ))}
               </div>
 
-              {/* Main Image Container */}
-              {/* এখানে bg-[#F9F9F9], border, শ্যাডো এবং mix-blend-multiply সরিয়ে একদম ক্লিন করা হয়েছে */}
               <div className="relative flex-1 bg-white rounded-2xl overflow-hidden aspect-square flex items-center justify-center p-2 group">
-                {displayDiscountPercent > 0 && (
+                {/* আপডেটেড ব্যাজ (Type + Discount) */}
+                {hasCampaign ? (
+                  <div className="absolute top-4 left-0 z-10">
+                    <div className="bg-red-600 border border-neutral-100 px-3 py-1.5 rounded-r-xl flex items-center gap-1.5">
+                      <span className="text-[12px] sm:text-[14px] font-trebuchet font-bold uppercase tracking-px text-white">
+                        {campaignBadgeText}
+                      </span>
+                    </div>
+                  </div>
+                ) : displayDiscountPercent > 0 ? (
                   <div className="absolute top-4 left-0 z-10">
                     <div className="bg-[#6E2594] border border-neutral-100 px-3 py-1 min-w-[120px] rounded-r-xl flex items-center gap-1.5">
                       <span className="text-[14px] font-trebuchet font-bold uppercase tracking-px text-white">
@@ -255,7 +309,7 @@ const ProductDetails = () => {
                       </span>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <img
                   src={activeImage}
@@ -268,23 +322,22 @@ const ProductDetails = () => {
 
           {/* ── Product Info ── */}
           <div className="lg:w-[55%] space-y-4">
-            {/* Title */}
             <h1 className="text-[20px] md:text-[22px] font-normal font-trebuchet text-[#3749BB] tracking-tight">
               {product.name}
             </h1>
 
-            {/* Info Badges */}
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
                 <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Price:
                 </span>
                 <span className="text-[16px] font-trebuchet font-bold text-[#000000]">
-                  {Math.round(finalPrice * qty).toLocaleString()}৳
+                  {Math.round(priceToShow * qty).toLocaleString()}৳
                 </span>
-                {displayDiscountPercent > 0 && (
+                {/* শুধুমাত্র বেস প্রাইস কাটা থাকবে */}
+                {hasCampaign && (
                   <span className="text-[12px] text-gray-600 font-trebuchet font-semibold line-through ml-1">
-                    {Math.round(basePrice * qty).toLocaleString()}৳
+                    {Math.round(crossedPrice * qty).toLocaleString()}৳
                   </span>
                 )}
               </div>
@@ -300,7 +353,7 @@ const ProductDetails = () => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 sm:py-2 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
                 <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Brand:
                 </span>
@@ -310,7 +363,6 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            {/* Variant Label */}
             {product.hasVariants && (
               <div className="flex items-center gap-1.5 font-playfair">
                 <span className="text-[12px] font-bold text-black">Color:</span>
@@ -352,7 +404,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* Size Selection */}
             {product.hasVariants &&
               product.variants[selectedColorIndex]?.sizes?.length > 0 && (
                 <div className="pt-3 font-playfair">
@@ -379,7 +430,6 @@ const ProductDetails = () => {
                 </div>
               )}
 
-            {/* Key Features */}
             {product.specifications?.length > 0 && (
               <div className="pt-2">
                 <h4 className="text-[18px] font-normal font-trebuchet tracking-wide text-[#1A1A1A] mb-2">
@@ -412,7 +462,6 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* Qty + Add to Cart + Order Now */}
             <div className="pt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2 flex-1 sm:flex-initial">
                 <div className="flex items-center border border-gray-200 bg-white h-8 w-24 font-playfair select-none rounded-[4px] overflow-hidden flex-shrink-0">
@@ -422,11 +471,9 @@ const ProductDetails = () => {
                   >
                     —
                   </button>
-
                   <span className="flex-1 h-full flex items-center justify-center text-[13px] font-medium text-black bg-white">
                     {qty}
                   </span>
-
                   <button
                     onClick={() =>
                       setQty(Math.min(currentStock || 10, qty + 1))
@@ -464,11 +511,9 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      {/* ── Tabs + Related Products (sidebar layout on desktop) ── */}
       <div className="bg-[#F9F9F9] py-6">
         <div id="product-tabs-section" className="container mx-auto px-4 mt-12">
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-            {/* Reviews / Tabs — main column */}
             <div className="flex-1 min-w-0 w-full">
               <ProductTabs
                 {...{
@@ -484,10 +529,8 @@ const ProductDetails = () => {
               />
             </div>
 
-            {/* Related Products — sidebar column */}
             <div className="w-full lg:w-[300px] flex-shrink-0">
               <div className="bg-white border border-neutral-200 rounded-[4px] overflow-hidden">
-                {/* Header */}
                 <div className="px-4 py-3.5 border-b border-neutral-200 bg-white">
                   <h2
                     className="text-[16px] font-bold text-[#2031B8] text-center"
@@ -497,7 +540,6 @@ const ProductDetails = () => {
                   </h2>
                 </div>
 
-                {/* Content States */}
                 {relatedLoading ? (
                   <div className="p-4 space-y-4">
                     {[1, 2, 3, 4].map((i) => (
@@ -514,7 +556,6 @@ const ProductDetails = () => {
                     </Message>
                   </div>
                 ) : relatedProducts?.length > 0 ? (
-                  // এখানে ভেতরের আইটেমগুলোর বর্ডার এবং প্যাডিং স্ক্রিনশটের মতো সেট করা হয়েছে
                   <div className="px-4 divide-y divide-neutral-100">
                     {relatedProducts
                       .slice(0, 5)
@@ -525,7 +566,6 @@ const ProductDetails = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.06 }}
                         >
-                          {/* viewMode পরিবর্তন করে "similar" করা হয়েছে */}
                           <ProductCard p={relatedProduct} viewMode="similar" />
                         </motion.div>
                       ))}

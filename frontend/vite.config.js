@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
 
     server: {
-       historyApiFallback: true, // SPA routing support
+      historyApiFallback: true, // SPA routing support
       proxy: isDevelopment
         ? {
             "/api": {
@@ -44,12 +44,14 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: false,
       outDir: "dist",
+      cssCodeSplit: false, 
       rollupOptions: {
         output: {
           manualChunks: {
             vendor: ["react", "react-dom", "react-router-dom"],
             redux: ["@reduxjs/toolkit", "react-redux"],
-            ui: ["antd", "framer-motion", "lucide-react", "react-icons"],
+            "admin-ui": ["antd"],
+            ui: ["framer-motion", "lucide-react", "react-icons"],
             charts: ["apexcharts", "react-apexcharts"],
           },
         },

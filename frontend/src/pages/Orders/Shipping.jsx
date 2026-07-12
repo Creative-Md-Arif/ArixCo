@@ -309,7 +309,7 @@ const Shipping = () => {
             category: item.category,
             qty: Number(item.qty) || 1,
             weight: Number(item.weight) || 0,
-            shippingDetails: item.shippingDetails || {},
+           
           }));
           const res = await calculateShipping({
             thana: thana.trim(),

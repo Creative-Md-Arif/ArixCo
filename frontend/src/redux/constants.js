@@ -1,7 +1,6 @@
 const isDevelopment = import.meta.env.DEV;
 
-// Read from .env (VITE_API_URL). Falls back to the Render URL if the env
-// variable isn't set, so nothing breaks if someone forgets to configure .env.
+
 const BACKEND_URL =
   import.meta.env.VITE_API_URL || "https://arixco.onrender.com/";
 
@@ -13,6 +12,7 @@ export const PRODUCT_URL = "/api/products";
 export const UPLOAD_URL = "/api/upload";
 export const DASHBOARD_URL = "/api/dashboard";
 export const ORDERS_URL = "/api/orders";
+export const CAMPAIGN_URL = "/api/campaigns";
 export const NOTIFICATIONS_URL = "/api/notifications";
 export const BANNER_URL = "/api/banners";
 export const PAYMENTS_URL = "/api/payments";

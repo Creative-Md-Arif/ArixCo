@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable no-unused-vars */
 import { createRoot } from "react-dom/client";
@@ -11,35 +12,77 @@ import {
 } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./redux/store";
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import Loader from "./components/Loader";
 import AllNotifications from "./components/AllNotifications";
 import { HelmetProvider } from "react-helmet-async";
 
-// Lazy Loading Components
+/* ──────────────────────────────────────────────────────────
+   ✅ DelayedSuspense — এই ফাইলেই রাখা হলো, আলাদা ফাইল লাগবে না।
+   Fast (<delay ms) chunk load হলে Loader flash করবে না,
+   শুধু genuinely slow load এর ক্ষেত্রেই Loader দেখাবে।
+   ────────────────────────────────────────────────────────── */
+const DelayedFallback = ({ delay }) => {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  return show ? <Loader /> : null;
+};
+
+const DelayedSuspense = ({ children, delay = 200 }) => (
+  <Suspense fallback={<DelayedFallback delay={delay} />}>
+    {children}
+  </Suspense>
+);
+
+/* ──────────────────────────────────────────────────────────
+   ✅ ঘন ঘন visit হওয়া page গুলো EAGER import (lazy না)
+   এতে এই pages এ navigate করার সময় কোনো loader flash হবে না।
+   ────────────────────────────────────────────────────────── */
+import Home from "./pages/Home";
+
+/* ──────────────────────────────────────────────────────────
+   ✅ ফিক্স: Shop/ProductDetails/Cart/Login আবার LAZY করা হলো।
+   আগে এগুলো eager import ছিল, যার ফলে Home page এ ঢুকলেও
+   Shop+ProductDetails+Cart+Login এর পুরো কোড main bundle এ
+   একসাথে লোড হয়ে যাচ্ছিল — এতেই initial load ভারী লাগছিল।
+   এখন DelayedSuspense সহ lazy রাখা হলো, তাই flicker-ও হবে না,
+   Home page এর initial bundle-ও হালকা থাকবে।
+   ────────────────────────────────────────────────────────── */
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetails = lazy(() => import("./pages/Products/ProductDetails"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Login = lazy(() => import("./pages/Auth/Login"));
+
+/* ──────────────────────────────────────────────────────────
+   কম visit হওয়া / ভারী page গুলো LAZY থাকবে (ঠিক আছে)
+   ────────────────────────────────────────────────────────── */
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const PaymentSuccess = lazy(() => import("./pages/Orders/PaymentSuccess"));
 const PaymentFail = lazy(() => import("./pages/Orders/PaymentFail"));
-const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const VerifyOtp = lazy(() => import("./components/VerifyOtp"));
 const Profile = lazy(() => import("./pages/User/Profile"));
+
 const PrivateRoute = lazy(() => import("./components/PrivateRoute"));
 const AdminRoute = lazy(() => import("./pages/Admin/AdminRoute"));
+
 const UserList = lazy(() => import("./pages/Admin/UserList"));
 const CategoryList = lazy(() => import("./pages/Admin/CategoryList"));
 const ProductList = lazy(() => import("./pages/Admin/ProductList"));
 const ProductUpdate = lazy(() => import("./pages/Admin/ProductUpdate"));
 const AllProducts = lazy(() => import("./pages/Admin/AllProducts"));
-const Home = lazy(() => import("./pages/Home"));
+
 const Favorites = lazy(() => import("./pages/Products/Favorites"));
-const ProductDetails = lazy(() => import("./pages/Products/ProductDetails"));
-const Cart = lazy(() => import("./pages/Cart"));
-const Shop = lazy(() => import("./pages/Shop"));
+const CampaignDetails = lazy(() => import("./pages/Products/CampaignDetails"));
 const Shipping = lazy(() => import("./pages/Orders/Shipping"));
 const PlaceOrder = lazy(() => import("./pages/Orders/PlaceOrder"));
-// const Order = lazy(() => import("./pages/Orders/Order"));
+
 const OrderDetails = lazy(() => import("./pages/User/OrderDetails"));
 const UserOrder = lazy(() => import("./pages/User/UserOrder"));
 const OrderList = lazy(() => import("./pages/Admin/OrderList"));
@@ -51,17 +94,19 @@ const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PaymentInstruction = lazy(
   () => import("./pages/Orders/PaymentInstruction"),
 );
+
 const CupponManage = lazy(() => import("./pages/Admin/CupponManage"));
 const ShippingManage = lazy(() => import("./pages/Admin/ShippingManage"));
 const PaymentSettings = lazy(() => import("./pages/Admin/PaymentSettings"));
 const UserReturns = lazy(() => import("./pages/User/UserReturns"));
 const ReturnManagement = lazy(() => import("./pages/Admin/ReturnManagement"));
 
-// 🆕 BANNER COMPONENTS
 const BannerList = lazy(() => import("./pages/Admin/BannerList"));
 const BannerCreate = lazy(() => import("./pages/Admin/BannerCreate"));
 const BannerUpdate = lazy(() => import("./pages/Admin/BannerUpdate"));
 const OrderDetail = lazy(() => import("./pages/Admin/OrderDetail"));
+
+const CampaignManage = lazy(() => import("./pages/Admin/CampaignManage"));
 
 const NotFound = () => (
   <div className="flex flex-col items-center justify-center min-h-screen px-4">
@@ -87,371 +132,359 @@ const router = createBrowserRouter(
       <Route
         path="/login"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Login />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/register"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Register />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/verify-otp"
         element={
-          <Suspense fallback={<Loader />}>
-            {" "}
-            <VerifyOtp />{" "}
-          </Suspense>
+          <DelayedSuspense>
+            <VerifyOtp />
+          </DelayedSuspense>
         }
       />
       <Route
         path="/forgot-password"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <ForgotPassword />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       <Route
         path="/verify-reset-otp"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <VerifyResetOtp />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       <Route
         path="/reset-password"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <ResetPassword />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
+      <Route
+        path="/campaign/:id"
+        element={
+          <DelayedSuspense>
+            <CampaignDetails />
+          </DelayedSuspense>
+        }
+      />
       <Route
         path="/track-order"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <TrackOrder />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/my-returns"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <UserReturns />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       <Route
         path="/all-notifications"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <AllNotifications />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-      <Route
-        index={true}
-        path="/"
-        element={
-          <Suspense fallback={<Loader />}>
-            <Home />
-          </Suspense>
-        }
-      />
+      <Route index={true} path="/" element={<Home />} />
       <Route
         path="/favorite"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Favorites />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/product/:id"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <ProductDetails />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/cart"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Cart />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/shop"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Shop />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
-        path="/shop/:keyword" // 🆕 URL parameter সহ
+        path="/shop/:keyword"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Shop />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/user-orders"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <UserOrder />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/about"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <About />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/contact"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Contact />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/payment/success"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <PaymentSuccess />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       <Route
         path="/payment/fail"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <PaymentFail />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
       <Route
         path="/payment/cancel"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <PaymentFail />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       <Route
         path="/shipping"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <Shipping />
-          </Suspense>
+          </DelayedSuspense>
         }
       />
-
       {/* Private Routes */}
       <Route
         path="/"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <PrivateRoute />
-          </Suspense>
+          </DelayedSuspense>
         }
       >
         <Route
           path="/profile"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <Profile />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
-
         <Route
           path="/placeorder"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <PlaceOrder />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
-        {/* <Route
-          path="/order/:id"
-          element={
-            <Suspense fallback={<Loader />}>
-              <Order />
-            </Suspense>
-          }
-        /> */}
         <Route
           path="/order/:id"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <OrderDetails />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="/payment/checkout"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <PaymentInstruction />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
       </Route>
-
       {/* Admin Routes */}
       <Route
         path="/admin"
         element={
-          <Suspense fallback={<Loader />}>
+          <DelayedSuspense>
             <AdminRoute />
-          </Suspense>
+          </DelayedSuspense>
         }
       >
         <Route
           path="userlist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <UserList />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="categorylist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <CategoryList />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="orderlist/:id"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <OrderDetail />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="productlist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <ProductList />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="allproductslist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <AllProducts />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="orderlist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <OrderList />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="return-management"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <ReturnManagement />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="product/update/:_id"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <ProductUpdate />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="dashboard"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <AdminDashboard />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="cuppon-manage"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <CupponManage />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
-
         <Route
           path="shipping-manage"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <ShippingManage />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
-
         <Route
           path="payment-settings"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <PaymentSettings />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
-
         {/* 🆕 BANNER ROUTES */}
         <Route
           path="bannerlist"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <BannerList />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="banner/create"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <BannerCreate />
-            </Suspense>
+            </DelayedSuspense>
           }
         />
         <Route
           path="banner/update/:id"
           element={
-            <Suspense fallback={<Loader />}>
+            <DelayedSuspense>
               <BannerUpdate />
-            </Suspense>
+            </DelayedSuspense>
+          }
+        />
+        {/* 🆕 CAMPAIGN ROUTES */}
+        <Route
+          path="campaign-manage"
+          element={
+            <DelayedSuspense>
+              <CampaignManage />
+            </DelayedSuspense>
           }
         />
       </Route>
@@ -459,7 +492,7 @@ const router = createBrowserRouter(
     </Route>,
   ),
   {
-    /* ১. Future Flags: এই অংশটি আপনার কনসোলের সব Router ওয়ার্নিং বন্ধ করে দিবে */
+    /* Future Flags: এই অংশটি আপনার কনসোলের সব Router ওয়ার্নিং বন্ধ করে দিবে */
     future: {
       v7_startTransition: true,
       v7_relativeSplatPath: true,
@@ -485,11 +518,13 @@ preconnectDomains.forEach((domain) => {
   document.head.appendChild(link);
 });
 
+/* ──────────────────────────────────────────────────────────
+   ✅ ফিক্স করা হয়েছে: আগে এই function এর ভিতরেই নিজেকে (recursively)
+   কল করা হচ্ছিল যেটা infinite recursion / stack overflow বাগ ছিল।
+   এখন শুধু একবারই চলে, নিচে সরাসরি ইনভোক করা হয়েছে।
+   ────────────────────────────────────────────────────────── */
 const preloadCriticalResources = () => {
-  // Preload logo or critical images
   const criticalImages = ["/logo.png", "/hero-banner.jpg"];
-
-  preloadCriticalResources();
 
   criticalImages.forEach((src) => {
     const link = document.createElement("link");
@@ -499,6 +534,8 @@ const preloadCriticalResources = () => {
     document.head.appendChild(link);
   });
 };
+
+preloadCriticalResources();
 
 createRoot(document.getElementById("root")).render(
   <HelmetProvider>

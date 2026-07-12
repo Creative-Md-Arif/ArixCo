@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 const AddToCartButton = ({
   product,
   qty = 1,
-  buttonText = "Add", // নাম ন্যারো করার জন্য ডিফল্ট টেক্সট ছোট করা হয়েছে
+  buttonText = "Add",
   addedText = "Added",
   customStyles = "",
   isOrderNow = true,
@@ -48,30 +48,70 @@ const AddToCartButton = ({
       ? product.images[0]
       : product?.image || "/placeholder.jpg";
 
-  const createCartItem = () => ({
-    _id: product._id,
-    name: product.name,
-    price: product.price || product.basePrice,
-    finalPrice: product.finalPrice || product._effectivePrice || product.price,
-    basePrice: product.basePrice,
-    _effectivePrice: product._effectivePrice,
-    effectivePrice: product.effectivePrice || product._effectivePrice,
-    discountPercentage: product.discountPercentage,
-    qty,
-    image: mainImage,
-    variantInfo: product.variantInfo || {
-      hasVariants: false,
-      colorIndex: null,
-      colorName: "",
-      colorHex: "",
-      sizeIndex: null,
-      sizeName: "",
-      variantPrice: null,
-      sku: "",
-      countInStock: 0,
-    },
-    weight: product.weight || 0.5,
-  });
+  /**
+   * ✅ FIX: variant থাকলে সবসময় variantInfo.variantPrice ব্যবহার করা হবে,
+   * base product.price/basePrice শুধু non-variant product এর জন্য fallback।
+   * আগে এখানে সবসময় product.price বসতো, যেটা XXL/other size select করলেও
+   * base(default) variant এর দাম save করে ফেলতো — এখন ফিক্সড।
+   */
+  const getBasePrice = () => {
+    if (product.variantInfo?.hasVariants && product.variantInfo?.variantPrice) {
+      return product.variantInfo.variantPrice;
+    }
+    return product.price || product.basePrice || 0;
+  };
+
+  const getFinalPrice = () => {
+    const base = getBasePrice();
+
+    // যদি product এ আগে থেকেই effective/final price calculate করা থাকে
+    // (campaign বা discountPercentage সহ), সেটাকেই priority দাও — কিন্তু
+    // সেটা ধরে নেওয়া যাবে না যে সেই মান variant-aware ছিল, তাই শুধুমাত্র
+    // non-variant product এর ক্ষেত্রেই আগের calculated ভ্যালু ব্যবহার করা হচ্ছে।
+    if (!product.variantInfo?.hasVariants) {
+      return product.finalPrice || product._effectivePrice || base;
+    }
+
+    // Variant থাকলে discount/campaign percentage থাকলে base (variant price) থেকেই
+    // recalculate করো, যাতে XXL এর মতো higher-priced variant এও সঠিক discount বসে।
+    const discountPercent = product.discountPercentage || 0;
+    if (discountPercent > 0) {
+      return Math.round(base - (base * discountPercent) / 100);
+    }
+    return base;
+  };
+
+  const createCartItem = () => {
+    const basePrice = getBasePrice();
+    const finalPrice = getFinalPrice();
+
+    return {
+      _id: product._id,
+      name: product.name,
+      price: basePrice, // ✅ এখন সঠিক variant price (e.g. XXL = 1050)
+      finalPrice: finalPrice,
+      basePrice: basePrice,
+      _effectivePrice: finalPrice,
+      effectivePrice: finalPrice,
+      campaignPrice: product.campaignPrice,
+      appliedCampaigns: product.appliedCampaigns || [],
+      discountPercentage: product.discountPercentage,
+      qty,
+      image: mainImage,
+      variantInfo: product.variantInfo || {
+        hasVariants: false,
+        colorIndex: null,
+        colorName: "",
+        colorHex: "",
+        sizeIndex: null,
+        sizeName: "",
+        variantPrice: null,
+        sku: "",
+        countInStock: 0,
+      },
+      weight: product.weight || 0.5,
+    };
+  };
 
   const handleAddToCart = () => {
     if (product.variantInfo?.hasVariants) {

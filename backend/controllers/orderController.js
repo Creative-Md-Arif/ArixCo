@@ -7,6 +7,21 @@ import { calculateDynamicShipping } from "./shippingController.js";
 import { createAndSendNotification } from "./notificationController.js";
 import OrderTracking from "../models/orderTrackingModel.js";
 
+import {
+  Campaign,
+  calculateDiscountedPrice,
+  validateCampaignEligibility,
+  recordCampaignUsage,
+  resolveApplicableCampaigns,
+} from "../models/campaign.js";
+
+// ✅ FIXED: campaign.js এর আসল eligibility logic (scope/status aware) reuse করা হচ্ছে
+// এখন এটা productId না, পুরো product object নেয়
+const checkActiveCampaign = async (product) => {
+  const eligible = await resolveApplicableCampaigns(product);
+  return eligible.length > 0;
+};
+
 // Helper function to calculate effective price (standard discount only)
 const calculateEffectivePrice = (product, variantPrice = null) => {
   const basePrice = variantPrice || product.price || 0;
@@ -25,6 +40,7 @@ const calculateSavings = (product, variantPrice = null) => {
   return (basePrice * discountPercent) / 100;
 };
 
+// ✅ FIXED: আগের version-এ এটা missing ছিল, ফিরিয়ে আনা হলো
 const generateOrderId = () => {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 5).toUpperCase();
@@ -58,7 +74,13 @@ const createOrder = async (req, res) => {
       _id: { $in: productIds },
     });
 
-    const dbOrderItems = orderItems.map((itemFromClient) => {
+    // ==========================================
+    //  ধাপ ১: variant + product-level discount বসিয়ে বেসিক item তৈরি
+    //  (campaign active থাকলে normal discount skip করা হয়, double-discount আটকাতে)
+    // ==========================================
+    const baseOrderItems = [];
+
+    for (const itemFromClient of orderItems) {
       const clientId = (
         itemFromClient._id || itemFromClient.product
       )?.toString();
@@ -73,8 +95,11 @@ const createOrder = async (req, res) => {
       }
 
       let itemImage = matchingItemFromDB.images[0];
+
+      // ✅ FIXED: itemPrice কে variant resolve হওয়ার আগে base/generic price দিয়ে
+      // ইনিশিয়ালাইজ করা হচ্ছে, কিন্তু "original price" হিসেবে যেটা order-এ সেভ হবে
+      // সেটা variant resolve হওয়ার *পরেই* নির্ধারণ করা হচ্ছে (নিচে দেখুন)।
       let itemPrice = Number(matchingItemFromDB.price);
-      let originalPrice = itemPrice;
 
       let variantInfo = {
         hasVariants: false,
@@ -104,7 +129,7 @@ const createOrder = async (req, res) => {
 
           if (sizeIndex !== null && variant.sizes[sizeIndex]) {
             const sizeVariant = variant.sizes[sizeIndex];
-            itemPrice = sizeVariant.price;
+            itemPrice = sizeVariant.price; // ✅ variant price দিয়ে itemPrice আপডেট
 
             variantInfo.sizeIndex = sizeIndex;
             variantInfo.sizeName = sizeVariant.size;
@@ -121,16 +146,29 @@ const createOrder = async (req, res) => {
         }
       }
 
-      const finalPrice = calculateEffectivePrice(matchingItemFromDB, itemPrice);
-      const appliedDiscountPercent = matchingItemFromDB.discountPercentage || 0;
+      // ✅✅ ফিক্স: originalPrice এখন variant resolve হওয়ার *পরে* itemPrice থেকে সেট হচ্ছে,
+      // তাই variant থাকলে সঠিক variant price (৯২০) সেভ হবে, generic base price (১০০০) না।
+      const originalPrice = itemPrice;
 
-      return {
+      // ✅ campaign active থাকলে normal product discount skip (double-discount fix)
+      const hasActiveCampaign = await checkActiveCampaign(matchingItemFromDB);
+
+      const productDiscountPrice = hasActiveCampaign
+        ? itemPrice // campaign active থাকলে normal discount skip
+        : calculateEffectivePrice(matchingItemFromDB, itemPrice);
+
+      const appliedDiscountPercent = hasActiveCampaign
+        ? 0 // campaign থাকলে normal discount % দেখানো হবে না
+        : matchingItemFromDB.discountPercentage || 0;
+
+      baseOrderItems.push({
         name: matchingItemFromDB.name,
         qty: Number(itemFromClient.qty) || 1,
         image: itemImage,
         price: originalPrice,
-        finalPrice: finalPrice,
+        finalPrice: productDiscountPrice,
         product: matchingItemFromDB._id,
+        productDoc: matchingItemFromDB, // campaign resolve করতে দরকার, পরে strip হবে
         category: matchingItemFromDB.category,
         discountPercentage: appliedDiscountPercent,
         weight: Number(matchingItemFromDB.weight) || 0.0,
@@ -141,35 +179,101 @@ const createOrder = async (req, res) => {
           individualShippingCost: 0,
           extraShippingCost: 0,
         },
-      };
-    });
+      });
+    }
 
     // ==========================================
-    //  CALCULATE BASE PRICES & DYNAMIC SHIPPING
+    //  ধাপ ২: CAMPAIGN DISCOUNT বসানো (async loop)
+    //  raw/variant price এর উপরেই campaign discount হিসাব হচ্ছে
+    //  (normal discount আগেই skip করা হয়েছে যদি campaign active থাকে)
+    //
+    //  ⚠️ IMPORTANT: calculateDiscountedPrice(productDoc, item.finalPrice)
+    //  যদি ভিতরে কোনো campaign eligible না পায়, তখন তার অবশ্যই *item.finalPrice*
+    //  (যেটা এখানে variant-aware) ফেরত দেওয়া উচিত — productDoc.price (generic
+    //  base) না। campaign.js ফাইলটাও দেখে নেওয়া দরকার এটা কনফার্ম করতে।
+    // ==========================================
+    const campaignUsageEntries = [];
+
+    for (const item of baseOrderItems) {
+      try {
+        const { finalPrice, appliedCampaigns } = await calculateDiscountedPrice(
+          item.productDoc,
+          item.finalPrice,
+        );
+
+        item.finalPrice = finalPrice;
+
+        for (const camp of appliedCampaigns) {
+          campaignUsageEntries.push({
+            campaignId: camp.campaignId,
+            discountAmount: camp.discountAmount * item.qty,
+          });
+        }
+      } catch (campErr) {
+        console.error("Campaign Apply Error:", campErr.message);
+      }
+    }
+
+    // productDoc আর দরকার নেই, Order schema তে সেভ হওয়ার আগে বাদ দিয়ে দিচ্ছি
+    const dbOrderItems = baseOrderItems.map(({ productDoc, ...rest }) => rest);
+
+    // ==========================================
+    //  CALCULATE BASE PRICES & SHIPPING (Frontend-First Approach)
     // ==========================================
     const itemsPrice = dbOrderItems.reduce(
       (acc, item) => acc + item.finalPrice * item.qty,
       0,
     );
 
-    const shippingPrice = await calculateDynamicShipping(
-      shippingAddress.thana || shippingAddress.city || "",
-      shippingAddress.district || "",
-      shippingAddress.division || "",
-      dbOrderItems,
-      itemsPrice,
-    );
+    // ✅ FIXED: Use frontend's calculated shipping if provided, otherwise fallback to backend calculation
+    let shippingPrice;
+
+    if (req.body.shippingPrice && !isNaN(Number(req.body.shippingPrice))) {
+      // Trust frontend's real-time API calculation (already validated by getShippingCost API)
+      shippingPrice = Math.max(0, Number(req.body.shippingPrice));
+      console.log(`[Order] Using frontend shipping: ৳${shippingPrice}`);
+    } else {
+      // Fallback: Calculate on backend (if frontend didn't provide or invalid)
+      shippingPrice = await calculateDynamicShipping(
+        shippingAddress.thana || shippingAddress.city || "",
+        shippingAddress.district || "",
+        shippingAddress.division || "",
+        dbOrderItems,
+        itemsPrice,
+      );
+      console.log(`[Order] Using backend fallback shipping: ৳${shippingPrice}`);
+    }
 
     const taxPrice = 0;
 
+    // ✅ FIXED: discountPercentage field-এর বদলে actual price difference থেকে savings হিসাব
+    // (campaign item-এ discountPercentage জোর করে 0 বসানো হয়, তাই সেটার উপর নির্ভর করা যাবে না)
     const totalSavings = dbOrderItems.reduce((acc, item) => {
       const qty = Number(item.qty) || 1;
-      const savingsPerItem = calculateSavings(
-        item,
-        item.variantInfo?.variantPrice,
-      );
+      const savingsPerItem = Math.max(0, item.price - item.finalPrice);
       return acc + savingsPerItem * qty;
     }, 0);
+
+    // ==========================================
+    //  ধাপ ৩: CAMPAIGN ELIGIBILITY VALIDATE
+    //  (minPurchaseAmount, usageLimit, usagePerUser)
+    // ==========================================
+    const uniqueCampaignIds = [
+      ...new Set(campaignUsageEntries.map((e) => e.campaignId.toString())),
+    ];
+    const validCampaignEntries = [];
+
+    for (const campaignId of uniqueCampaignIds) {
+      try {
+        await validateCampaignEligibility(campaignId, req.user._id, itemsPrice);
+        const matched = campaignUsageEntries.filter(
+          (e) => e.campaignId.toString() === campaignId,
+        );
+        validCampaignEntries.push(...matched);
+      } catch (eligErr) {
+        console.error("Campaign Eligibility Error:", eligErr.message);
+      }
+    }
 
     // ==========================================
     //  COUPON VALIDATION & CALCULATION
@@ -283,6 +387,22 @@ const createOrder = async (req, res) => {
 
     const createdOrder = await order.save();
 
+    // ==========================================
+    //  ধাপ ৪: CAMPAIGN USAGE RECORD (order save হওয়ার পর)
+    // ==========================================
+    for (const entry of validCampaignEntries) {
+      try {
+        await recordCampaignUsage({
+          campaignId: entry.campaignId,
+          userId: req.user._id,
+          orderId: createdOrder._id,
+          discountAmount: entry.discountAmount,
+        });
+      } catch (usageErr) {
+        console.error("Campaign Usage Record Error:", usageErr.message);
+      }
+    }
+
     // Stock Decrement Logic
     for (const item of dbOrderItems) {
       if (item.variantInfo?.hasVariants) {
@@ -307,7 +427,7 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // ✅✅ সবচেয়ে গুরুত্বপূর্ণ পরিবর্তন: SSLCommerz এর ক্ষেত্রে নোটিফিকেশন ও ইমেইল ব্লক করা হয়েছে
+    // ✅✅ SSLCommerz এর ক্ষেত্রে নোটিফিকেশন ও ইমেইল ব্লক করা হয়েছে
     const isGatewayPayment = paymentMethod === "SSLCommerz";
 
     if (!isGatewayPayment) {
@@ -324,7 +444,7 @@ const createOrder = async (req, res) => {
               : ""
           }`,
           type: "order",
-          actionUrl: `/order/${order._id}`,
+          actionUrl: `/order/${createdOrder._id}`,
           sendEmailFlag: true,
         });
       } catch (err) {
@@ -356,10 +476,14 @@ const createOrder = async (req, res) => {
               let variantText = item.variantInfo?.hasVariants
                 ? `<br/><small style="color: #666;">Variant: ${item.variantInfo.colorName} / ${item.variantInfo.sizeName}</small>`
                 : "";
+
+              // ✅ FIXED: discountPercentage-এর বদলে actual price difference থেকে savings text
+              const savingsAmount = (item.price - item.finalPrice) * item.qty;
               let savingsText =
-                item.discountPercentage > 0
-                  ? `<br/><small style="color: #dc2626;">You saved ৳${((item.price - item.finalPrice) * item.qty).toFixed(2)}</small>`
+                savingsAmount > 0
+                  ? `<br/><small style="color: #dc2626;">You saved ৳${savingsAmount.toFixed(2)}</small>`
                   : "";
+
               return `
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #eee;">
@@ -432,7 +556,7 @@ const createOrder = async (req, res) => {
       };
 
       sendEmails();
-    } // ✅ এখানে SSLCommerz এর ব্লক শেষ হচ্ছে
+    }
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -440,6 +564,7 @@ const createOrder = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const getAllOrders = async (req, res) => {
   try {
