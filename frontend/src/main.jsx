@@ -18,9 +18,7 @@ import AllNotifications from "./components/AllNotifications";
 import { HelmetProvider } from "react-helmet-async";
 
 /* ──────────────────────────────────────────────────────────
-   ✅ DelayedSuspense — এই ফাইলেই রাখা হলো, আলাদা ফাইল লাগবে না।
-   Fast (<delay ms) chunk load হলে Loader flash করবে না,
-   শুধু genuinely slow load এর ক্ষেত্রেই Loader দেখাবে।
+   ✅ DelayedSuspense — Fast chunk load হলে Loader flash করবে না
    ────────────────────────────────────────────────────────── */
 const DelayedFallback = ({ delay }) => {
   const [show, setShow] = useState(false);
@@ -40,27 +38,17 @@ const DelayedSuspense = ({ children, delay = 200 }) => (
 );
 
 /* ──────────────────────────────────────────────────────────
-   ✅ ঘন ঘন visit হওয়া page গুলো EAGER import (lazy না)
-   এতে এই pages এ navigate করার সময় কোনো loader flash হবে না।
+   ✅ ঘন ঘন visit হওয়া page গুলো EAGER import
    ────────────────────────────────────────────────────────── */
 import Home from "./pages/Home";
 
 /* ──────────────────────────────────────────────────────────
-   ✅ ফিক্স: Shop/ProductDetails/Cart/Login আবার LAZY করা হলো।
-   আগে এগুলো eager import ছিল, যার ফলে Home page এ ঢুকলেও
-   Shop+ProductDetails+Cart+Login এর পুরো কোড main bundle এ
-   একসাথে লোড হয়ে যাচ্ছিল — এতেই initial load ভারী লাগছিল।
-   এখন DelayedSuspense সহ lazy রাখা হলো, তাই flicker-ও হবে না,
-   Home page এর initial bundle-ও হালকা থাকবে।
+   ✅ LAZY imports (ভারী এবং কম ভিজিট হওয়া পেজগুলো)
    ────────────────────────────────────────────────────────── */
 const Shop = lazy(() => import("./pages/Shop"));
 const ProductDetails = lazy(() => import("./pages/Products/ProductDetails"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Login = lazy(() => import("./pages/Auth/Login"));
-
-/* ──────────────────────────────────────────────────────────
-   কম visit হওয়া / ভারী page গুলো LAZY থাকবে (ঠিক আছে)
-   ────────────────────────────────────────────────────────── */
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const PaymentSuccess = lazy(() => import("./pages/Orders/PaymentSuccess"));
@@ -115,7 +103,7 @@ const NotFound = () => (
       Page Not Found
     </h2>
     <p className="text-gray-500 mb-8 text-center max-w-md">
-      The page youre looking for doesnt exist or has been moved.
+      The page you're looking for doesn't exist or has been moved.
     </p>
     <a
       href="/"
@@ -492,7 +480,7 @@ const router = createBrowserRouter(
     </Route>,
   ),
   {
-    /* Future Flags: এই অংশটি আপনার কনসোলের সব Router ওয়ার্নিং বন্ধ করে দিবে */
+    /* Future Flags: কনসোলের সব Router ওয়ার্নিং বন্ধ করবে */
     future: {
       v7_startTransition: true,
       v7_relativeSplatPath: true,
@@ -503,39 +491,6 @@ const router = createBrowserRouter(
     },
   },
 );
-
-const preconnectDomains = [
-  "https://fonts.googleapis.com",
-  "https://fonts.gstatic.com",
-  "https://arixgear.com",
-];
-
-preconnectDomains.forEach((domain) => {
-  const link = document.createElement("link");
-  link.rel = "preconnect";
-  link.href = domain;
-  link.crossOrigin = "anonymous";
-  document.head.appendChild(link);
-});
-
-/* ──────────────────────────────────────────────────────────
-   ✅ ফিক্স করা হয়েছে: আগে এই function এর ভিতরেই নিজেকে (recursively)
-   কল করা হচ্ছিল যেটা infinite recursion / stack overflow বাগ ছিল।
-   এখন শুধু একবারই চলে, নিচে সরাসরি ইনভোক করা হয়েছে।
-   ────────────────────────────────────────────────────────── */
-const preloadCriticalResources = () => {
-  const criticalImages = ["/logo.png", "/hero-banner.jpg"];
-
-  criticalImages.forEach((src) => {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "image";
-    link.href = src;
-    document.head.appendChild(link);
-  });
-};
-
-preloadCriticalResources();
 
 createRoot(document.getElementById("root")).render(
   <HelmetProvider>
