@@ -17,6 +17,11 @@ import Loader from "./components/Loader";
 import AllNotifications from "./components/AllNotifications";
 import { HelmetProvider } from "react-helmet-async";
 
+if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+  window.history.scrollRestoration = "manual";
+}
+
+
 /* ──────────────────────────────────────────────────────────
    ✅ DelayedSuspense — Fast chunk load হলে Loader flash করবে না
    ────────────────────────────────────────────────────────── */
