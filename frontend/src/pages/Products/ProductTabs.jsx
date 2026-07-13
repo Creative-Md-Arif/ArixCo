@@ -1,9 +1,31 @@
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useState, memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Ratings from "./Ratings";
 import DOMPurify from "dompurify";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ── Static array outside component to prevent unnecessary re-creation ──
+const TAB_NAMES = ["Specification", "Description", "Questions (0)", "Reviews (0)"];
+
+// ── Skeleton Loader Component ──
+const ProductTabsSkeleton = () => (
+  <div className="flex flex-col space-y-4 font-sans text-gray-900 w-full animate-pulse">
+    <div className="flex gap-2 border-b border-gray-200 pb-px">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="px-4 py-2 h-[33px] w-32 bg-gray-200 rounded-t"></div>
+      ))}
+    </div>
+    <div className="bg-white border border-gray-200 rounded-md shadow-sm">
+      <div className="p-5 space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-3 bg-gray-200 rounded w-full"></div>
+        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+        <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+      </div>
+    </div>
+  </div>
+);
 
 const ProductTabs = ({
   loadingProductReview,
@@ -16,19 +38,38 @@ const ProductTabs = ({
   product,
 }) => {
   const [activeTab, setActiveTab] = useState(1);
-  const sanitizedDescription = DOMPurify.sanitize(product.description);
-  const tabs = ["Specification", "Description", "Questions (0)", "Reviews (0)"];
+
+  // ── Memoized Sanitized Description ──
+  // শুধুমাত্র product.description পরিবর্তন হলেই এটি আবার রান করবে
+  const sanitizedDescription = useMemo(() => 
+    DOMPurify.sanitize(product?.description || ""), 
+    [product?.description]
+  );
+
+  // ── Skeleton Loading State ──
+  if (!product) return <ProductTabsSkeleton />;
 
   return (
     <div className="flex flex-col space-y-4 font-sans text-gray-900 w-full ">
-      {/* Navigation Headers Row */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar border-b border-gray-200 pb-px">
-        {tabs.map((tab, index) => {
+      {/* Navigation Headers Row (Accessibility: role="tablist") */}
+      <div 
+        className="flex gap-2 overflow-x-auto no-scrollbar border-b border-gray-200 pb-px" 
+        role="tablist" 
+        aria-label="Product information tabs"
+      >
+        {TAB_NAMES.map((tab, index) => {
           const currentTabIdx = index + 1;
           const isSelected = activeTab === currentTabIdx;
+          const tabId = `product-tab-${currentTabIdx}`;
+          const panelId = `product-panel-${currentTabIdx}`;
+          
           return (
             <button
               key={index}
+              role="tab"
+              id={tabId}
+              aria-selected={isSelected}
+              aria-controls={panelId}
               onClick={() => setActiveTab(currentTabIdx)}
               className={`px-4 py-2 text-[13px] font-bold rounded-t transition-all border-x border-t whitespace-nowrap outline-none focus:outline-none ${
                 isSelected
@@ -44,8 +85,13 @@ const ProductTabs = ({
         })}
       </div>
 
-      {/* Tab Panels Contents Wrapper */}
-      <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+      {/* Tab Panels Contents Wrapper (Accessibility: role="tabpanel") */}
+      <div 
+        className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden"
+        role="tabpanel"
+        id={`product-panel-${activeTab}`}
+        aria-labelledby={`product-tab-${activeTab}`}
+      >
         <div className="p-5">
           <AnimatePresence mode="wait">
             <motion.div
@@ -201,4 +247,5 @@ const ProductTabs = ({
   );
 };
 
-export default ProductTabs;
+// ── Memoized to prevent unnecessary re-renders ──
+export default memo(ProductTabs);
