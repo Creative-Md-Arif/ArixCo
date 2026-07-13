@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -23,67 +24,83 @@ const Cart = () => {
   const cart = useSelector((state) => state.cart) || {};
   const { cartItems = [], isCartOpen = false } = cart;
 
-  const addToCartHandler = (product, qty) => {
-    const cartItem = {
-      ...product,
-      qty,
-      discountPercentage: product.discountPercentage,
-      weight: product.weight,
-      variantInfo: product.variantInfo,
-      // নিশ্চিত করা হচ্ছে কার্টে ক্যাম্পেইন ডাটা হারিয়ে না যায়
-      campaignPrice: product.campaignPrice,
-      appliedCampaigns: product.appliedCampaigns,
-    };
-    dispatch(addToCart(cartItem));
-  };
+  const addToCartHandler = useCallback(
+    (product, qty) => {
+      const cartItem = {
+        ...product,
+        qty,
+        discountPercentage: product.discountPercentage,
+        weight: product.weight,
+        variantInfo: product.variantInfo,
+        campaignPrice: product.campaignPrice,
+        appliedCampaigns: product.appliedCampaigns,
+      };
+      dispatch(addToCart(cartItem));
+    },
+    [dispatch],
+  );
 
-  const removeFromCartHandler = (item) => {
-    dispatch(
-      removeFromCart({
-        _id: item._id,
-        variantInfo: item.variantInfo || null,
-      }),
-    );
-  };
+  const removeFromCartHandler = useCallback(
+    (item) => {
+      dispatch(
+        removeFromCart({
+          _id: item._id,
+          variantInfo: item.variantInfo || null,
+        }),
+      );
+    },
+    [dispatch],
+  );
 
-  const closeCartSidebar = () => {
+  const closeCartSidebar = useCallback(() => {
     dispatch(toggleCartSidebar(false));
-  };
+  }, [dispatch]);
 
-  const checkoutHandler = () => {
+  const checkoutHandler = useCallback(() => {
     closeCartSidebar();
     navigate("/shipping");
-  };
+  }, [closeCartSidebar, navigate]);
 
-  const subtotal = cartItems.reduce((acc, item) => {
-    const finalPrice =
-      Number(item.finalPrice) || Number(item._finalPrice) || item.price || 0;
-    return acc + finalPrice * item.qty;
-  }, 0);
+  const subtotal = useMemo(
+    () =>
+      cartItems.reduce((acc, item) => {
+        const finalPrice =
+          Number(item.finalPrice) || Number(item._finalPrice) || item.price || 0;
+        return acc + finalPrice * item.qty;
+      }, 0),
+    [cartItems],
+  );
 
-  // ✅ আপডেটেড: cartSlice থেকে আসা savings ব্যবহার করা হচ্ছে (ক্যাম্পেইন সেভিংসসহ)
-  const totalSavings = cartItems.reduce((acc, item) => {
-    const savings = Number(item.savings) || 0;
-    return acc + savings * item.qty;
-  }, 0);
+  const totalSavings = useMemo(
+    () =>
+      cartItems.reduce((acc, item) => {
+        const savings = Number(item.savings) || 0;
+        return acc + savings * item.qty;
+      }, 0),
+    [cartItems],
+  );
 
   return (
-    <div 
+    <div
       className={`fixed inset-0 z-[1500] font-trebuchet transition-all duration-300 ${
         isCartOpen ? "visible opacity-100" : "invisible opacity-0"
-      }`} 
+      }`}
       style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Shopping cart sidebar"
     >
       {/* Backdrop Overlay */}
-      <div 
+      <div
         className={`absolute inset-0 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${
           isCartOpen ? "opacity-100" : "opacity-0"
         }`}
         onClick={closeCartSidebar}
+        aria-hidden="true"
       />
 
       {/* Smooth Sliding Sidebar Panel */}
-      <div 
+      <div
         className={`absolute right-0 top-0 bottom-0 w-full sm:max-w-[380px] h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden transition-transform duration-300 ease-in-out ${
           isCartOpen ? "translate-x-0" : "translate-x-full"
         }`}
@@ -98,6 +115,7 @@ const Cart = () => {
           <button
             onClick={closeCartSidebar}
             className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Close cart"
           >
             <IoMdClose size={20} />
           </button>
@@ -122,10 +140,8 @@ const Cart = () => {
               {cartItems.map((item) => {
                 const finalPrice =
                   Number(item.finalPrice) || Number(item._finalPrice) || item.price || 0;
-                const basePrice =
-                  Number(item.basePrice) || Number(item.price) || 0;
-                
-                // ✅ নতুন লজিক: cartSlice থেকে আসা savings অনুযায়ী
+                const basePrice = Number(item.basePrice) || Number(item.price) || 0;
+
                 const savingsPerItem = Number(item.savings) || (basePrice - finalPrice);
                 const hasCampaign = item.appliedCampaigns && item.appliedCampaigns.length > 0;
                 const discountPercent = item.discountPercentage || 0;
@@ -145,7 +161,6 @@ const Cart = () => {
                         alt={item.name}
                         className="w-full h-full object-contain p-1"
                       />
-                      {/* ✅ আপডেটেড ব্যাজ লজিক */}
                       {hasCampaign ? (
                         <div className="absolute top-0 right-0 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-bl bg-red-600">
                           Campaign
@@ -179,7 +194,6 @@ const Cart = () => {
                           <span className="text-gray-900 text-[14px] font-bold">
                             ৳{Math.round(finalPrice).toLocaleString()}
                           </span>
-                          {/* ✅ আপডেটেড: সরাসরি basePrice কাটা থাকবে */}
                           {savingsPerItem > 0 && (
                             <span className="text-gray-400 text-[14px] line-through">
                               ৳{Math.round(basePrice).toLocaleString()}
@@ -191,11 +205,9 @@ const Cart = () => {
                       <div className="flex items-center justify-between mt-2 pt-1">
                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5">
                           <button
-                            onClick={() =>
-                              item.qty > 1 &&
-                              addToCartHandler(item, item.qty - 1)
-                            }
+                            onClick={() => item.qty > 1 && addToCartHandler(item, item.qty - 1)}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800"
+                            aria-label="Decrease quantity"
                           >
                             <FaMinus size={8} />
                           </button>
@@ -203,10 +215,9 @@ const Cart = () => {
                             {item.qty}
                           </span>
                           <button
-                            onClick={() =>
-                              addToCartHandler(item, item.qty + 1)
-                            }
+                            onClick={() => addToCartHandler(item, item.qty + 1)}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800"
+                            aria-label="Increase quantity"
                           >
                             <FaPlus size={8} />
                           </button>
@@ -219,6 +230,7 @@ const Cart = () => {
                           <button
                             onClick={() => removeFromCartHandler(item)}
                             className="text-gray-400 hover:text-red-500 p-1"
+                            aria-label="Remove item"
                           >
                             <IoMdClose size={16} />
                           </button>
@@ -282,4 +294,4 @@ const Cart = () => {
   );
 };
 
-export default Cart;
+export default memo(Cart);

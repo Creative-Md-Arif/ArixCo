@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { Link } from "react-router-dom";
+import { memo } from "react";
 
 // Local helper for standard discount
 const calculateEffectivePrice = (product) => {
@@ -11,7 +12,26 @@ const calculateEffectivePrice = (product) => {
   return price;
 };
 
+const formatPrice = (val) => Math.round(val).toLocaleString("en-BD");
+
+// Skeleton Loader for Similar View
+const SimilarSkeleton = () => (
+  <div className="flex gap-4 items-start py-4 border-b border-gray-100 last:border-0 font-sans animate-pulse">
+    <div className="w-[80px] h-[80px] flex-shrink-0 bg-gray-200 rounded"></div>
+    <div className="flex-1 min-w-0 pt-2">
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    </div>
+  </div>
+);
+
 const ProductCard = ({ p, viewMode }) => {
+  // Skeleton Loading State
+  if (!p) {
+    if (viewMode === "similar") return <SimilarSkeleton />;
+    return null;
+  }
+
   // ── আগের ফাংশন (১০০% unchanged) ──
   const finalPrice = calculateEffectivePrice(p);
   const originalPrice = p?.price || 0;
@@ -47,6 +67,7 @@ const ProductCard = ({ p, viewMode }) => {
             alt={p?.name}
             className="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105"
             loading="lazy"
+            decoding="async"
           />
         </Link>
 
@@ -59,11 +80,11 @@ const ProductCard = ({ p, viewMode }) => {
           
           <div className="flex items-center gap-2 mt-1.5 font-sans">
             <span className="text-[15px] font-bold text-[#D63031]">
-              {Math.round(priceToShow).toLocaleString("en-BD")}৳
+              {formatPrice(priceToShow)}৳
             </span>
             {crossedPrice && (
               <span className="text-[13px] text-gray-400 line-through">
-                {Math.round(crossedPrice).toLocaleString("en-BD")}৳
+                {formatPrice(crossedPrice)}৳
               </span>
             )}
           </div>
@@ -75,4 +96,5 @@ const ProductCard = ({ p, viewMode }) => {
   return null;
 };
 
-export default ProductCard;
+// ✅ Memoized to prevent unnecessary re-renders
+export default memo(ProductCard);
