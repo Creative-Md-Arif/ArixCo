@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   useForgotPasswordMutation,
   useVerifyResetOtpMutation,
 } from "../../redux/api/usersApiSlice";
+import { Helmet } from "react-helmet-async";
 
 const VerifyResetOtp = () => {
   const [otp, setOtp] = useState(new Array(6).fill(""));
-  const [resendTimer, setResendTimer] = useState(120); // 120 seconds = 2 minutes
+  const [resendTimer, setResendTimer] = useState(120);
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
@@ -28,99 +29,106 @@ const VerifyResetOtp = () => {
     }
   }, [resendTimer]);
 
-  // 🎯 Time Formatter Function (120 -> 02:00)
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
     const seconds = time % 60;
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handleChange = (element, index) => {
+  const handleChange = useCallback((element, index) => {
     const val = element.value;
-
-    // 🐛 Bug Fix: Only allow numbers, reject spaces
     if (val && !/^[0-9]+$/.test(val)) return;
 
-    const newOtp = [...otp];
-    newOtp[index] = val;
-    setOtp(newOtp);
+    setOtp((prevOtp) => {
+      const newOtp = [...prevOtp];
+      newOtp[index] = val;
+      return newOtp;
+    });
 
-    // Focus next input
     if (val && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-  };
+  }, []);
 
-  const handleKeyDown = (e, index) => {
-    // 🐛 Bug Fix: Clear previous input when moving back with Backspace
+  const handleKeyDown = useCallback((e, index) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const newOtp = [...otp];
-      newOtp[index - 1] = ""; // Clear the previous box
-      setOtp(newOtp);
+      setOtp((prevOtp) => {
+        const newOtp = [...prevOtp];
+        newOtp[index - 1] = "";
+        return newOtp;
+      });
       inputRefs.current[index - 1]?.focus();
     }
-  };
+  }, [otp]);
 
-  const handlePaste = (e) => {
+  const handlePaste = useCallback((e) => {
     e.preventDefault();
     const pastedData = e.clipboardData
       .getData("text")
-      .replace(/\D/g, "") // Remove all non-numeric characters
+      .replace(/\D/g, "")
       .slice(0, 6)
       .split("");
 
     if (pastedData.length === 0) return;
 
-    const newOtp = [...otp];
-    pastedData.forEach((char, idx) => {
-      if (idx < 6) newOtp[idx] = char;
+    setOtp((prevOtp) => {
+      const newOtp = [...prevOtp];
+      pastedData.forEach((char, idx) => {
+        if (idx < 6) newOtp[idx] = char;
+      });
+      return newOtp;
     });
-    setOtp(newOtp);
 
-    // Focus appropriate input after paste
     const focusIndex = Math.min(pastedData.length, 5);
     inputRefs.current[focusIndex]?.focus();
-  };
+  }, []);
 
-  const handleResend = async () => {
+  const handleResend = useCallback(async () => {
     try {
       await forgotPassword({ email }).unwrap();
       toast.success("New OTP sent!");
-      setResendTimer(120); // Reset timer to 2 minutes
-      setOtp(new Array(6).fill("")); // Clear existing OTP inputs
+      setResendTimer(120);
+      setOtp(new Array(6).fill(""));
       inputRefs.current[0]?.focus();
     } catch (err) {
       toast.error(err?.data?.message || "Failed to resend");
     }
-  };
+  }, [forgotPassword, email]);
 
-  const submitHandler = async (e) => {
-    e.preventDefault();
+  const submitHandler = useCallback(
+    async (e) => {
+      e.preventDefault();
+      const finalOtp = otp.join("");
 
-    const finalOtp = otp.join("");
+      if (finalOtp.length !== 6) {
+        return toast.error("Please enter all 6 digits");
+      }
 
-    if (finalOtp.length !== 6) {
-      return toast.error("Please enter all 6 digits");
-    }
-
-    try {
-      const res = await verifyResetOtp({ email, otp: finalOtp }).unwrap();
-      toast.success("OTP Verified!");
-
-      navigate("/reset-password", {
-        state: { email, resetToken: res.resetToken },
-      });
-    } catch (err) {
-      toast.error(err?.data?.message || "Invalid OTP");
-
-      // Optional: Clear OTP fields on error so user can re-type quickly
-      setOtp(new Array(6).fill(""));
-      inputRefs.current[0]?.focus();
-    }
-  };
+      try {
+        const res = await verifyResetOtp({ email, otp: finalOtp }).unwrap();
+        toast.success("OTP Verified!");
+        navigate("/reset-password", {
+          state: { email, resetToken: res.resetToken },
+        });
+      } catch (err) {
+        toast.error(err?.data?.message || "Invalid OTP");
+        setOtp(new Array(6).fill(""));
+        inputRefs.current[0]?.focus();
+      }
+    },
+    [otp, email, verifyResetOtp, navigate]
+  );
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-4">
+    <section
+      className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-4 font-trebuchet"
+      style={{ fontFamily: '"Trebuchet MS", sans-serif' }}
+    >
+      <Helmet>
+        <title>Verify OTP | AriX Co</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+
       <div className="w-full max-w-[460px] bg-white shadow-xl rounded-2xl p-10 text-center">
         <h1 className="text-2xl font-bold mb-4">Verify OTP</h1>
         <p className="text-gray-500 mb-8">Sent to {email}</p>
@@ -136,6 +144,7 @@ const VerifyResetOtp = () => {
                 onChange={(e) => handleChange(e.target, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 onPaste={handlePaste}
+                aria-label={`OTP digit ${index + 1}`}
                 className="w-12 h-14 text-center text-xl font-bold border-2 rounded-xl focus:border-[#007EFC] outline-none transition-all"
               />
             ))}
@@ -147,7 +156,6 @@ const VerifyResetOtp = () => {
             {isLoading ? "Verifying..." : "Verify Code"}
           </button>
 
-          {/* Resend OTP Button */}
           <div className="mt-4">
             <button
               type="button"
@@ -158,7 +166,7 @@ const VerifyResetOtp = () => {
               {isResending
                 ? "Sending..."
                 : resendTimer > 0
-                  ? `Resend in ${formatTime(resendTimer)}` // 🎯 Updated Timer Display
+                  ? `Resend in ${formatTime(resendTimer)}`
                   : "Resend OTP"}
             </button>
           </div>

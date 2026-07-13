@@ -55,7 +55,7 @@ function App() {
       <ScrollRestoration />
 
       <div
-        className={`relative flex flex-col overflow-x-hidden bg-white ${
+        className={`relative flex flex-col overflow-x-hidden bg-white flex-1 ${
           shouldShowExtras ? "min-h-screen" : "h-screen overflow-hidden"
         }`}
       >
