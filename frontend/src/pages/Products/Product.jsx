@@ -5,119 +5,172 @@ import { FaShoppingCart } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
+import { memo, useMemo } from "react";
+
+// Skeleton Loader for Main Product Card
+const ProductSkeleton = () => (
+  <div className="group bg-white shadow-lg border overflow-hidden flex flex-col h-full font-figtree animate-pulse">
+    <div className="relative aspect-square bg-gray-200 shrink-0"></div>
+    <div className="px-3 pb-3 sm:px-3.5 flex flex-col grow border-t pt-4 border-gray-200">
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+      <div className="grow"></div>
+      <div className="h-5 bg-gray-200 rounded w-1/2 mt-2"></div>
+    </div>
+  </div>
+);
 
 const Product = ({ product }) => {
   const dispatch = useDispatch();
 
-  /* ── unchanged logic ──────────────────────────────────── */
-  const getVariantPrice = (product) => {
-    if (!product.hasVariants || !product.variants) return product?.price || 0;
-    const colorIndex = product.defaultColorIndex || 0;
-    const sizeIndex = product.defaultSizeIndex || 0;
-    const variant = product.variants[colorIndex];
-    if (!variant?.sizes?.[sizeIndex]) return product?.price || 0;
-    return variant.sizes[sizeIndex].price;
-  };
+  // Skeleton Loading State
+  if (!product) return <ProductSkeleton />;
 
-  const calculateEffectivePrice = (product, basePrice) => {
-    const discountPercent = product?.discountPercentage || 0;
-    if (discountPercent > 0)
-      return basePrice - (basePrice * discountPercent) / 100;
-    return basePrice;
-  };
+  /* ── Logic Optimization using useMemo ──────────────────── */
+  const {
+    basePrice,
+    finalPrice,
+    originalPrice,
+    displayDiscountPercent,
+    mainImage,
+    productPath,
+    hasCampaign,
+    camp,
+    rangeMin,
+    rangeMax,
+    isRangePrice,
+    priceToShow,
+    priceToShowMax,
+    crossedPrice,
+    crossedPriceMax,
+    campaignBadgeText,
+    inStock
+  } = useMemo(() => {
+    const getVariantPrice = (prod) => {
+      if (!prod.hasVariants || !prod.variants) return prod?.price || 0;
+      const colorIndex = prod.defaultColorIndex || 0;
+      const sizeIndex = prod.defaultSizeIndex || 0;
+      const variant = prod.variants[colorIndex];
+      if (!variant?.sizes?.[sizeIndex]) return prod?.price || 0;
+      return variant.sizes[sizeIndex].price;
+    };
 
-  const getMainImage = (product) => {
-    if (!product.hasVariants || !product.variants?.length) {
-      return Array.isArray(product?.images) && product.images.length > 0
-        ? product.images[0]
-        : product?.image || "/placeholder.jpg";
+    const calculateEffectivePrice = (prod, bPrice) => {
+      const discountPercent = prod?.discountPercentage || 0;
+      if (discountPercent > 0)
+        return bPrice - (bPrice * discountPercent) / 100;
+      return bPrice;
+    };
+
+    const getMainImage = (prod) => {
+      if (!prod.hasVariants || !prod.variants?.length) {
+        return Array.isArray(prod?.images) && prod.images.length > 0
+          ? prod.images[0]
+          : prod?.image || "/placeholder.jpg";
+      }
+      const colorIndex = prod.defaultColorIndex || 0;
+      const variant = prod.variants[colorIndex];
+      return variant?.color?.image || prod.images?.[0] || "/placeholder.jpg";
+    };
+
+    const getVariantPriceRange = (prod) => {
+      if (!prod.hasVariants || !prod.variants?.length) {
+        const p = prod?.price || 0;
+        return { min: p, max: p };
+      }
+      const allPrices = prod.variants
+        .filter((v) => v.isActive !== false)
+        .flatMap((v) => (v.sizes || []).map((s) => s.price));
+
+      if (!allPrices.length) {
+        const p = prod?.price || 0;
+        return { min: p, max: p };
+      }
+      return { min: Math.min(...allPrices), max: Math.max(...allPrices) };
+    };
+
+    const applyCampaignDiscount = (bPrice, campaign) => {
+      if (!campaign) return bPrice;
+      let discounted = bPrice;
+      if (campaign.discountType === "percentage") {
+        discounted = bPrice - (bPrice * (campaign.discountValue || 0)) / 100;
+      } else {
+        discounted = bPrice - (campaign.discountValue || 0);
+      }
+      if (campaign.maxDiscountAmount) {
+        const maxAllowedDiscount = campaign.maxDiscountAmount;
+        const minPriceAfterCap = bPrice - maxAllowedDiscount;
+        discounted = Math.max(discounted, minPriceAfterCap);
+      }
+      return Math.max(Math.round(discounted), 0);
+    };
+
+    const bPrice = getVariantPrice(product);
+    const fPrice = calculateEffectivePrice(product, bPrice);
+    const oPrice = bPrice;
+    const dDiscount = product.discountPercentage || 0;
+    const mImage = getMainImage(product);
+    const pPath = `/product/${product.slug || product._id}`;
+
+    const hCampaign = product?.appliedCampaigns && product.appliedCampaigns.length > 0;
+    const c = hCampaign ? product.appliedCampaigns[0] : null;
+
+    const { min: rMin, max: rMax } = getVariantPriceRange(product);
+    const isRange = product.hasVariants && rMin !== rMax;
+
+    let pToShow = fPrice;
+    let pToShowMax = null;
+    let cPrice = null;
+    let cPriceMax = null;
+    let cBadgeText = null;
+
+    if (hCampaign) {
+      if (isRange) {
+        pToShow = applyCampaignDiscount(rMin, c);
+        pToShowMax = applyCampaignDiscount(rMax, c);
+        cPrice = rMin;
+        cPriceMax = rMax;
+      } else {
+        pToShow = applyCampaignDiscount(rMin, c);
+        cPrice = rMin;
+      }
+
+      const typeName = (c.type || "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+      const discountText =
+        c.discountType === "percentage" ? `-${c.discountValue}%` : `-৳${c.discountValue}`;
+      cBadgeText = `${typeName} ${discountText}`;
+    } else if (isRange) {
+      pToShow = rMin;
+      pToShowMax = rMax;
+      if (dDiscount > 0) {
+        cPrice = rMin;
+        cPriceMax = rMax;
+      }
+    } else if (dDiscount > 0) {
+      cPrice = oPrice;
     }
-    const colorIndex = product.defaultColorIndex || 0;
-    const variant = product.variants[colorIndex];
-    return variant?.color?.image || product.images?.[0] || "/placeholder.jpg";
-  };
 
-  /* ── নতুন: সব variant/size থেকে min-max base price বের করা ── */
-  const getVariantPriceRange = (product) => {
-    if (!product.hasVariants || !product.variants?.length) {
-      const p = product?.price || 0;
-      return { min: p, max: p };
-    }
-    const allPrices = product.variants
-      .filter((v) => v.isActive !== false)
-      .flatMap((v) => (v.sizes || []).map((s) => s.price));
+    return {
+      basePrice: bPrice,
+      finalPrice: fPrice,
+      originalPrice: oPrice,
+      displayDiscountPercent: dDiscount,
+      mainImage: mImage,
+      productPath: pPath,
+      hasCampaign: hCampaign,
+      camp: c,
+      rangeMin: rMin,
+      rangeMax: rMax,
+      isRangePrice: isRange,
+      priceToShow: pToShow,
+      priceToShowMax: pToShowMax,
+      crossedPrice: cPrice,
+      crossedPriceMax: cPriceMax,
+      campaignBadgeText: cBadgeText,
+      inStock: product.countInStock > 0
+    };
+  }, [product]);
 
-    if (!allPrices.length) {
-      const p = product?.price || 0;
-      return { min: p, max: p };
-    }
-    return { min: Math.min(...allPrices), max: Math.max(...allPrices) };
-  };
-
-  /* ── নতুন: campaign discount কে যেকোনো base price এ apply করা ── */
-  const applyCampaignDiscount = (basePrice, campaign) => {
-    if (!campaign) return basePrice;
-    let discounted = basePrice;
-    if (campaign.discountType === "percentage") {
-      discounted = basePrice - (basePrice * (campaign.discountValue || 0)) / 100;
-    } else {
-      discounted = basePrice - (campaign.discountValue || 0);
-    }
-    if (campaign.maxDiscountAmount) {
-      const maxAllowedDiscount = campaign.maxDiscountAmount;
-      const minPriceAfterCap = basePrice - maxAllowedDiscount;
-      discounted = Math.max(discounted, minPriceAfterCap);
-    }
-    return Math.max(Math.round(discounted), 0);
-  };
-
-  // ── আগের ভ্যারিয়েবল (default variant এর জন্য, cart এ default add করতে লাগবে) ──
-  const basePrice = getVariantPrice(product);
-  const finalPrice = calculateEffectivePrice(product, basePrice);
-  const originalPrice = basePrice;
-  const displayDiscountPercent = product.discountPercentage || 0;
-  const mainImage = getMainImage(product);
-  const productPath = `/product/${product.slug || product._id}`;
-
-  // ── ক্যাম্পেইন লজিক (variant-aware) ──
-  const hasCampaign = product?.appliedCampaigns && product.appliedCampaigns.length > 0;
-  const camp = hasCampaign ? product.appliedCampaigns[0] : null;
-
-  const { min: rangeMin, max: rangeMax } = getVariantPriceRange(product);
-  const isRangePrice = product.hasVariants && rangeMin !== rangeMax;
-
-  let priceToShow = finalPrice;
-  let priceToShowMax = null; // range এর জন্য
-  let crossedPrice = null;
-  let crossedPriceMax = null;
-  let campaignBadgeText = null;
-
-  if (hasCampaign) {
-    if (isRangePrice) {
-      priceToShow = applyCampaignDiscount(rangeMin, camp);
-      priceToShowMax = applyCampaignDiscount(rangeMax, camp);
-      crossedPrice = rangeMin;
-      crossedPriceMax = rangeMax;
-    } else {
-      priceToShow = applyCampaignDiscount(rangeMin, camp);
-      crossedPrice = rangeMin;
-    }
-
-    const typeName = (camp.type || "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-    const discountText =
-      camp.discountType === "percentage" ? `-${camp.discountValue}%` : `-৳${camp.discountValue}`;
-    campaignBadgeText = `${typeName} ${discountText}`;
-  } else if (isRangePrice) {
-    priceToShow = rangeMin;
-    priceToShowMax = rangeMax;
-    if (displayDiscountPercent > 0) {
-      crossedPrice = rangeMin;
-      crossedPriceMax = rangeMax;
-    }
-  } else if (displayDiscountPercent > 0) {
-    crossedPrice = originalPrice;
-  }
-  // ── ক্যাম্পেইন লজিক শেষ ──
+  /* ── End Logic Optimization ──────────────────── */
 
   const formatPrice = (val) => Math.round(val).toLocaleString("en-BD");
 
@@ -126,7 +179,6 @@ const Product = ({ product }) => {
     e.stopPropagation();
 
     // variant থাকা product কে card থেকে সরাসরি add না করে detail page এ পাঠানো ভালো,
-    // কারণ user কে color/size বেছে নিতে হবে এবং campaign price ও variant অনুযায়ী বদলায়।
     if (product.hasVariants) {
       window.location.href = productPath;
       return;
@@ -162,9 +214,6 @@ const Product = ({ product }) => {
     dispatch(addToCart(productToAdd));
     toast.success("Added to cart");
   };
-  /* ── end logic ──────────────────────────────────────────── */
-
-  const inStock = product.countInStock > 0;
 
   return (
     <article
@@ -248,10 +297,7 @@ const Product = ({ product }) => {
                 : `Add ${product.name} to cart`
             }
             className="absolute bottom-0 left-0 w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 text-[14px] font-medium capitalize tracking-px font-trebuchet text-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B88E2F]"
-            style={{
-              background: "#6E2594",
-              backgroundSize: "200% 100%",
-            }}
+            style={{ background: "#6E2594" }} // ✅ Removed useless backgroundSize CSS
           >
             <FaShoppingCart
               className="w-[11px] h-[11px] sm:w-[12px] sm:h-[12px] shrink-0"
@@ -313,4 +359,5 @@ const Product = ({ product }) => {
   );
 };
 
-export default Product;
+// ✅ Memoized to prevent unnecessary re-renders
+export default memo(Product);
