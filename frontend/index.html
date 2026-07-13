@@ -30,7 +30,7 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://arixco.com/" />
 
-    <!-- Preconnect & DNS Prefetch for Performance (Moved from JS to HTML) -->
+    <!-- Preconnect & DNS Prefetch for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -52,16 +52,18 @@
       }
     </script>
     <style>
-      body {
-        padding: 0;
+      html, body {
+        height: 100%;
         margin: 0;
+        padding: 0;
+      }
+      body {
         background: #ffffff;
       }
 
+      /* ✅ সিম্পল রুট হাইট */
       #root {
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
       }
       #root:empty {
         min-height: 100vh;

@@ -9,7 +9,6 @@ import Cart from "./pages/Cart";
 import useBodyScrollLock from "./hooks/useBodyScrollLock";
 import { useState } from "react";
 
-
 const HIDDEN_PATHS = [
   "/admin/dashboard",
   "/admin/categorylist",
@@ -54,9 +53,10 @@ function App() {
       />
       <ScrollRestoration />
 
+      {/* ✅ Sticky Footer Wrapper: min-h-screen এবং flex-col ব্যবহার করা হয়েছে */}
       <div
-        className={`relative flex flex-col overflow-x-hidden bg-white flex-1 ${
-          shouldShowExtras ? "min-h-screen" : "h-screen overflow-hidden"
+        className={`relative flex flex-col overflow-x-hidden bg-white min-h-screen ${
+          !shouldShowExtras ? "h-screen overflow-hidden" : ""
         }`}
       >
         <a
@@ -66,14 +66,17 @@ function App() {
           Skip to main content
         </a>
         <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        
+        {/* ✅ main কে flex-grow দেওয়া হয়েছে যাতে সে খালি জায়গা দখল করে ফুটারকে নিচে রাখে */}
         <main
           id="main-content"
-          className={`flex-grow ${!shouldShowExtras ? "overflow-y-auto" : ""}`}
+          className={`flex-grow flex flex-col ${!shouldShowExtras ? "overflow-y-auto" : ""}`}
           role="main"
           aria-label="Main content"
         >
           <Outlet />
         </main>
+        
         {shouldShowExtras && (
           <>
             <Footer />
