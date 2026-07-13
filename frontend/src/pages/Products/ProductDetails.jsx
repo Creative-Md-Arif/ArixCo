@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { Helmet } from "react-helmet-async"; // Existing package imported for SEO
 import {
   useGetProductDetailsQuery,
   useCreateReviewMutation,
@@ -15,6 +16,47 @@ import ProductCard from "./ProductCard";
 import AddToCartButton from "../../components/AddToCartButton";
 import { motion } from "framer-motion";
 import Breadcrumb from "../../components/breadcrumb/Breadcrumb";
+
+// ── Skeleton Loader Component ──
+const ProductDetailsSkeleton = () => (
+  <div className="bg-white min-h-screen pt-10 animate-pulse">
+    <div className="container mx-auto mt-2 px-4">
+      <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+    </div>
+    <div className="container mx-auto py-6 px-4">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+        <div className="lg:w-[45%]">
+          <div className="flex flex-col-reverse lg:flex-row gap-3 sm:gap-5">
+            <div className="flex lg:flex-col gap-2 flex-shrink-0">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-14 h-14 sm:w-[70px] sm:h-[70px] bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+            <div className="flex-1 bg-gray-200 rounded-2xl aspect-square"></div>
+          </div>
+        </div>
+        <div className="lg:w-[55%] space-y-4">
+          <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+          <div className="flex gap-2">
+            <div className="h-8 bg-gray-200 rounded w-32"></div>
+            <div className="h-8 bg-gray-200 rounded w-32"></div>
+            <div className="h-8 bg-gray-200 rounded w-32"></div>
+          </div>
+          <div className="h-4 bg-gray-200 rounded w-1/4 mt-4"></div>
+          <div className="flex gap-1 mt-2">
+            <div className="h-8 bg-gray-200 rounded w-20"></div>
+            <div className="h-8 bg-gray-200 rounded w-20"></div>
+          </div>
+          <div className="h-8 bg-gray-200 rounded w-40 mt-4"></div>
+          <div className="space-y-2 mt-4">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const ProductDetails = () => {
   const { id: productId } = useParams();
@@ -38,7 +80,7 @@ const ProductDetails = () => {
     error: relatedError,
   } = useGetRelatedProductsQuery(
     { productId: product?._id, limit: 5 },
-    { skip: !product?._id },
+    { skip: !product?._id }
   );
 
   const { userInfo } = useSelector((state) => state.auth);
@@ -59,14 +101,14 @@ const ProductDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
-  // ── আগের ফাংশনগুলো ১০০% unchanged ──
-  const getDisplayImages = () => {
+  // ── আগের ফাংশনগুলো ১০০% unchanged (useCallback দিয়ে optimize করা হয়েছে) ──
+  const getDisplayImages = useCallback(() => {
     if (!product) return [];
     const isVariantSelected = product.variants?.some(
       (v, idx) =>
         idx === selectedColorIndex &&
         (v.color.images?.includes(activeImage) ||
-          v.color.image === activeImage),
+          v.color.image === activeImage)
     );
     if (isVariantSelected && product.variants[selectedColorIndex]) {
       const variant = product.variants[selectedColorIndex];
@@ -78,9 +120,9 @@ const ProductDetails = () => {
       : product.image
         ? [product.image]
         : [];
-  };
+  }, [product, selectedColorIndex, activeImage]);
 
-  const getCurrentPrice = () => {
+  const getCurrentPrice = useCallback(() => {
     if (!product) return 0;
     let basePrice = product.price || 0;
     if (product.hasVariants && product.variants?.[selectedColorIndex]) {
@@ -92,9 +134,9 @@ const ProductDetails = () => {
     if (discountPercent > 0)
       return basePrice - (basePrice * discountPercent) / 100;
     return basePrice;
-  };
+  }, [product, selectedColorIndex, selectedSizeIndex]);
 
-  const getCurrentStock = () => {
+  const getCurrentStock = useCallback(() => {
     if (!product) return 0;
     if (product.hasVariants && product.variants?.[selectedColorIndex]) {
       const variant = product.variants[selectedColorIndex];
@@ -102,9 +144,9 @@ const ProductDetails = () => {
         return variant.sizes[selectedSizeIndex].countInStock;
     }
     return product.countInStock || 0;
-  };
+  }, [product, selectedColorIndex, selectedSizeIndex]);
 
-  const getVariantInfo = () => {
+  const getVariantInfo = useCallback(() => {
     if (!product || !product.hasVariants)
       return {
         hasVariants: false,
@@ -130,46 +172,43 @@ const ProductDetails = () => {
       sku: size?.sku || "",
       countInStock: size?.countInStock || 0,
     };
-  };
+  }, [product, selectedColorIndex, selectedSizeIndex]);
 
-  const basePrice = product?.hasVariants
-    ? product.variants?.[selectedColorIndex]?.sizes?.[selectedSizeIndex]
-        ?.price || product.price
-    : product?.price || 0;
+  // ── useMemo দিয়ে ডাটা ক্যাশ করা হয়েছে যাতে বারবার হিসাব না হয় ──
+  const basePrice = useMemo(() => {
+    return product?.hasVariants
+      ? product.variants?.[selectedColorIndex]?.sizes?.[selectedSizeIndex]?.price || product.price
+      : product?.price || 0;
+  }, [product, selectedColorIndex, selectedSizeIndex]);
 
-  const finalPrice = getCurrentPrice();
-  const currentStock = getCurrentStock();
-  const displayImages = getDisplayImages();
+  const finalPrice = useMemo(() => getCurrentPrice(), [getCurrentPrice]);
+  const currentStock = useMemo(() => getCurrentStock(), [getCurrentStock]);
+  const displayImages = useMemo(() => getDisplayImages(), [getDisplayImages]);
   const displayDiscountPercent = product?.discountPercentage || 0;
 
-  // ── নতুন ক্যাম্পেইন লজিক (ভ্যারিয়েন্ট অনুযায়ী ক্যালকুলেশন সহ) ──
-  const hasCampaign =
-    product?.appliedCampaigns && product.appliedCampaigns.length > 0;
+  const hasCampaign = useMemo(() => 
+    product?.appliedCampaigns && product.appliedCampaigns.length > 0
+  , [product]);
 
-  // ভ্যারিয়েন্ট পরিবর্তনের সাথে সাথে ডায়নামিক্যালি ক্যাম্পেইন প্রাইস বের করার ফাংশন (শুধু UI এর জন্য)
-  const getDynamicCampaignPrice = (currentBasePrice) => {
+  const getDynamicCampaignPrice = useCallback((currentBasePrice) => {
     if (!hasCampaign) return null;
     let calculatedPrice = currentBasePrice;
-
     for (const camp of product.appliedCampaigns) {
       let discountAmt =
         camp.discountType === "percentage"
           ? (calculatedPrice * camp.discountValue) / 100
           : camp.discountValue;
-
       if (camp.maxDiscountAmount) {
         discountAmt = Math.min(discountAmt, camp.maxDiscountAmount);
       }
       calculatedPrice -= discountAmt;
     }
     return Math.max(Math.round(calculatedPrice * 100) / 100, 0);
-  };
+  }, [hasCampaign, product]);
 
-  // ব্যাজের টেক্সট তৈরি (Type + Discount Amount)
-  const getCampaignBadgeText = () => {
+  const getCampaignBadgeText = useCallback(() => {
     if (!hasCampaign) return null;
     const camp = product.appliedCampaigns[0];
-    // "flash_sale" -> "Flash Sale"
     const typeName = (camp.type || "")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -178,24 +217,23 @@ const ProductDetails = () => {
         ? `-${camp.discountValue}%`
         : `-৳${camp.discountValue}`;
     return `${typeName} ${discountText}`;
-  };
+  }, [hasCampaign, product]);
 
-  // চূড়ান্ত ভ্যারিয়েবল
-  const dynamicCampaignPrice = getDynamicCampaignPrice(basePrice);
+  const dynamicCampaignPrice = useMemo(() => getDynamicCampaignPrice(basePrice), [getDynamicCampaignPrice, basePrice]);
   const priceToShow = hasCampaign ? dynamicCampaignPrice : finalPrice;
-  const crossedPrice = basePrice; // সরাসরি বেস প্রাইস কাটা দেখাবে
-  const campaignBadgeText = getCampaignBadgeText();
+  const crossedPrice = basePrice;
+  const campaignBadgeText = useMemo(() => getCampaignBadgeText(), [getCampaignBadgeText]);
 
-  const handleColorChange = (index) => {
+  const handleColorChange = useCallback((index) => {
     setSelectedColorIndex(index);
     if (product.variants[index]?.sizes?.length > 0) setSelectedSizeIndex(0);
     const variant = product.variants[index];
     if (variant?.color?.images?.length > 0)
       setActiveImage(variant.color.images[0]);
     else if (variant?.color?.image) setActiveImage(variant.color.image);
-  };
+  }, [product]);
 
-  const getProductForCart = () => {
+  const getProductForCart = useMemo(() => {
     if (!product) return null;
     return {
       _id: product._id,
@@ -203,10 +241,10 @@ const ProductDetails = () => {
       price: basePrice,
       basePrice,
       finalPrice,
-      campaignPrice: priceToShow, // ভ্যারিয়েন্ট অনুযায়ী ক্যাম্পেইন প্রাইস
+      campaignPrice: priceToShow,
       appliedCampaigns: product?.appliedCampaigns || [],
       variantInfo: getVariantInfo(),
-      image: displayImages[0] || product.images[0],
+      image: displayImages[0] || product.images?.[0],
       images: displayImages,
       _effectivePrice: priceToShow,
       effectivePrice: priceToShow,
@@ -214,9 +252,9 @@ const ProductDetails = () => {
       qty,
       countInStock: currentStock,
     };
-  };
+  }, [product, basePrice, finalPrice, priceToShow, getVariantInfo, displayImages, qty, currentStock]);
 
-  const submitHandler = async (e) => {
+  const submitHandler = useCallback(async (e) => {
     e.preventDefault();
     try {
       await createReview({ productId: product._id, rating, comment }).unwrap();
@@ -227,27 +265,35 @@ const ProductDetails = () => {
     } catch (error) {
       toast.error(error?.data?.message || "Error");
     }
-  };
+  }, [createReview, product, rating, comment, refetch]);
 
-  const getCategoryHierarchy = (category) => {
+  const categoryHierarchy = useMemo(() => {
     const hierarchy = [];
-    let current = category;
+    let current = product?.category;
     while (current) {
       hierarchy.unshift(current);
       current = current.parent;
     }
     return hierarchy;
-  };
+  }, [product]);
 
-  const categoryHierarchy = product?.category
-    ? getCategoryHierarchy(product.category)
-    : [];
-
-  if (isLoading) return <Loader />;
+  // ── Proper Skeleton Loading ──
+  if (isLoading) return <ProductDetailsSkeleton />;
   if (error) return <Message variant="danger">{error?.data?.message}</Message>;
+  if (!product) return null;
 
   return (
     <div className="bg-white min-h-screen pt-10">
+      {/* ── SEO Optimization using Helmet ── */}
+      <Helmet>
+        <title>{`${product.name} - Buy Online at Best Price | AriX Co`}</title>
+        <meta name="description" content={product.description?.substring(0, 150) || `Buy ${product.name} online at AriX Co. Best deals, fast delivery, and secure payment.`} />
+        <meta property="og:title" content={`${product.name} | AriX Co`} />
+        <meta property="og:description" content={product.description?.substring(0, 150)} />
+        <meta property="og:image" content={displayImages[0]} />
+        <meta property="og:type" content="product" />
+      </Helmet>
+
       <div className="container mx-auto mt-2 px-4">
         <Breadcrumb
           items={[
@@ -276,20 +322,20 @@ const ProductDetails = () => {
                   >
                     <img
                       src={img}
-                      alt="thumbnail"
+                      alt={`${product.name} thumbnail ${index + 1}`}
                       onClick={() => setActiveImage(img)}
                       className={`w-14 h-14 sm:w-[70px] sm:h-[70px] object-contain bg-white p-0.5 rounded-lg cursor-pointer transition-all duration-300 ${
                         activeImage === img
                           ? "ring-2 ring-neutral-950 scale-105"
                           : "opacity-70 hover:opacity-100"
                       }`}
+                      decoding="async"
                     />
                   </div>
                 ))}
               </div>
 
               <div className="relative flex-1 bg-white rounded-2xl overflow-hidden aspect-square flex items-center justify-center p-2 group">
-                {/* আপডেটেড ব্যাজ (Type + Discount) */}
                 {hasCampaign ? (
                   <div className="absolute top-4 left-0 z-10">
                     <div className="bg-red-600 border border-neutral-100 px-3 py-1.5 rounded-r-xl flex items-center gap-1.5">
@@ -313,8 +359,9 @@ const ProductDetails = () => {
 
                 <img
                   src={activeImage}
-                  alt="Product view"
+                  alt={product.name}
                   className="max-h-full max-w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -334,7 +381,6 @@ const ProductDetails = () => {
                 <span className="text-[16px] font-trebuchet font-bold text-[#000000]">
                   {Math.round(priceToShow * qty).toLocaleString()}৳
                 </span>
-                {/* শুধুমাত্র বেস প্রাইস কাটা থাকবে */}
                 {hasCampaign && (
                   <span className="text-[12px] text-gray-600 font-trebuchet font-semibold line-through ml-1">
                     {Math.round(crossedPrice * qty).toLocaleString()}৳
@@ -369,16 +415,9 @@ const ProductDetails = () => {
                 <span className="text-[12px] font-black text-black">
                   {product.variants[selectedColorIndex]?.color?.name}
                 </span>
-                {product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]
-                  ?.size && (
+                {product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]?.size && (
                   <span className="text-[12px] text-gray-400 font-medium ml-1">
-                    (
-                    {
-                      product.variants[selectedColorIndex]?.sizes[
-                        selectedSizeIndex
-                      ]?.size
-                    }
-                    )
+                    ({product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]?.size})
                   </span>
                 )}
               </div>
@@ -475,9 +514,7 @@ const ProductDetails = () => {
                     {qty}
                   </span>
                   <button
-                    onClick={() =>
-                      setQty(Math.min(currentStock || 10, qty + 1))
-                    }
+                    onClick={() => setQty(Math.min(currentStock || 10, qty + 1))}
                     disabled={qty >= currentStock}
                     className="w-8 h-full flex items-center justify-center bg-white text-black text-[14px] font-medium border-l border-gray-100 hover:bg-gray-50 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
                   >
@@ -487,7 +524,7 @@ const ProductDetails = () => {
 
                 <div className="flex-1 sm:w-[110px] sm:flex-initial h-8">
                   <AddToCartButton
-                    product={getProductForCart()}
+                    product={getProductForCart}
                     qty={qty}
                     buttonText="Add"
                     addedText="Added"
@@ -499,7 +536,7 @@ const ProductDetails = () => {
 
               <div className="flex-1 sm:w-[110px] sm:flex-initial h-8">
                 <AddToCartButton
-                  product={getProductForCart()}
+                  product={getProductForCart}
                   qty={qty}
                   isOrderNow={true}
                   variant="order"
