@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useRef,
+  memo,
 } from "react";
 import { SlHome } from "react-icons/sl";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
@@ -120,8 +121,6 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
     };
   }, [tabOpen]);
 
-
-
   useBodyScrollLock(isMenuOpen || isCartOpen);
 
   return (
@@ -134,19 +133,18 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
         }`}
       >
         <div className="container mx-auto h-14 sm:h-16 lg:h-[68px] relative px-4">
-          {/* ── MOBILE/TABLET BAR (white bg — matches reference image, shows up to lg) ── */}
+          {/* ── MOBILE/TABLET BAR ── */}
           <div className="flex lg:hidden items-center justify-between h-full">
             <div className="flex items-center gap-5">
               <button
                 className="relative flex flex-col items-center justify-center gap-[6px] w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-300 hover:bg-white group"
                 onClick={toggleMenu}
                 aria-label="Toggle Menu"
+                aria-expanded={isMenuOpen}
               >
                 <span
                   className={`block h-[1.5px] w-5 rounded-full bg-white transition-all duration-300 ease-in-out group-hover:bg-[#D4A843] ${
-                    isMenuOpen
-                      ? "translate-y-[7.5px] rotate-45 !bg-[#D4A843]"
-                      : ""
+                    isMenuOpen ? "translate-y-[7.5px] rotate-45 !bg-[#D4A843]" : ""
                   }`}
                 ></span>
                 <span
@@ -156,9 +154,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 ></span>
                 <span
                   className={`block h-[1.5px] w-5 rounded-full bg-white transition-all duration-300 ease-in-out group-hover:bg-[#D4A843] ${
-                    isMenuOpen
-                      ? "-translate-y-[7.5px] -rotate-45 !bg-[#D4A843]"
-                      : ""
+                    isMenuOpen ? "-translate-y-[7.5px] -rotate-45 !bg-[#D4A843]" : ""
                   }`}
                 ></span>
               </button>
@@ -166,6 +162,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="relative group block"
+                aria-label="Open Search"
               >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ">
                   <IoSearchOutline
@@ -175,13 +172,8 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 </div>
               </button>
             </div>
-            {/* Hamburger — pinned left */}
 
-            {/* Search + Logo + User + Cart — clustered together */}
             <div className="flex items-center gap-3 sm:gap-4">
-              {/* Search */}
-
-              {/* Logo — centered between search & user/cart */}
               <Link
                 to="/"
                 onClick={handleNavClick}
@@ -189,8 +181,6 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               >
                 <Logo />
               </Link>
-
-              {/* User */}
             </div>
 
             <div className="flex items-center gap-5">
@@ -198,6 +188,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 to={userInfo ? "/profile" : "/login"}
                 onClick={handleNavClick}
                 className="relative group block"
+                aria-label="User Profile"
               >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 group-hover:bg-black/5">
                   <CiUser
@@ -210,25 +201,19 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               <div
                 onClick={() => dispatch(toggleCartSidebar(true))}
                 className="cursor-pointer"
+                aria-label="Open Cart"
               >
                 <CartIcon cartCount={cartItemsCount} />
               </div>
             </div>
-            {/* Cart — pinned right */}
           </div>
 
-          {/* ── DESKTOP BAR (dark theme — shows from lg) ── */}
+          {/* ── DESKTOP BAR ── */}
           <div className="hidden lg:flex items-center justify-between h-full">
-            {/* Logo */}
-            <Link
-              to="/"
-              onClick={handleNavClick}
-              className="flex-shrink-0 z-10"
-            >
+            <Link to="/" onClick={handleNavClick} className="flex-shrink-0 z-10">
               <Logo />
             </Link>
 
-            {/* Desktop Links & Mega Menu */}
             <ul className="flex items-center gap-1 lg:gap-2 h-full">
               {STATIC_NAV_LINKS.map((link) => (
                 <li key={link.to} className="h-full flex items-center">
@@ -278,10 +263,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 </>
               ) : (
                 categories?.map((cat) => (
-                  <li
-                    key={cat._id}
-                    className="h-full flex items-center group relative"
-                  >
+                  <li key={cat._id} className="h-full flex items-center group relative">
                     <Link
                       to={`/shop?category=${cat._id}`}
                       className={`relative px-2 py-1 lg:px-3 font-trebuchet text-[14px] font-semibold uppercase tracking-px rounded transition-colors flex items-center gap-1 whitespace-nowrap ${
@@ -334,11 +316,11 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               )}
             </ul>
 
-            {/* Desktop Actions */}
             <div className="flex items-center z-10">
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="relative group block p-0.5 sm:p-1"
+                aria-label="Open Search"
               >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 group-hover:bg-white/10">
                   <IoSearchOutline
@@ -354,6 +336,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               <div
                 onClick={() => dispatch(toggleCartSidebar(true))}
                 className="cursor-pointer"
+                aria-label="Open Cart"
               >
                 <CartIcon cartCount={cartItemsCount} />
               </div>
@@ -368,6 +351,8 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                   <button
                     className="profile-btn flex items-center ml-2 px-2 py-1 bg-white/10 border border-white/10 rounded-md hover:border-[#D4A843] transition-colors text-white"
                     onClick={toggleTab}
+                    aria-expanded={tabOpen}
+                    aria-label="User menu"
                   >
                     <CiUser size={17} className="text-[#D4A843]" />
                   </button>
@@ -394,8 +379,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                           onClick={handleNavClick}
                           className="flex items-center gap-2 p-2 rounded-md font-poppins text-sm font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843]"
                         >
-                          <MdOutlineDashboard size={14} />{" "}
-                          <span>Dashboard</span>
+                          <MdOutlineDashboard size={14} /> <span>Dashboard</span>
                         </Link>
                       )}
                       <Link
@@ -410,8 +394,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                         onClick={handleNavClick}
                         className="flex items-center gap-2 p-2 rounded-md font-poppins text-sm font-medium tracking-px text-white hover:bg-white/10 hover:text-[#D4A843]"
                       >
-                        <LiaClipboardListSolid size={14} />{" "}
-                        <span>My Orders</span>
+                        <LiaClipboardListSolid size={14} /> <span>My Orders</span>
                       </Link>
                     </div>
                     <div className="p-1.5 border-t border-white/10">
@@ -438,15 +421,14 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
         </div>
       </header>
 
-      {/* Spacer */}
       <div className="h-14 sm:h-16 lg:h-[68px]"></div>
 
-      {/* Sidebar Overlay */}
       <div
         className={`fixed inset-0 z-[1100] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
         onClick={closeAll}
+        aria-hidden="true"
       />
 
       {/* ── Mobile Sidebar ── */}
@@ -484,7 +466,6 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               </p>
             </li>
 
-            {/* Mobile Category Skeleton Loading */}
             {categoriesLoading ? (
               <>
                 {[1, 2, 3, 4].map((i) => (
@@ -506,9 +487,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                         : "text-gray-300 hover:bg-white/5 hover:text-white"
                     }`}
                     onClick={() =>
-                      setMobileOpenCatId(
-                        mobileOpenCatId === cat._id ? null : cat._id,
-                      )
+                      setMobileOpenCatId(mobileOpenCatId === cat._id ? null : cat._id)
                     }
                   >
                     <span>{cat.name}</span>
@@ -525,9 +504,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                   {cat.children?.length > 0 && (
                     <div
                       className={`overflow-hidden transition-all duration-300 ${
-                        mobileOpenCatId === cat._id
-                          ? "max-h-[1000px]"
-                          : "max-h-0"
+                        mobileOpenCatId === cat._id ? "max-h-[1000px]" : "max-h-0"
                       }`}
                     >
                       <ul className="pl-4 py-1 space-y-1">
@@ -570,6 +547,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
               <button
                 className="flex items-center gap-2 sm:gap-3 w-full p-2 sm:p-3 bg-white/5 border border-white/10 rounded-lg min-h-[40px] sm:min-h-[44px] text-white hover:bg-white/10 transition-colors"
                 onClick={toggleTab}
+                aria-expanded={tabOpen}
               >
                 <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#B88E2F] to-[#D4A843] flex items-center justify-center text-white flex-shrink-0">
                   <CiUser size={14} />
@@ -650,13 +628,9 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
         </div>
       </aside>
 
-      {/* ── Search Overlay ── */}
-      <SearchOverlay
-        open={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      <SearchOverlay open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 };
 
-export default Navigation;
+export default memo(Navigation);
