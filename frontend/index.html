@@ -11,6 +11,7 @@
     <meta name="keywords" content="online shopping, e-commerce, buy online, best deals, premium products, fast delivery, AriX Co, online store" />
     <meta name="author" content="AriX Co" />
     <meta name="robots" content="index, follow" />
+    <meta name="format-detection" content="telephone=no" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -29,10 +30,27 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://arixco.com/" />
 
-    <!-- Preconnect for Performance -->
+    <!-- Preconnect & DNS Prefetch for Performance (Moved from JS to HTML) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://arixgear.com" />
+    
+    <!-- Preload Critical Images -->
+    <link rel="preload" as="image" href="/logo.png" />
+    <link rel="preload" as="image" href="/hero-banner.jpg" />
 
+    <!-- Structured Data for SEO (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "OnlineStore",
+        "name": "AriX Co",
+        "url": "https://arixco.com/",
+        "description": "Premium Clothing E-commerce Store",
+        "image": "https://arixco.com/og-image.jpg"
+      }
+    </script>
 
     <style>
       body {
