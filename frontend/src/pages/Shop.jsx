@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Helmet } from "react-helmet-async"; // Existing package for SEO
 import {
   useGetFilteredProductsQuery,
   useGetProductsQuery,
@@ -90,11 +91,10 @@ const PriceRangeSlider = ({ min, max, value, onChange }) => {
 // ─── Skeleton Loaders ───────────────────────────────────────────────────────
 const ProductSkeleton = () => (
   <div className="bg-white border border-gray-200 shadow-lg overflow-hidden animate-pulse">
-    <div className="h-[200px] bg-gray-100"></div>
-    <div className="p-4 space-y-3">
-      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-      <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+    <div className="aspect-square bg-gray-100"></div>
+    <div className="p-3 flex flex-col gap-2 border-t border-gray-200 pt-4">
+      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+      <div className="h-5 bg-gray-200 rounded w-1/2 mt-auto"></div>
     </div>
   </div>
 );
@@ -154,6 +154,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        aria-label="Previous page"
         className="p-2.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#6E2594] hover:text-[#6E2594] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
         <FaChevronLeft size={12} />
@@ -163,6 +164,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           key={idx}
           onClick={() => typeof page === "number" && onPageChange(page)}
           disabled={page === "..."}
+          aria-current={page === currentPage ? "page" : undefined}
           className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${page === currentPage ? "bg-[#6E2594] text-white" : page === "..." ? "text-gray-400 cursor-default bg-transparent" : "bg-white border border-gray-200 text-gray-700 hover:border-[#6E2594] hover:text-[#6E2594]"}`}
         >
           {page}
@@ -171,6 +173,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        aria-label="Next page"
         className="p-2.5 rounded-lg border border-gray-200 text-gray-500 hover:border-[#6E2594] hover:text-[#6E2594] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
         <FaChevronRight size={12} />
@@ -238,6 +241,121 @@ const findCategoryPath = (categories, targetId, currentPath = []) => {
   return null;
 };
 
+// ─── Extracted Sidebar Component to prevent re-renders ──────────────────────
+const ShopSidebar = ({
+  priceRange,
+  setPriceRange,
+  categories,
+  checked,
+  expanded,
+  handleCheckChange,
+  setExpanded,
+  uniqueBrands,
+  selectedBrand,
+  handleBrandClick,
+  handleResetFilters,
+  treeData,
+}) => (
+  <div className="space-y-6">
+    <div className="bg-white p-5 border border-gray-200 shadow-lg">
+      <PriceRangeSlider
+        min={0}
+        max={100000}
+        value={priceRange}
+        onChange={setPriceRange}
+      />
+    </div>
+    <div className="bg-white p-5 border border-gray-200 shadow-lg">
+      <h3 className="text-[16px] font-semibold font-figtree mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-widest">
+        <span className="w-1 h-4 bg-[#6E2594] rounded-full"></span> Categories
+      </h3>
+      <div className="max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        {categories?.length > 0 ? (
+          <div
+            className="light-tree-wrapper text-[14px] font-normal [&_.rct-title]:text-slate-800 [&_.rct-title]:font-medium
+       
+        [&_.rct-node]:py-1 [&_.rct-text]:flex [&_.rct-text]:items-center [&_.rct-text]:gap-1"
+            style={{ fontFamily: '"Figtree", sans-serif' }}
+          >
+            <CheckboxTree
+              nodes={treeData}
+              checked={checked}
+              expanded={expanded}
+              onCheck={handleCheckChange}
+              onExpand={setExpanded}
+              icons={{
+                check: (
+                  <FaRegCheckSquare className="text-[#6E2594] text-[15px] stroke-[0.5]" />
+                ),
+                uncheck: (
+                  <FaRegSquare className="text-slate-400 text-[15px] stroke-[0.5]" />
+                ),
+                halfCheck: (
+                  <FaRegCheckSquare className="text-[#6E2594] opacity-70 text-[15px]" />
+                ),
+                expandClose: (
+                  <FaChevronRight className="text-slate-500 text-[10px] stroke-2" />
+                ),
+                expandOpen: (
+                  <FaChevronDown className="text-[#6E2594] text-[10px] stroke-2" />
+                ),
+                parentClose: (
+                  <FaFolder className="text-[#6E2594] text-[14px]" />
+                ),
+                parentOpen: (
+                  <FaFolderOpen className="text-[#6E2594] text-[14px]" />
+                ),
+                leaf: (
+                  <div className="w-2.5 h-1 bg-slate-300 rounded-[2px] ml-1 flex-shrink-0" />
+                ),
+              }}
+            />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-8 bg-gray-100 animate-pulse rounded-md"
+              ></div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {uniqueBrands.length > 0 && (
+      <div className="bg-white p-5 border border-gray-200 shadow-lg">
+        <h3 className="text-[16px] font-semibold font-figtree mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-widest">
+          <span className="w-1 h-4 bg-[#6E2594] rounded-full"></span> Brands
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {uniqueBrands.map((brand) => (
+            <button
+              key={brand}
+              onClick={() => handleBrandClick(brand)}
+              className={`px-3 py-1.5 rounded-lg text-[14px] font-normal font-figtree text-gray-600 transition-all border ${
+                selectedBrand === brand
+                  ? "bg-[#6E2594] text-white border-[#6E2594]"
+                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+              }`}
+            >
+              {brand}
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <button
+      onClick={handleResetFilters}
+      className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-[#6E2594] transition-all flex items-center justify-center gap-2 text-sm"
+    >
+      <FaUndoAlt size={10} /> Reset All
+    </button>
+  </div>
+);
+
 // ─── Main Shop Component ────────────────────────────────────────────────────
 const Shop = () => {
   const location = useLocation();
@@ -282,9 +400,7 @@ const Shop = () => {
     : isProductsLoading;
 
   // Memoize tree data conversion
-  const treeData = useMemo(() => {
-    return formatCategoriesToTree(categories);
-  }, [categories]);
+  const treeData = useMemo(() => formatCategoriesToTree(categories), [categories]);
 
   // Memoize category path for breadcrumbs
   const categoryPath = useMemo(() => {
@@ -343,27 +459,33 @@ const Shop = () => {
     [],
   );
 
-  const handleBrandClick = (brand) => {
-    dispatch(setRadio(selectedBrand === brand ? "" : brand));
-    setCurrentPage(1);
-    scrollToTop();
-  };
+  const handleBrandClick = useCallback(
+    (brand) => {
+      dispatch(setRadio(selectedBrand === brand ? "" : brand));
+      setCurrentPage(1);
+      scrollToTop();
+    },
+    [dispatch, selectedBrand, scrollToTop],
+  );
 
-  const handleCheckChange = (newChecked) => {
-    dispatch(setChecked(newChecked));
-    setCurrentPage(1);
-    scrollToTop();
-    // Sync URL with checked category
-    if (newChecked.length > 0) {
-      navigate(`/shop?category=${newChecked[newChecked.length - 1]}`, {
-        replace: true,
-      });
-    } else {
-      navigate("/shop", { replace: true });
-    }
-  };
+  const handleCheckChange = useCallback(
+    (newChecked) => {
+      dispatch(setChecked(newChecked));
+      setCurrentPage(1);
+      scrollToTop();
+      // Sync URL with checked category
+      if (newChecked.length > 0) {
+        navigate(`/shop?category=${newChecked[newChecked.length - 1]}`, {
+          replace: true,
+        });
+      } else {
+        navigate("/shop", { replace: true });
+      }
+    },
+    [dispatch, navigate, scrollToTop],
+  );
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setPriceRange([0, 100000]);
     setSortBy("newest");
     setCurrentPage(1);
@@ -372,7 +494,7 @@ const Shop = () => {
     setExpanded([]);
     navigate("/shop");
     scrollToTop();
-  };
+  }, [dispatch, navigate, scrollToTop]);
 
   const totalPages = hasCategoryFilter ? 1 : productsData?.pages || 1;
   const paginatedProducts = hasCategoryFilter
@@ -382,120 +504,23 @@ const Shop = () => {
         currentPage * itemsPerPage,
       );
 
-  const baseDataForBrands = hasCategoryFilter
-    ? filteredProductsQuery.data
-    : productsData?.products || [];
-  const uniqueBrands = [
-    ...new Set((baseDataForBrands || []).map((p) => p.brand).filter(Boolean)),
-  ];
-
-  // Filter UI Component
-  const FilterContent = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-5 border border-gray-200 shadow-lg">
-        <PriceRangeSlider
-          min={0}
-          max={100000}
-          value={priceRange}
-          onChange={setPriceRange}
-        />
-      </div>
-      <div className="bg-white p-5 border border-gray-200 shadow-lg">
-        <h3 className="text-[16px] font-semibold font-figtree mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-widest">
-          <span className="w-1 h-4 bg-[#6E2594] rounded-full"></span> Categories
-        </h3>
-        <div className="max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-          {categories?.length > 0 ? (
-            <div
-              className="light-tree-wrapper text-[14px] font-normal [&_.rct-title]:text-slate-800 [&_.rct-title]:font-medium
-       
-        [&_.rct-node]:py-1 [&_.rct-text]:flex [&_.rct-text]:items-center [&_.rct-text]:gap-1"
-              style={{ fontFamily: '"Figtree", sans-serif' }}
-            >
-              <CheckboxTree
-                nodes={treeData}
-                checked={checked}
-                expanded={expanded}
-                onCheck={handleCheckChange}
-                onExpand={setExpanded}
-                icons={{
-                  check: (
-                    <FaRegCheckSquare className="text-[#6E2594] text-[15px] stroke-[0.5]" />
-                  ),
-
-                  uncheck: (
-                    <FaRegSquare className="text-slate-400 text-[15px] stroke-[0.5]" />
-                  ),
-                  halfCheck: (
-                    <FaRegCheckSquare className="text-[#6E2594] opacity-70 text-[15px]" />
-                  ),
-                  expandClose: (
-                    <FaChevronRight className="text-slate-500 text-[10px] stroke-2" />
-                  ),
-                  expandOpen: (
-                    <FaChevronDown className="text-[#6E2594] text-[10px] stroke-2" />
-                  ),
-
-                  parentClose: (
-                    <FaFolder className="text-[#6E2594] text-[14px]" />
-                  ),
-                  parentOpen: (
-                    <FaFolderOpen className="text-[#6E2594] text-[14px]" />
-                  ),
-
-                  leaf: (
-                    <div className="w-2.5 h-1 bg-slate-300 rounded-[2px] ml-1 flex-shrink-0" />
-                  ),
-                }}
-              />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-8 bg-gray-100 animate-pulse rounded-md"
-                ></div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {uniqueBrands.length > 0 && (
-        <div className="bg-white p-5 border border-gray-200 shadow-lg">
-          <h3 className="text-[16px] font-semibold font-figtree mb-4 flex items-center gap-2 text-gray-800 uppercase tracking-widest">
-            <span className="w-1 h-4 bg-[#6E2594] rounded-full"></span> Brands
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {uniqueBrands.map((brand) => (
-              <button
-                key={brand}
-                onClick={() => handleBrandClick(brand)}
-                className={`px-3 py-1.5 rounded-lg text-[14px] font-normal font-figtree text-gray-600 transition-all border ${
-                  selectedBrand === brand
-                    ? "bg-[#6E2594] text-white border-[#6E2594]"
-                    : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                }`}
-              >
-                {brand}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={handleResetFilters}
-        className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-[#6E2594] transition-all flex items-center justify-center gap-2 text-sm"
-      >
-        <FaUndoAlt size={10} /> Reset All
-      </button>
-    </div>
-  );
+  const uniqueBrands = useMemo(() => {
+    const baseDataForBrands = hasCategoryFilter
+      ? filteredProductsQuery.data
+      : productsData?.products || [];
+    return [
+      ...new Set((baseDataForBrands || []).map((p) => p.brand).filter(Boolean)),
+    ];
+  }, [hasCategoryFilter, filteredProductsQuery.data, productsData]);
 
   return (
     <div className="min-h-screen bg-white pt-10 pb-20 font-figtree">
+      {/* ── SEO Optimization using Helmet ── */}
+      <Helmet>
+        <title>{urlKeyword ? `Search: ${urlKeyword} | AriX Co` : "Shop All Products | AriX Co"}</title>
+        <meta name="description" content="Shop premium quality products at AriX Co. Filter by category, price, and brand to find exactly what you need. Fast delivery and secure payment." />
+      </Helmet>
+
       <Breadcrumb
         items={[
           { label: "Shop", href: "/shop" },
@@ -514,7 +539,20 @@ const Shop = () => {
           {categoriesQuery.isLoading || isLoading ? (
             <FilterSkeleton />
           ) : (
-            <FilterContent />
+            <ShopSidebar
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              categories={categories}
+              checked={checked}
+              expanded={expanded}
+              handleCheckChange={handleCheckChange}
+              setExpanded={setExpanded}
+              uniqueBrands={uniqueBrands}
+              selectedBrand={selectedBrand}
+              handleBrandClick={handleBrandClick}
+              handleResetFilters={handleResetFilters}
+              treeData={treeData}
+            />
           )}
         </aside>
 
@@ -539,12 +577,26 @@ const Shop = () => {
                   <h2 className="text-[16px] font-semibold font-figtree tracking-widest text-gray-800">Filters</h2>
                   <button
                     onClick={() => setIsSidebarOpen(false)}
+                    aria-label="Close filters"
                     className="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-gray-600"
                   >
                     <FaTimes />
                   </button>
                 </div>
-                <FilterContent />
+                <ShopSidebar
+                  priceRange={priceRange}
+                  setPriceRange={setPriceRange}
+                  categories={categories}
+                  checked={checked}
+                  expanded={expanded}
+                  handleCheckChange={handleCheckChange}
+                  setExpanded={setExpanded}
+                  uniqueBrands={uniqueBrands}
+                  selectedBrand={selectedBrand}
+                  handleBrandClick={handleBrandClick}
+                  handleResetFilters={handleResetFilters}
+                  treeData={treeData}
+                />
               </motion.aside>
             </div>
           )}
@@ -573,7 +625,9 @@ const Shop = () => {
             </p>
             <div className="flex items-center gap-3">
               <div className="relative">
+                <label htmlFor="sort-by" className="sr-only">Sort products</label>
                 <select
+                  id="sort-by"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 pl-3 pr-8 rounded-lg text-sm font-normal font-figtree focus:outline-none focus:ring-2 focus:ring-[#6E2594]/20 cursor-pointer"
@@ -589,6 +643,7 @@ const Shop = () => {
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden flex items-center gap-2 px-3 py-1.5 bg-[#6E2594]  rounded-lg text-[16px] font-semibold font-figtree text-white"
+                aria-label="Open filters"
               >
                 <FaFilter size={10} /> Filters
               </button>
