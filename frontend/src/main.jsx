@@ -33,7 +33,10 @@ const DelayedFallback = ({ delay }) => {
     return () => clearTimeout(timer);
   }, [delay]);
 
-  return show ? <Loader /> : null;
+  // null এর বদলে একটি div রিটার্ন করা হলো
+  if (!show) return <div style={{ minHeight: "50vh" }} />;
+
+  return <Loader />;
 };
 
 const DelayedSuspense = ({ children, delay = 200 }) => (
@@ -108,7 +111,7 @@ const NotFound = () => (
       Page Not Found
     </h2>
     <p className="text-gray-500 mb-8 text-center max-w-md">
-      The page you're looking for doesn't exist or has been moved.
+      The page you&rsquo;re looking for doesn&#39;t exist or has been moved.
     </p>
     <a
       href="/"

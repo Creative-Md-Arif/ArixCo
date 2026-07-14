@@ -286,11 +286,34 @@ const removeProduct = asyncHandler(async (req, res) => {
 
 const fetchProducts = asyncHandler(async (req, res) => {
   try {
-    const pageSize = 16;
+    const pageSize = 12; // ফ্রন্টএন্ডের সাথে মিলিয়ে ১২ করে দিন
     const page = Number(req.query.page) || 1;
 
     let query = { isActive: { $ne: false } };
-    let sortOption = { createdAt: -1 };
+
+    // ✅ সর্টিং লজিক ফ্রন্টএন্ডের সাথে মিলিয়ে আপডেট করা হলো
+    let sortOption = { createdAt: -1 }; // ডিফল্ট
+    if (req.query.sort) {
+      switch (req.query.sort) {
+        case "price-low":
+          sortOption = { price: 1 };
+          break;
+        case "price-high":
+          sortOption = { price: -1 };
+          break;
+        case "bestselling":
+          sortOption = { salesCount: -1 };
+          break;
+        case "rating":
+          sortOption = { rating: -1 };
+          break;
+        case "name":
+          sortOption = { name: 1 };
+          break;
+        default:
+          sortOption = { createdAt: -1 };
+      }
+    }
 
     if (req.query.keyword) {
       const regex = new RegExp(req.query.keyword, "i");
@@ -315,7 +338,7 @@ const fetchProducts = asyncHandler(async (req, res) => {
 
     const products = await Product.find(query)
       .populate("category", "name")
-      .sort(sortOption)
+      .sort(sortOption) // ✅ এখন ফ্রন্টএন্ডের সিলেক্ট অনুযায়ী সর্ট হবে
       .limit(pageSize)
       .skip(pageSize * (page - 1));
 
@@ -332,6 +355,7 @@ const fetchProducts = asyncHandler(async (req, res) => {
     res.status(500).json({ error: "Server Error" });
   }
 });
+
 
 const fetchProductById = asyncHandler(async (req, res) => {
   try {

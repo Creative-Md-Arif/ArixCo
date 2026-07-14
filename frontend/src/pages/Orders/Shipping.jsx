@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -379,7 +378,7 @@ const Shipping = () => {
   }, [userInfo, navigate, validateAll, name, address, division, district, thana, postalCode, country, phoneNumber, orderSummary.shippingCharge, paymentMethod, dispatch]);
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-10">
+    <div className="bg-gray-50 min-h-screen">
       <Helmet>
         <title>Checkout | AriX Co</title>
         <meta name="description" content="Complete your secure checkout at AriX Co. Enter your delivery details and choose a payment method." />

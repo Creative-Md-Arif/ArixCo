@@ -1,189 +1,289 @@
-import { useState, useEffect, useRef } from "react";
-import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import PropTypes from "prop-types";
+import { IoSearchOutline, IoCloseOutline, IoArrowForward } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { useGetProductsQuery } from "../../redux/api/productApiSlice";
-import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
-export default function SearchOverlay({ open, onClose }) {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [pendingNavigateTo, setPendingNavigateTo] = useState(null);
-  const inputRef = useRef(null);
-  const navigate = useNavigate();
-
-  useBodyScrollLock(open);
+// ─── 1. Custom Hook: useDebounce ────────────────────────────────────────────
+function useDebounce(value, delay = 400) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    if (open) {
-      setQuery("");
-      setDebouncedQuery("");
-      setTimeout(() => inputRef.current?.focus(), 150);
-    }
-  }, [open]);
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (open) document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose, open]);
+  return debouncedValue;
+}
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query.trim()), 400);
-    return () => clearTimeout(t);
-  }, [query]);
+// ─── 2. Utility: highlightMatch ─────────────────────────────────────────────
+function highlightMatch(text, term) {
+  if (!term || !text) return text;
+  const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = String(text).split(new RegExp(`(${safeTerm})`, "gi"));
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    part.toLowerCase() === term.toLowerCase() ? (
+      <mark key={i} className="bg-yellow-300 text-inherit rounded-[2px] px-0.5">
+        {part}
+      </mark>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
-  const { data, isFetching } = useGetProductsQuery(
-    { keyword: debouncedQuery, page: 1 },
-    { skip: debouncedQuery.length < 2 },
+// ─── 3. Memoized Component: SearchResultItem ────────────────────────────────
+const SearchResultItem = memo(function SearchResultItem({ product, query, onClick }) {
+  const to = `/product/${product.slug || product._id}`;
+  
+  // Memoize expensive highlight calculation
+  const highlightedName = useMemo(
+    () => highlightMatch(product.name, query),
+    [product.name, query]
   );
 
-  const results = data?.products ?? [];
+  return (
+    <li className="border-b border-gray-100 last:border-b-0">
+      <Link
+        to={to}
+        onClick={onClick}
+        className="group flex items-center gap-4 py-3 hover:bg-gray-50 transition-colors -mx-2 px-2 rounded-md"
+      >
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-100 shrink-0">
+          <img
+            src={product.images?.[0]}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          {product.brand && (
+            <p className="text-[11px] font-trebuchet font-bold uppercase tracking-px text-[#D4A843]">
+              {product.brand}
+            </p>
+          )}
+          <p className="text-[13px] sm:text-sm font-trebuchet font-medium text-gray-800 truncate">
+            {highlightedName}
+          </p>
+          {product.category?.name && (
+            <p className="text-[11px] text-gray-400 font-trebuchet truncate">
+              {product.category.name}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-[13px] sm:text-sm font-trebuchet font-bold text-gray-900">
+            ৳{product.price?.toLocaleString()}
+          </span>
+          <IoArrowForward
+            className="text-gray-300 group-hover:text-[#D4A843] group-hover:translate-x-0.5 transition-all"
+            size={16}
+          />
+        </div>
+      </Link>
+    </li>
+  );
+});
 
-  const handleResultClick = (e, to) => {
-    e.preventDefault();
-    setPendingNavigateTo(to);
+SearchResultItem.propTypes = {
+  product: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    slug: PropTypes.string,
+    name: PropTypes.string.isRequired,
+    brand: PropTypes.string,
+    images: PropTypes.arrayOf(PropTypes.string),
+    category: PropTypes.shape({
+      name: PropTypes.string,
+    }),
+    price: PropTypes.number,
+  }).isRequired,
+  query: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
+
+// ─── 4. Main Component: SearchOverlay ───────────────────────────────────────
+export default function SearchOverlay({
+  open,
+  onClose,
+  externalQuery = "", // Default empty string to prevent undefined errors
+  showInput = false,
+  inputRef,
+}) {
+  const navigate = useNavigate();
+  
+  // Local state for Mobile embedded input (isolated from Navigation re-renders)
+  const [localQuery, setLocalQuery] = useState("");
+  const debouncedLocalQuery = useDebounce(localQuery, 400);
+  
+  // Desktop uses externalQuery (already debounced in Navigation), Mobile uses local
+  const activeQuery = (showInput ? debouncedLocalQuery : externalQuery) || "";
+  
+  const { data, isFetching, isLoading } = useGetProductsQuery(
+    { keyword: activeQuery, page: 1 },
+    { skip: activeQuery.length < 2 }
+  );
+
+  // Safely handle both array or object response from API
+  const apiProducts = Array.isArray(data) ? data : data?.products;
+  const results = (apiProducts ?? []).slice(0, 10);
+  const hasQuery = activeQuery.length >= 2;
+
+  const goToAllResults = useCallback(() => {
+    navigate(`/shop?keyword=${encodeURIComponent(activeQuery)}`);
     onClose();
+  }, [navigate, activeQuery, onClose]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const queryToSubmit = showInput ? localQuery : externalQuery;
+    if (queryToSubmit.trim().length >= 2) {
+      navigate(`/shop?keyword=${encodeURIComponent(queryToSubmit.trim())}`);
+      onClose();
+    }
   };
 
-  // Framer motion remove করে setTimeout দিয়ে route change delay করা হয়েছে
-  // যাতে scroll-unlock এবং route-change একসাথে না ঘটে এবং jump না করে
+  // Clear mobile input when overlay closes
   useEffect(() => {
-    if (!open && pendingNavigateTo) {
-      const timer = setTimeout(() => {
-        navigate(pendingNavigateTo);
-        setPendingNavigateTo(null);
-      }, 250); // CSS transition শেষ হওয়ার জন্য delay
-      return () => clearTimeout(timer);
-    }
-  }, [open, pendingNavigateTo, navigate]);
+    if (!open) setLocalQuery("");
+  }, [open]);
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 top-14 sm:top-16 lg:top-[68px] z-[1000] bg-[#1A1A1A] border-t border-white/10 flex flex-col transition-all duration-200 ease-out ${
-        open ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 delay-200"
+      className={`search-dropdown fixed left-0 right-0 z-[1000] top-14 sm:top-16 lg:top-[124px] transition-all duration-200 ease-out ${
+        open
+          ? "opacity-100 visible translate-y-0"
+          : "opacity-0 invisible -translate-y-2"
       }`}
     >
-      {/* Search Input Area */}
-      <div className="w-full border-b border-white/10 px-4 sm:px-6 md:px-8 py-4 bg-[#1A1A1A]">
-        <div className="max-w-3xl mx-auto flex items-center gap-3 sm:gap-4 bg-[#252525] rounded-xl px-4 py-3 border border-white/10 focus-within:border-[#D4A843] transition-colors shadow-lg">
-          <IoSearchOutline className="w-5 h-5 text-gray-500 shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for products, brands, categories..."
-            className="flex-1 text-sm sm:text-base font-medium text-white bg-transparent outline-none placeholder:text-gray-600"
-          />
-          {query.length > 0 && (
-            <button
-              onClick={() => {
-                setQuery("");
-                inputRef.current?.focus();
-              }}
-              className="text-gray-500 hover:text-white transition-colors"
-              aria-label="Clear search"
-            >
-              <IoCloseOutline className="w-5 h-5" />
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            aria-label="Close search"
-            className="text-[10px] font-bold uppercase tracking-wider text-gray-500 hover:text-[#D4A843] border-l border-white/10 pl-3 ml-2 transition-colors"
+      <div className="w-full bg-white shadow-xl border-t border-gray-200 max-h-[75vh] flex flex-col">
+        {/* Embedded input — mobile only */}
+        {showInput && (
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-gray-50"
           >
-            ESC
-          </button>
-        </div>
-      </div>
-
-      {/* Body Content */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-3xl mx-auto w-full">
-        {/* Skeleton Loading */}
-        {isFetching && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 animate-pulse">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex flex-col gap-2 sm:gap-3">
-                <div className="aspect-square bg-[#252525] rounded-lg border border-white/5"></div>
-                <div className="h-3 bg-[#252525] rounded w-3/4"></div>
-                <div className="h-3 bg-[#252525] rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
+            <IoSearchOutline className="text-gray-400 shrink-0" size={18} />
+            <input
+              ref={inputRef}
+              type="text"
+              value={localQuery}
+              onChange={(e) => setLocalQuery(e.target.value)}
+              placeholder="Search here....."
+              className="flex-1 text-sm font-trebuchet text-gray-800 bg-transparent outline-none placeholder:text-gray-400"
+            />
+            {localQuery.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setLocalQuery("")}
+                className="text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label="Clear search"
+              >
+                <IoCloseOutline size={18} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close search"
+              className="text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <IoCloseOutline size={20} />
+            </button>
+          </form>
         )}
 
-        {/* Results */}
-        {!isFetching &&
-          debouncedQuery.length >= 2 &&
-          results.length > 0 && (
-            <>
-              <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.2em] text-gray-500 mb-5 sm:mb-6">
-                {results.length} result{results.length > 1 ? "s" : ""} for
-                &quot;
-                <span className="text-[#D4A843]">{debouncedQuery}</span>
-                &quot;
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                {results.map((product) => {
-                  const to = `/product/${product.slug || product._id}`;
-                  return (
-                    <Link
-                      key={product._id}
-                      to={to}
-                      onClick={(e) => handleResultClick(e, to)}
-                      className="group flex flex-col gap-2 sm:gap-3"
-                    >
-                      <div className="aspect-square bg-[#252525] rounded-lg overflow-hidden border border-white/5 group-hover:border-[#D4A843]/30 transition-colors">
-                        <img
-                          src={product.images?.[0]}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-[11px] sm:text-[12px] font-semibold text-gray-300 line-clamp-2 leading-snug group-hover:text-[#D4A843] transition-colors">
-                          {product.name}
-                        </p>
-                        <p className="text-[11px] sm:text-[12px] font-bold text-[#D4A843] mt-0.5 sm:mt-1">
-                          ৳{product.price?.toLocaleString()}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4">
+            {/* Loading skeleton - Show on initial load OR while fetching new keystrokes with no prior results */}
+            {(isLoading || (isFetching && results.length === 0)) && hasQuery && (
+              <div className="py-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 py-3 border-b border-gray-100 animate-pulse"
+                  >
+                    <div className="w-12 h-12 rounded-md bg-gray-100 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-2.5 w-16 bg-gray-100 rounded" />
+                      <div className="h-3 w-2/3 bg-gray-100 rounded" />
+                    </div>
+                    <div className="h-3 w-12 bg-gray-100 rounded" />
+                  </div>
+                ))}
               </div>
-            </>
-          )}
+            )}
 
-        {/* No Results */}
-        {!isFetching &&
-          debouncedQuery.length >= 2 &&
-          results.length === 0 && (
-            <div className="flex flex-col items-center justify-center pt-16 gap-3">
-              <IoSearchOutline className="w-10 h-10 text-gray-700" />
-              <p className="text-[12px] text-gray-500">
-                No results found for &quot;
-                <span className="text-[#D4A843]">{debouncedQuery}</span>
-                &quot;
-              </p>
-            </div>
-          )}
+            {/* Results - Show immediately without flickering if data exists */}
+            {!isLoading && hasQuery && results.length > 0 && (
+              <ul className="py-1">
+                {results.map((product) => (
+                  <SearchResultItem
+                    key={product._id}
+                    product={product}
+                    query={activeQuery}
+                    onClick={onClose}
+                  />
+                ))}
+              </ul>
+            )}
 
-        {/* Empty State */}
-        {debouncedQuery.length < 2 && !isFetching && (
-          <div className="flex flex-col items-center justify-center pt-16 gap-2 text-center">
-            <IoSearchOutline className="w-10 h-10 text-gray-700 mb-2" />
-            <p className="text-[12px] text-gray-500 font-medium">
-              Start typing to search
-            </p>
-            <p className="text-[10px] text-gray-700 uppercase tracking-wider">
-              Minimum 2 characters required
-            </p>
+            {/* No results - Only show when fetching is completely done */}
+            {!isFetching && !isLoading && hasQuery && results.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <IoSearchOutline className="w-8 h-8 text-gray-300" />
+                <p className="text-[13px] text-gray-500">
+                  No results found for &quot;
+                  <span className="text-[#D4A843] font-semibold">
+                    {activeQuery}
+                  </span>
+                  &quot;
+                </p>
+              </div>
+            )}
+
+            {/* Prompt state */}
+            {!hasQuery && (
+              <div className="flex flex-col items-center justify-center py-10 gap-1 text-center">
+                <IoSearchOutline className="w-8 h-8 text-gray-300" />
+                <p className="text-[12px] text-gray-500 font-medium">
+                  Start typing to search
+                </p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+                  Minimum 2 characters required
+                </p>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Footer — View all results */}
+        {hasQuery && results.length > 0 && (
+          <button
+            type="button"
+            onClick={goToAllResults}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#1A1A1A] hover:bg-[#252525] text-white text-[13px] font-trebuchet font-semibold tracking-px transition-colors"
+          >
+            <IoSearchOutline size={15} />
+            <span>
+              View all results for &quot;{activeQuery}&quot;
+            </span>
+            <IoArrowForward size={15} />
+          </button>
         )}
       </div>
     </div>
   );
 }
+
+SearchOverlay.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  externalQuery: PropTypes.string,
+  showInput: PropTypes.bool,
+  inputRef: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+};

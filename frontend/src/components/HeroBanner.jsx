@@ -127,7 +127,7 @@ const HeroBanner = () => {
   const multi = banners.length > 1;
 
   return (
-    <section aria-label="Hero banner" className="font-sans mt-5">
+    <section aria-label="Hero banner" className="font-sans">
       <div className="relative w-full h-[260px] sm:h-[360px] md:h-[460px] lg:h-[540px] xl:h-[600px] overflow-hidden bg-gray-900">
         {/* ── Slide Container ── */}
         <div

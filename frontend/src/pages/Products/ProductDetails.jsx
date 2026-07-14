@@ -8,7 +8,6 @@ import {
   useCreateReviewMutation,
   useGetRelatedProductsQuery,
 } from "@redux/api/productApiSlice";
-import Loader from "../../components/Loader";
 import Message from "../../components/Message";
 import ProductTabs from "./ProductTabs";
 import ProductCard from "./ProductCard";
@@ -19,7 +18,7 @@ import Breadcrumb from "../../components/breadcrumb/Breadcrumb";
 
 // ── Skeleton Loader Component ──
 const ProductDetailsSkeleton = () => (
-  <div className="bg-white min-h-screen pt-10 animate-pulse">
+  <div className="bg-white min-h-screen animate-pulse">
     <div className="container mx-auto mt-2 px-4">
       <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
     </div>
@@ -283,7 +282,7 @@ const ProductDetails = () => {
   if (!product) return null;
 
   return (
-    <div className="bg-white min-h-screen pt-10">
+    <div className="bg-white min-h-screen">
       {/* ── SEO Optimization using Helmet ── */}
       <Helmet>
         <title>{`${product.name} - Buy Online at Best Price | AriX Co`}</title>

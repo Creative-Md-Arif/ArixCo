@@ -3,10 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { useProfileMutation } from "../../redux/api/usersApiSlice";
 import { setCredentials } from "../../redux/features/auth/authSlice";
-import { Link, useNavigate, NavLink } from "react-router-dom";
+import { Link, useNavigate,  } from "react-router-dom";
 
 import Swal from "sweetalert2";
-import { BsPersonCircle, BsShieldLock, BsBagCheck } from "react-icons/bs";
+import { BsPersonCircle, BsShieldLock } from "react-icons/bs";
 import { FaHome } from "react-icons/fa";
 import { HiChevronRight } from "react-icons/hi";
 
@@ -128,7 +128,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="bg-[#F9FAFB] min-h-screen pt-10">
+    <div className="bg-[#F9FAFB] min-h-screen">
       {/* ✅ Unified Breadcrumb */}
       <div className="bg-white border-b border-gray-100">
         <div className="container mx-auto px-4">
@@ -169,32 +169,7 @@ const Profile = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
         {/* ✅ Unified Tab Navigation */}
-        <div className="flex gap-2 border-b border-gray-200 mb-8 overflow-x-auto pb-px">
-          <NavLink
-            to="/profile"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
-                isActive
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              }`
-            }
-          >
-            <BsPersonCircle className="text-sm" /> Profile
-          </NavLink>
-          <NavLink
-            to="/user-orders"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2.5 text-[11px] font-mono font-black uppercase tracking-widest transition-colors rounded-t-lg whitespace-nowrap ${
-                isActive
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              }`
-            }
-          >
-            <BsBagCheck className="text-sm" /> Orders
-          </NavLink>
-        </div>
+     
 
         {/* ✅ Unified Container Width (max-w-5xl) */}
         <div className="max-w-5xl mx-auto">

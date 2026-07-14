@@ -30,7 +30,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import CheckboxTree from "react-checkbox-tree";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Range } from "react-range";
 import Product from "./Products/Product";
 import Breadcrumb from "../components/breadcrumb/Breadcrumb";
@@ -92,7 +92,7 @@ const PriceRangeSlider = ({ min, max, value, onChange }) => {
 const ProductSkeleton = () => (
   <div className="bg-white border border-gray-200 shadow-lg overflow-hidden animate-pulse">
     <div className="aspect-square bg-gray-100"></div>
-    <div className="p-3 flex flex-col gap-2 border-t border-gray-200 pt-4">
+    <div className="p-3 flex flex-col gap-2 border-t border-gray-200">
       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
       <div className="h-5 bg-gray-200 rounded w-1/2 mt-auto"></div>
     </div>
@@ -150,7 +150,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-12">
+    <div className="flex items-center justify-center gap-2">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
@@ -360,14 +360,14 @@ const ShopSidebar = ({
 const Shop = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { keyword: urlKeyword } = useParams();
+
   const queryParams = new URLSearchParams(location.search);
+  const urlKeyword = queryParams.get("keyword"); // ✅ Query param থেকে পড়ুন
   const categoryId = queryParams.get("category");
 
   const [sortBy, setSortBy] = useState(queryParams.get("sort") || "newest");
   const [priceRange, setPriceRange] = useState([0, 100000]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [expanded, setExpanded] = useState([]);
 
@@ -391,7 +391,7 @@ const Shop = () => {
     );
 
   const filteredProductsQuery = useGetFilteredProductsQuery(
-    { checked, radio: priceRange },
+    { checked, radio: priceRange, keyword: urlKeyword || "" }, // ✅ keyword যোগ
     { skip: !hasCategoryFilter },
   );
 
@@ -400,7 +400,10 @@ const Shop = () => {
     : isProductsLoading;
 
   // Memoize tree data conversion
-  const treeData = useMemo(() => formatCategoriesToTree(categories), [categories]);
+  const treeData = useMemo(
+    () => formatCategoriesToTree(categories),
+    [categories],
+  );
 
   // Memoize category path for breadcrumbs
   const categoryPath = useMemo(() => {
@@ -408,15 +411,29 @@ const Shop = () => {
     return findCategoryPath(categories, categoryId) || [];
   }, [categories, categoryId]);
 
+  useEffect(() => {
+    if (urlKeyword) {
+      dispatch(setChecked([]));
+      dispatch(setRadio(""));
+      setExpanded([]);
+    }
+  }, [urlKeyword, dispatch]);
+
+  // Effects
   // Effects
   useEffect(() => {
     if (categoryId && categories?.length > 0) {
-      dispatch(setChecked([categoryId]));
+      if (!checked.includes(categoryId)) {
+        dispatch(setChecked([categoryId]));
+      }
       const ancestorIds = categoryPath.map((c) => c.id).slice(0, -1);
       setExpanded((prev) => [
         ...new Set([...prev, ...ancestorIds, categoryId]),
       ]);
+    } else if (!categoryId && checked.length > 0) {
+      dispatch(setChecked([]));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryId, categories, dispatch, categoryPath]);
 
   useEffect(() => {
@@ -473,9 +490,9 @@ const Shop = () => {
       dispatch(setChecked(newChecked));
       setCurrentPage(1);
       scrollToTop();
-      // Sync URL with checked category
+      // Sync URL with checked category (newChecked[0] নিলে মূল ক্যাটাগরিটি URL-এ থাকবে)
       if (newChecked.length > 0) {
-        navigate(`/shop?category=${newChecked[newChecked.length - 1]}`, {
+        navigate(`/shop?category=${newChecked[0]}`, {
           replace: true,
         });
       } else {
@@ -496,13 +513,9 @@ const Shop = () => {
     scrollToTop();
   }, [dispatch, navigate, scrollToTop]);
 
+  // ব্যাকএন্ড থেকে যে পেজিনেশন আসছে, সেটাই ব্যবহার করবো। আলাদা করে slice করার দরকার নেই।
   const totalPages = hasCategoryFilter ? 1 : productsData?.pages || 1;
-  const paginatedProducts = hasCategoryFilter
-    ? products
-    : products?.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage,
-      );
+  const paginatedProducts = products; // সরাসরি products কে রেন্ডার করবে
 
   const uniqueBrands = useMemo(() => {
     const baseDataForBrands = hasCategoryFilter
@@ -514,11 +527,18 @@ const Shop = () => {
   }, [hasCategoryFilter, filteredProductsQuery.data, productsData]);
 
   return (
-    <div className="min-h-screen bg-white pt-10 pb-20 font-figtree">
+    <div className="min-h-screen bg-white pb-20 font-figtree">
       {/* ── SEO Optimization using Helmet ── */}
       <Helmet>
-        <title>{urlKeyword ? `Search: ${urlKeyword} | AriX Co` : "Shop All Products | AriX Co"}</title>
-        <meta name="description" content="Shop premium quality products at AriX Co. Filter by category, price, and brand to find exactly what you need. Fast delivery and secure payment." />
+        <title>
+          {urlKeyword
+            ? `Search: ${urlKeyword} | AriX Co`
+            : "Shop All Products | AriX Co"}
+        </title>
+        <meta
+          name="description"
+          content="Shop premium quality products at AriX Co. Filter by category, price, and brand to find exactly what you need. Fast delivery and secure payment."
+        />
       </Helmet>
 
       <Breadcrumb
@@ -574,7 +594,9 @@ const Shop = () => {
                 className="absolute right-0 top-0 h-full w-[300px] bg-white p-6 shadow-lg overflow-y-auto border-l border-gray-200"
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-[16px] font-semibold font-figtree tracking-widest text-gray-800">Filters</h2>
+                  <h2 className="text-[16px] font-semibold font-figtree tracking-widest text-gray-800">
+                    Filters
+                  </h2>
                   <button
                     onClick={() => setIsSidebarOpen(false)}
                     aria-label="Close filters"
@@ -625,7 +647,9 @@ const Shop = () => {
             </p>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <label htmlFor="sort-by" className="sr-only">Sort products</label>
+                <label htmlFor="sort-by" className="sr-only">
+                  Sort products
+                </label>
                 <select
                   id="sort-by"
                   value={sortBy}
@@ -652,7 +676,7 @@ const Shop = () => {
 
           {isLoading ? (
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8,9,10,11,12].map((i) => (
                 <ProductSkeleton key={i} />
               ))}
             </div>

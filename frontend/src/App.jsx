@@ -9,17 +9,6 @@ import Cart from "./pages/Cart";
 import useBodyScrollLock from "./hooks/useBodyScrollLock";
 import { useState } from "react";
 
-const HIDDEN_PATHS = [
-  "/admin/dashboard",
-  "/admin/categorylist",
-  "/admin/userlist",
-  "/admin/productlist",
-  "/admin/allproductslist",
-  "/admin/orderlist",
-  "/admin/bannerlist",
-  "/admin/banner/create",
-];
-
 function App() {
   useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,11 +16,8 @@ function App() {
 
   useBodyScrollLock(isMenuOpen);
 
-  // Routes where Footer and FooterBanners should be hidden
-  const shouldShowExtras =
-    !HIDDEN_PATHS.includes(location.pathname) &&
-    !location.pathname.startsWith("/admin/banner/update") &&
-    !location.pathname.startsWith("/admin/product/update");
+  // ✅ যদি রুটটি /admin দিয়ে শুরু হয়, তবে Navigation এবং Footer লুকাবে
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
     <>
@@ -53,10 +39,10 @@ function App() {
       />
       <ScrollRestoration />
 
-      {/* ✅ Sticky Footer Wrapper: min-h-screen এবং flex-col ব্যবহার করা হয়েছে */}
+      {/* Sticky Footer Wrapper */}
       <div
         className={`relative flex flex-col overflow-x-hidden bg-white min-h-screen ${
-          !shouldShowExtras ? "h-screen overflow-hidden" : ""
+          isAdminRoute ? "h-screen overflow-hidden" : ""
         }`}
       >
         <a
@@ -65,24 +51,27 @@ function App() {
         >
           Skip to main content
         </a>
-        <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-        
-        {/* ✅ main কে flex-grow দেওয়া হয়েছে যাতে সে খালি জায়গা দখল করে ফুটারকে নিচে রাখে */}
+
+        {/* ✅ শুধুমাত্র নন-অ্যাডমিন পেজের জন্য Navigation দেখাবে */}
+        {!isAdminRoute && (
+          <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        )}
+
         <main
           id="main-content"
-          className={`flex-grow flex flex-col ${!shouldShowExtras ? "overflow-y-auto" : ""}`}
+          className={`flex-grow flex flex-col ${
+            isAdminRoute ? "h-full overflow-y-auto" : "min-h-[80vh]"
+          }`}
           role="main"
           aria-label="Main content"
         >
           <Outlet />
         </main>
-        
-        {shouldShowExtras && (
-          <>
-            <Footer />
-          </>
-        )}
+
+        {/* ✅ শুধুমাত্র নন-অ্যাডমিন পেজের জন্য Footer দেখাবে */}
+        {!isAdminRoute && <Footer />}
       </div>
+
       <Cart />
     </>
   );

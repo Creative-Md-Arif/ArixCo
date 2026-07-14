@@ -24,7 +24,7 @@ const AllNotifications = () => {
   if (isLoading) return <Loader />;
   if (error)
     return (
-      <div className="text-center py-20 text-red-500 font-mono uppercase tracking-widest">
+      <div className="text-center py-10 text-red-500 font-mono uppercase tracking-widest">
         Critical Error: System couldn&apos;t fetch data.
       </div>
     );
@@ -42,12 +42,12 @@ const AllNotifications = () => {
   return (
     <div className="bg-[#FDFDFD] min-h-screen pb-20">
       {/* 🟢 ১. ব্র্যান্ডেড হেডার (AriX GeaR Style) */}
-      <div className="mt-[105px] py-10 bg-white border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <div className=" py-10 bg-white border-b border-gray-100 shadow-sm">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold border-l-4 border-red-600 pl-4 text-gray-800 uppercase tracking-widest font-mono">
-                System <span className="text-red-600">Alerts</span>
+                Notifications <span className="text-red-600">Alerts</span>
               </h1>
               <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-400 font-mono uppercase tracking-[0.2em] ml-5">
                 <Link to="/" className="hover:text-red-600 transition-colors">Home</Link>

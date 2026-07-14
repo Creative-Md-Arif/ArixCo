@@ -1,5 +1,6 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useCreateProductMutation,
@@ -26,14 +27,54 @@ import { TreeSelect } from "antd";
 
 Quill.register("modules/imageResize", ImageResize);
 
-// Custom Loading Spinner Component
+// --- Custom Loading Spinner ---
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center gap-2">
-    <div className="w-2 h-2 rounded-full bg-white animate-bounce [animation-delay:-0.3s]"></div>
-    <div className="w-2 h-2 rounded-full bg-white animate-bounce [animation-delay:-0.15s]"></div>
-    <div className="w-2 h-2 rounded-full bg-white animate-bounce"></div>
+    <div className="w-2.5 h-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.3s]"></div>
+    <div className="w-2.5 h-2.5 rounded-full bg-white animate-bounce [animation-delay:-0.15s]"></div>
+    <div className="w-2.5 h-2.5 rounded-full bg-white animate-bounce"></div>
   </div>
 );
+
+// --- Skeleton Loader ---
+const FormSkeleton = () => (
+  <div className="space-y-8 animate-pulse">
+    <div className="flex gap-4 border-b border-gray-200 pb-4">
+      <div className="h-10 w-24 bg-gray-200 rounded"></div>
+      <div className="h-10 w-24 bg-gray-200 rounded"></div>
+    </div>
+    <div className="h-36 bg-gray-100 border border-dashed border-gray-200 rounded-sm"></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(9)].map((_, i) => (
+        <div key={i} className="h-12 bg-gray-200 rounded"></div>
+      ))}
+    </div>
+    <div className="h-48 bg-gray-100 rounded"></div>
+  </div>
+);
+
+// --- Memoized React Quill Editor to prevent full page re-renders on typing ---
+const DescriptionEditor = memo(function DescriptionEditor({
+  quillRef,
+  value,
+  onChange,
+  modules,
+  formats,
+}) {
+  return (
+    <div className="border border-gray-200 rounded-sm overflow-hidden">
+      <ReactQuill
+        ref={quillRef}
+        theme="snow"
+        value={value}
+        onChange={onChange}
+        modules={modules}
+        formats={formats}
+        className="min-h-[300px] sm:min-h-[400px] description-quill"
+      />
+    </div>
+  );
+});
 
 const ProductList = () => {
   const quillRef = useRef(null);
@@ -53,7 +94,6 @@ const ProductList = () => {
   const [discountedAmount, setDiscountedAmount] = useState(0);
   const [weight, setWeight] = useState(0.5);
 
-  // Shipping Details State
   const [shippingDetails, setShippingDetails] = useState({
     isFreeShipping: false,
     isIndividualShipping: false,
@@ -66,7 +106,6 @@ const ProductList = () => {
     { label: "", value: "" },
   ]);
 
-  // --- VARIANT STATES ---
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState([]);
   const [activeVariantTab, setActiveVariantTab] = useState("basic");
@@ -74,38 +113,53 @@ const ProductList = () => {
   const navigate = useNavigate();
   const [uploadProductImage] = useUploadProductImageMutation();
   const [createProduct] = useCreateProductMutation();
-  const { data: categories } = useFetchCategoriesQuery();
+  const { data: categories, isLoading: isCatLoading } =
+    useFetchCategoriesQuery();
 
-  // --- AUTO DISCOUNT CALCULATION ---
-  const handlePriceChange = (val) => {
-    const p = Number(val);
-    setPrice(p);
-    if (discountPercentage > 0) {
-      setDiscountedAmount(Math.round((p * discountPercentage) / 100));
-    }
-  };
+  // --- Handlers wrapped in useCallback for performance ---
+  const handlePriceChange = useCallback(
+    (val) => {
+      const p = Number(val);
+      setPrice(p);
+      setDiscountedAmount((prevDisc) => {
+        if (prevDisc > 0 && p > 0)
+          return Math.round(
+            (p * (prevDisc / p > 0 ? (prevDisc / Number(price)) * 100 : 0)) /
+              100,
+          );
+        return prevDisc;
+      });
+    },
+    [price],
+  );
 
-  const handleDiscountPercentageChange = (val) => {
+  const handleDiscountPercentageChange = useCallback((val) => {
     const perc = Number(val);
     setDiscountPercentage(perc);
-    if (price > 0 && perc > 0) {
-      setDiscountedAmount(Math.round((price * perc) / 100));
-    } else {
-      setDiscountedAmount(0);
-    }
-  };
+    setPrice((prevPrice) => {
+      if (prevPrice > 0 && perc > 0) {
+        setDiscountedAmount(Math.round((prevPrice * perc) / 100));
+      } else {
+        setDiscountedAmount(0);
+      }
+      return prevPrice;
+    });
+  }, []);
 
-  const handleDiscountedAmountChange = (val) => {
+  const handleDiscountedAmountChange = useCallback((val) => {
     const amt = Number(val);
     setDiscountedAmount(amt);
-    if (price > 0 && amt > 0) {
-      setDiscountPercentage(Math.round((amt / price) * 100));
-    } else {
-      setDiscountPercentage(0);
-    }
-  };
+    setPrice((prevPrice) => {
+      if (prevPrice > 0 && amt > 0) {
+        setDiscountPercentage(Math.round((amt / prevPrice) * 100));
+      } else {
+        setDiscountPercentage(0);
+      }
+      return prevPrice;
+    });
+  }, []);
 
-  const imageHandler = () => {
+  const imageHandler = useCallback(() => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
     input.setAttribute("accept", "image/*");
@@ -127,7 +181,7 @@ const ProductList = () => {
         toast.error("Image upload failed");
       }
     };
-  };
+  }, [uploadProductImage]);
 
   const modules = useMemo(
     () => ({
@@ -151,8 +205,7 @@ const ProductList = () => {
         modules: ["Resize", "DisplaySize", "Toolbar"],
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [imageHandler],
   );
 
   const formats = [
@@ -175,108 +228,139 @@ const ProductList = () => {
     "video",
   ];
 
-  const addSpec = () =>
-    setSpecifications([...specifications, { label: "", value: "" }]);
-  const removeSpec = (index) =>
-    setSpecifications(specifications.filter((_, i) => i !== index));
-  const handleSpecChange = (index, field, val) => {
-    const newSpecs = [...specifications];
-    newSpecs[index][field] = val;
-    setSpecifications(newSpecs);
-  };
+  const addSpec = useCallback(
+    () => setSpecifications((s) => [...s, { label: "", value: "" }]),
+    [],
+  );
+  const removeSpec = useCallback(
+    (index) => setSpecifications((s) => s.filter((_, i) => i !== index)),
+    [],
+  );
+  const handleSpecChange = useCallback((index, field, val) => {
+    setSpecifications((prev) => {
+      const newSpecs = [...prev];
+      newSpecs[index][field] = val;
+      return newSpecs;
+    });
+  }, []);
 
-  const addFeature = () => setKeyFeatures([...keyFeatures, ""]);
-  const removeFeature = (index) =>
-    setKeyFeatures(keyFeatures.filter((_, i) => i !== index));
-  const handleFeatureChange = (index, val) => {
-    const newFeatures = [...keyFeatures];
-    newFeatures[index] = val;
-    setKeyFeatures(newFeatures);
-  };
+  const addFeature = useCallback(() => setKeyFeatures((f) => [...f, ""]), []);
+  const removeFeature = useCallback(
+    (index) => setKeyFeatures((f) => f.filter((_, i) => i !== index)),
+    [],
+  );
+  const handleFeatureChange = useCallback((index, val) => {
+    setKeyFeatures((prev) => {
+      const newFeatures = [...prev];
+      newFeatures[index] = val;
+      return newFeatures;
+    });
+  }, []);
 
-  const addColorVariant = () => {
-    const newVariant = {
-      color: { name: "", hexCode: "#000000", image: "", images: [] },
-      sizes: [
-        {
+  const addColorVariant = useCallback(() => {
+    setVariants((v) => [
+      ...v,
+      {
+        color: { name: "", hexCode: "#000000", image: "", images: [] },
+        sizes: [
+          {
+            size: "",
+            price: Number(price) || 0,
+            countInStock: 0,
+            sku: "",
+            isAvailable: true,
+          },
+        ],
+        isActive: true,
+      },
+    ]);
+  }, [price]);
+
+  const removeColorVariant = useCallback(
+    (colorIndex) => setVariants((v) => v.filter((_, i) => i !== colorIndex)),
+    [],
+  );
+  const updateColorInfo = useCallback((colorIndex, field, value) => {
+    setVariants((prev) => {
+      const newVariants = [...prev];
+      newVariants[colorIndex].color[field] = value;
+      return newVariants;
+    });
+  }, []);
+
+  const uploadColorImage = useCallback(
+    async (e, colorIndex) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        toast.info("Uploading color image...");
+        const res = await uploadProductImage(formData).unwrap();
+        setVariants((prev) => {
+          const newVariants = [...prev];
+          newVariants[colorIndex].color.image = res.images[0];
+          if (!newVariants[colorIndex].color.images.includes(res.images[0])) {
+            newVariants[colorIndex].color.images.push(res.images[0]);
+          }
+          return newVariants;
+        });
+        toast.success("Color image uploaded!");
+      } catch (error) {
+        toast.error("Upload failed");
+      }
+    },
+    [uploadProductImage],
+  );
+
+  const addSizeToVariant = useCallback(
+    (colorIndex) => {
+      setVariants((prev) => {
+        const newVariants = [...prev];
+        newVariants[colorIndex].sizes.push({
           size: "",
           price: Number(price) || 0,
           countInStock: 0,
           sku: "",
           isAvailable: true,
-        },
-      ],
-      isActive: true,
-    };
-    setVariants([...variants, newVariant]);
-  };
+        });
+        return newVariants;
+      });
+    },
+    [price],
+  );
 
-  const removeColorVariant = (colorIndex) =>
-    setVariants(variants.filter((_, i) => i !== colorIndex));
-
-  const updateColorInfo = (colorIndex, field, value) => {
-    const newVariants = [...variants];
-    newVariants[colorIndex].color[field] = value;
-    setVariants(newVariants);
-  };
-
-  const uploadColorImage = async (e, colorIndex) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      toast.info("Uploading color image...");
-      const res = await uploadProductImage(formData).unwrap();
-      const newVariants = [...variants];
-      newVariants[colorIndex].color.image = res.images[0];
-      if (!newVariants[colorIndex].color.images.includes(res.images[0])) {
-        newVariants[colorIndex].color.images.push(res.images[0]);
-      }
-      setVariants(newVariants);
-      toast.success("Color image uploaded!");
-    } catch (error) {
-      toast.error("Upload failed");
-    }
-  };
-
-  const addSizeToVariant = (colorIndex) => {
-    const newVariants = [...variants];
-    newVariants[colorIndex].sizes.push({
-      size: "",
-      price: Number(price) || 0,
-      countInStock: 0,
-      sku: "",
-      isAvailable: true,
+  const removeSizeFromVariant = useCallback((colorIndex, sizeIndex) => {
+    setVariants((prev) => {
+      const newVariants = [...prev];
+      newVariants[colorIndex].sizes = newVariants[colorIndex].sizes.filter(
+        (_, i) => i !== sizeIndex,
+      );
+      return newVariants;
     });
-    setVariants(newVariants);
-  };
+  }, []);
 
-  const removeSizeFromVariant = (colorIndex, sizeIndex) => {
-    const newVariants = [...variants];
-    newVariants[colorIndex].sizes = newVariants[colorIndex].sizes.filter(
-      (_, i) => i !== sizeIndex,
-    );
-    setVariants(newVariants);
-  };
+  const updateSizeInfo = useCallback((colorIndex, sizeIndex, field, value) => {
+    setVariants((prev) => {
+      const newVariants = [...prev];
+      newVariants[colorIndex].sizes[sizeIndex][field] = value;
+      return newVariants;
+    });
+  }, []);
 
-  const updateSizeInfo = (colorIndex, sizeIndex, field, value) => {
-    const newVariants = [...variants];
-    newVariants[colorIndex].sizes[sizeIndex][field] = value;
-    setVariants(newVariants);
-  };
-
-  const moveImage = (index, direction) => {
-    const updatedImages = [...images];
-    const newIndex = direction === "left" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= images.length) return;
-    [updatedImages[index], updatedImages[newIndex]] = [
-      updatedImages[newIndex],
-      updatedImages[index],
-    ];
-    setImages(updatedImages);
-  };
+  const moveImage = useCallback((index, direction) => {
+    setImages((prev) => {
+      const updatedImages = [...prev];
+      const newIndex = direction === "left" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= updatedImages.length) return prev;
+      [updatedImages[index], updatedImages[newIndex]] = [
+        updatedImages[newIndex],
+        updatedImages[index],
+      ];
+      return updatedImages;
+    });
+  }, []);
 
   const organizedCategories = useMemo(() => {
     if (!categories || categories.length === 0) return [];
@@ -333,7 +417,6 @@ const ProductList = () => {
     try {
       setLoading(true);
       const productData = new FormData();
-
       productData.append("images", JSON.stringify(images));
       productData.append("name", name);
       productData.append("description", description);
@@ -349,7 +432,6 @@ const ProductList = () => {
       productData.append("warranty", warranty);
       productData.append("weight", weight);
       productData.append("shippingDetails", JSON.stringify(shippingDetails));
-
       productData.append(
         "keyFeatures",
         JSON.stringify(keyFeatures.filter((f) => f.trim() !== "")),
@@ -358,7 +440,6 @@ const ProductList = () => {
         "specifications",
         JSON.stringify(specifications.filter((s) => s.label.trim() !== "")),
       );
-
       productData.append("hasVariants", hasVariants);
       if (hasVariants) {
         productData.append("variants", JSON.stringify(variants));
@@ -367,7 +448,6 @@ const ProductList = () => {
       }
 
       const res = await createProduct(productData).unwrap();
-
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -399,63 +479,66 @@ const ProductList = () => {
     }
   };
 
-  // Reusable Input Style
+  // Reusable Input Style with Trebuchet MS and min 14px font
   const inputClass =
-    "w-full border border-gray-200 rounded-sm px-3 py-2 text-sm focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
+    "w-full border border-gray-200 rounded-sm px-4 py-2.5 text-sm font-['Trebuchet_MS'] focus:ring-1 focus:ring-black focus:border-black outline-none transition-all bg-white";
   const labelClass =
-    "text-[10px] sm:text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-1.5 block";
+    "text-sm font-bold text-gray-600 tracking-wider uppercase mb-2 block font-['Trebuchet_MS']";
 
   return (
-    <div className="min-h-screen bg-[#fdfdfd] font-mono pt-20 pb-16 transition-all duration-500">
-      <div className="flex flex-col 2xl:flex-row">
-        <AdminMenu />
-        <div className="flex-1 px-4">
-          <div className="max-w-[1400px] mx-auto">
-            {/* Header */}
-            <div className="mb-8 border-l-4 border-black pl-4 sm:pl-6 py-2">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tighter uppercase">
-                Create <span className="text-red-600">New Product</span>
-              </h1>
-              <p className="text-[8px] sm:text-[10px] text-gray-400 font-bold tracking-[0.3em] sm:tracking-[0.4em] uppercase mt-1">
-                Management System | Variant_Active
-              </p>
-            </div>
+    <div className="min-h-screen bg-[#fdfdfd] font-['Trebuchet_MS'] pb-16">
+      <AdminMenu />
 
-            {/* Tab Navigation */}
-            <div className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-200">
-              {["basic", "variants"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveVariantTab(tab)}
-                  className={`px-3 sm:px-6 py-3 font-black uppercase text-[10px] sm:text-[12px] tracking-widest transition-all flex items-center gap-2 border-b-2 ${
-                    activeVariantTab === tab
-                      ? "border-black text-black"
-                      : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {tab === "variants" && <FaPalette className="text-[10px]" />}
-                  {tab}{" "}
-                  {tab === "variants" && hasVariants
-                    ? `(${variants.length})`
-                    : ""}
-                </button>
-              ))}
-            </div>
+      <main className="pt-24 px-4 lg:pl-[260px] transition-all duration-300">
+        <div className="max-w-[1500px] mx-auto">
+          {/* Header */}
+          <header className="mb-8 py-2">
+            <h2 className="text-base font-['Playfair_Display'] font-bold text-gray-700 uppercase tracking-wider mb-6 border-b border-gray-100 flex items-center gap-2">
+              <FaPlus size={14} /> Create New product
+            </h2>
+          </header>
 
-            <div className="bg-white border border-gray-200 p-4 sm:p-6 lg:p-10 relative overflow-hidden">
+          {/* Tab Navigation */}
+          <nav className="flex gap-4 mb-6 border-b border-gray-200">
+            {["basic", "variants"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveVariantTab(tab)}
+                className={`px-6 py-3 font-bold uppercase text-sm tracking-widest transition-all flex items-center gap-2 border-b-2 ${
+                  activeVariantTab === tab
+                    ? "border-black text-black"
+                    : "border-transparent text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {tab === "variants" && <FaPalette className="text-sm" />}
+                {tab}{" "}
+                {tab === "variants" && hasVariants
+                  ? `(${variants.length})`
+                  : ""}
+              </button>
+            ))}
+          </nav>
+
+          {/* Show Skeleton if categories are still loading */}
+          {isCatLoading ? (
+            <div className="bg-white border border-gray-200 p-6 lg:p-10 rounded-sm">
+              <FormSkeleton />
+            </div>
+          ) : (
+            <section className="bg-white border border-gray-200 p-6 lg:p-10 relative overflow-hidden rounded-sm">
               {/* BASIC INFO TAB */}
               {activeVariantTab === "basic" && (
-                <div className="space-y-10">
+                <div className="space-y-12">
                   {/* Image Gallery */}
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                    <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
                       Gallery Assets
                     </p>
-                    <div className="flex flex-wrap gap-3 sm:gap-4 p-4 bg-gray-50 border border-dashed border-gray-200 min-h-[140px] items-center justify-center rounded-sm">
+                    <div className="flex flex-wrap gap-4 p-4 bg-gray-50 border border-dashed border-gray-200 min-h-[140px] items-center justify-center rounded-sm">
                       {images.map((img, index) => (
                         <div
                           key={index}
-                          className="relative group border border-gray-200 overflow-hidden w-24 h-24 sm:w-32 sm:h-32 bg-white transition-all duration-300 hover:border-black"
+                          className="relative group border border-gray-200 overflow-hidden w-24 h-24 sm:w-32 sm:h-32 bg-white transition-all duration-300 hover:border-black rounded-sm"
                         >
                           <img
                             src={img}
@@ -469,16 +552,18 @@ const ProductList = () => {
                                 onClick={() => moveImage(index, "left")}
                                 disabled={index === 0}
                                 className="text-white hover:text-red-500 disabled:opacity-30"
+                                aria-label="Move left"
                               >
-                                <FaArrowLeft size={12} />
+                                <FaArrowLeft size={14} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => moveImage(index, "right")}
                                 disabled={index === images.length - 1}
                                 className="text-white hover:text-red-500 disabled:opacity-30"
+                                aria-label="Move right"
                               >
-                                <FaArrowRight size={12} />
+                                <FaArrowRight size={14} />
                               </button>
                             </div>
                             <button
@@ -487,13 +572,14 @@ const ProductList = () => {
                                 setImages(images.filter((_, i) => i !== index))
                               }
                               className="text-red-400 hover:text-red-600"
+                              aria-label="Delete image"
                             >
-                              <FaTrash size={14} />
+                              <FaTrash size={16} />
                             </button>
                           </div>
                         </div>
                       ))}
-                      <label className="w-24 h-24 sm:w-32 sm:h-32 border border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black group">
+                      <label className="w-24 h-24 sm:w-32 sm:h-32 border border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black group rounded-sm">
                         {loading ? (
                           <LoadingSpinner />
                         ) : (
@@ -502,7 +588,7 @@ const ProductList = () => {
                             className="group-hover:rotate-90 transition-transform"
                           />
                         )}
-                        <span className="text-[7px] sm:text-[8px] font-black uppercase mt-2 tracking-tighter text-center">
+                        <span className="text-sm font-bold uppercase mt-2 tracking-tighter text-center">
                           Upload
                         </span>
                         <input
@@ -625,7 +711,7 @@ const ProductList = () => {
                         onChange={(newValue) => setCategory(newValue)}
                         treeData={organizedCategories}
                         treeNodeLabelProp="label"
-                        className="border border-gray-200 rounded-sm h-[38px] flex items-center text-sm"
+                        className="border border-gray-200 rounded-sm h-[42px] flex items-center text-sm"
                         variant="borderless"
                         filterTreeNode={(input, node) =>
                           node.title.toLowerCase().includes(input.toLowerCase())
@@ -655,24 +741,24 @@ const ProductList = () => {
                       />
                     </div>
 
-                    <div className="flex items-center gap-4 pt-5">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center gap-4 pt-6">
+                      <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">
                         Featured
                       </label>
                       <input
                         type="checkbox"
                         checked={isFeatured}
                         onChange={(e) => setIsFeatured(e.target.checked)}
-                        className="w-4 h-4 accent-black cursor-pointer"
+                        className="w-5 h-5 accent-black cursor-pointer"
                       />
                     </div>
 
-                    <div className="flex items-center gap-4 pt-5 bg-gray-50 p-3 rounded-sm border border-gray-200">
+                    <div className="flex items-center gap-4 pt-6 bg-gray-50 p-4 rounded-sm border border-gray-200">
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">
+                        <label className="text-sm font-bold text-red-600 uppercase tracking-wider block">
                           Enable Variants
                         </label>
-                        <p className="text-[8px] text-gray-400 mt-0.5">
+                        <p className="text-sm text-gray-500 mt-1">
                           Color & Size combinations
                         </p>
                       </div>
@@ -680,15 +766,15 @@ const ProductList = () => {
                         type="checkbox"
                         checked={hasVariants}
                         onChange={(e) => setHasVariants(e.target.checked)}
-                        className="w-5 h-5 accent-red-600 cursor-pointer"
+                        className="w-6 h-6 accent-red-600 cursor-pointer"
                       />
                     </div>
                   </div>
 
                   {/* Shipping Details Section */}
                   <div className="border-t border-gray-100 pt-8">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
-                      <FaTruck className="text-[9px]" /> Shipping Configuration
+                    <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+                      <FaTruck className="text-sm" /> Shipping Configuration
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-4 border border-gray-200 rounded-sm">
                       <div className="flex items-center gap-3">
@@ -701,9 +787,9 @@ const ProductList = () => {
                               isFreeShipping: e.target.checked,
                             })
                           }
-                          className="w-4 h-4 accent-black"
+                          className="w-5 h-5 accent-black"
                         />
-                        <label className="text-xs font-bold text-gray-700">
+                        <label className="text-sm font-bold text-gray-700">
                           Free Shipping
                         </label>
                       </div>
@@ -717,14 +803,14 @@ const ProductList = () => {
                               isIndividualShipping: e.target.checked,
                             })
                           }
-                          className="w-4 h-4 accent-black"
+                          className="w-5 h-5 accent-black"
                         />
-                        <label className="text-xs font-bold text-gray-700">
+                        <label className="text-sm font-bold text-gray-700">
                           Individual Shipping
                         </label>
                       </div>
                       <div>
-                        <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">
+                        <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                           Individual Cost (৳)
                         </label>
                         <input
@@ -741,7 +827,7 @@ const ProductList = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">
+                        <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                           Extra Cost (৳)
                         </label>
                         <input
@@ -761,11 +847,11 @@ const ProductList = () => {
 
                   {/* Key Features */}
                   <div className="border-t border-gray-100 pt-8">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                    <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
                       Key Features
                     </p>
                     {keyFeatures.map((feature, index) => (
-                      <div key={index} className="flex gap-2 mb-2">
+                      <div key={index} className="flex gap-2 mb-3">
                         <input
                           type="text"
                           value={feature}
@@ -778,16 +864,17 @@ const ProductList = () => {
                         <button
                           type="button"
                           onClick={() => removeFeature(index)}
-                          className="text-gray-300 hover:text-red-500 transition-colors px-2"
+                          className="text-gray-400 hover:text-red-500 transition-colors px-3"
+                          aria-label="Remove feature"
                         >
-                          <FaTrash size={12} />
+                          <FaTrash size={14} />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
                       onClick={addFeature}
-                      className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
+                      className="text-sm font-bold uppercase bg-black text-white px-5 py-2.5 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
                     >
                       + Add Feature
                     </button>
@@ -795,13 +882,13 @@ const ProductList = () => {
 
                   {/* Specifications */}
                   <div className="border-t border-gray-100 pt-8">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                    <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
                       Specifications
                     </p>
                     {specifications.map((spec, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3"
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3"
                       >
                         <input
                           type="text"
@@ -825,9 +912,10 @@ const ProductList = () => {
                           <button
                             type="button"
                             onClick={() => removeSpec(index)}
-                            className="text-gray-300 hover:text-red-500 transition-colors px-2"
+                            className="text-gray-400 hover:text-red-500 transition-colors px-3"
+                            aria-label="Remove spec"
                           >
-                            <FaTrash size={12} />
+                            <FaTrash size={14} />
                           </button>
                         </div>
                       </div>
@@ -835,7 +923,7 @@ const ProductList = () => {
                     <button
                       type="button"
                       onClick={addSpec}
-                      className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
+                      className="text-sm font-bold uppercase bg-black text-white px-5 py-2.5 mt-2 hover:bg-gray-800 transition-colors rounded-sm"
                     >
                       + Add Spec
                     </button>
@@ -843,20 +931,16 @@ const ProductList = () => {
 
                   {/* Description Editor */}
                   <div className="border-t border-gray-100 pt-8">
-                    <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-4 block">
+                    <label className="text-sm font-bold text-gray-500 tracking-widest uppercase mb-4 block">
                       Description Data
                     </label>
-                    <div className="border border-gray-200 rounded-sm overflow-hidden">
-                      <ReactQuill
-                        ref={quillRef}
-                        theme="snow"
-                        value={description}
-                        onChange={setDescription}
-                        modules={modules}
-                        formats={formats}
-                        className="min-h-[300px] sm:min-h-[400px] description-quill"
-                      />
-                    </div>
+                    <DescriptionEditor
+                      quillRef={quillRef}
+                      value={description}
+                      onChange={setDescription}
+                      modules={modules}
+                      formats={formats}
+                    />
                   </div>
                 </div>
               )}
@@ -866,17 +950,17 @@ const ProductList = () => {
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-gray-100 pb-4">
                     <div>
-                      <h2 className="text-lg sm:text-xl font-black text-black tracking-tighter uppercase">
+                      <h2 className="text-xl font-['Playfair_Display'] font-bold text-black tracking-tight uppercase">
                         Product Variants
                       </h2>
-                      <p className="text-[10px] text-gray-400 mt-1">
+                      <p className="text-sm text-gray-500 mt-1">
                         Configure color and size combinations
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={addColorVariant}
-                      className="flex items-center gap-2 bg-black text-white px-5 py-2.5 font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all rounded-sm"
+                      className="flex items-center gap-2 bg-black text-white px-6 py-3 font-bold uppercase text-sm tracking-widest hover:bg-red-600 transition-all rounded-sm"
                     >
                       <FaPlus /> Add Color
                     </button>
@@ -884,8 +968,8 @@ const ProductList = () => {
 
                   {variants.length === 0 && (
                     <div className="text-center py-16 bg-gray-50 border border-dashed border-gray-200 rounded-sm">
-                      <FaPalette className="mx-auto text-3xl text-gray-300 mb-4" />
-                      <p className="text-gray-400 text-xs">
+                      <FaPalette className="mx-auto text-4xl text-gray-300 mb-4" />
+                      <p className="text-gray-500 text-sm">
                         No variants added yet.
                       </p>
                     </div>
@@ -894,10 +978,10 @@ const ProductList = () => {
                   {variants.map((variant, colorIndex) => (
                     <div
                       key={colorIndex}
-                      className="bg-gray-50 p-4 sm:p-6 border border-gray-200 rounded-sm"
+                      className="bg-gray-50 p-6 border border-gray-200 rounded-sm"
                     >
                       <div className="flex flex-col md:flex-row items-start gap-4 mb-6 pb-6 border-b border-gray-200">
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
                           <div>
                             <label className={labelClass}>Color Name</label>
                             <input
@@ -927,7 +1011,7 @@ const ProductList = () => {
                                     e.target.value,
                                   )
                                 }
-                                className="w-10 h-[38px] rounded-sm border border-gray-200 cursor-pointer p-1"
+                                className="w-12 h-[42px] rounded-sm border border-gray-200 cursor-pointer p-1"
                               />
                               <input
                                 type="text"
@@ -939,7 +1023,7 @@ const ProductList = () => {
                                     e.target.value,
                                   )
                                 }
-                                className={`${inputClass} flex-1 font-mono uppercase`}
+                                className={`${inputClass} flex-1 uppercase`}
                               />
                             </div>
                           </div>
@@ -947,7 +1031,7 @@ const ProductList = () => {
                             <label className={labelClass}>Color Image</label>
                             <div className="flex gap-2 items-center">
                               {variant.color.image ? (
-                                <div className="relative w-10 h-10 group">
+                                <div className="relative w-12 h-12 group">
                                   <img
                                     src={variant.color.image}
                                     alt="Color"
@@ -958,14 +1042,14 @@ const ProductList = () => {
                                     onClick={() =>
                                       updateColorInfo(colorIndex, "image", "")
                                     }
-                                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                   >
-                                    <FaTrash />
+                                    <FaTrash size={8} />
                                   </button>
                                 </div>
                               ) : (
-                                <label className="w-10 h-10 border border-dashed border-gray-300 rounded-sm flex items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black">
-                                  <FaPlus size={12} />
+                                <label className="w-12 h-12 border border-dashed border-gray-300 rounded-sm flex items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition-all text-gray-400 hover:text-black">
+                                  <FaPlus size={14} />
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -982,34 +1066,35 @@ const ProductList = () => {
                         <button
                           type="button"
                           onClick={() => removeColorVariant(colorIndex)}
-                          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label="Delete variant"
                         >
-                          <FaTrash />
+                          <FaTrash size={16} />
                         </button>
                       </div>
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <FaRuler className="text-[8px]" /> Sizes for{" "}
+                          <h4 className="text-sm font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                            <FaRuler className="text-sm" /> Sizes for{" "}
                             {variant.color.name || `Color ${colorIndex + 1}`}
                           </h4>
                           <button
                             type="button"
                             onClick={() => addSizeToVariant(colorIndex)}
-                            className="text-[9px] font-black text-black uppercase tracking-widest flex items-center gap-1 hover:text-red-600 transition-colors"
+                            className="text-sm font-bold text-black uppercase tracking-widest flex items-center gap-1 hover:text-red-600 transition-colors"
                           >
-                            <FaPlus size={8} /> Add Size
+                            <FaPlus size={10} /> Add Size
                           </button>
                         </div>
 
                         {variant.sizes.map((size, sizeIndex) => (
                           <div
                             key={sizeIndex}
-                            className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 bg-white p-3 border border-gray-200 rounded-sm"
+                            className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 bg-white p-4 border border-gray-200 rounded-sm"
                           >
                             <div>
-                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
+                              <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                                 Size
                               </label>
                               <input
@@ -1024,11 +1109,11 @@ const ProductList = () => {
                                   )
                                 }
                                 placeholder="S, M, L"
-                                className={`${inputClass} text-xs py-1`}
+                                className={`${inputClass} py-2`}
                               />
                             </div>
                             <div>
-                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
+                              <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                                 Price (৳)
                               </label>
                               <input
@@ -1043,11 +1128,11 @@ const ProductList = () => {
                                   )
                                 }
                                 placeholder="0"
-                                className={`${inputClass} text-xs py-1`}
+                                className={`${inputClass} py-2`}
                               />
                             </div>
                             <div>
-                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
+                              <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                                 Stock
                               </label>
                               <input
@@ -1062,11 +1147,11 @@ const ProductList = () => {
                                   )
                                 }
                                 placeholder="0"
-                                className={`${inputClass} text-xs py-1`}
+                                className={`${inputClass} py-2`}
                               />
                             </div>
                             <div>
-                              <label className="text-[8px] font-bold text-gray-400 uppercase block mb-1">
+                              <label className="text-sm font-bold text-gray-500 uppercase block mb-1">
                                 SKU
                               </label>
                               <input
@@ -1081,7 +1166,7 @@ const ProductList = () => {
                                   )
                                 }
                                 placeholder="SKU-001"
-                                className={`${inputClass} text-xs py-1 font-mono`}
+                                className={`${inputClass} py-2`}
                               />
                             </div>
                             <div className="flex items-end justify-center">
@@ -1090,9 +1175,10 @@ const ProductList = () => {
                                 onClick={() =>
                                   removeSizeFromVariant(colorIndex, sizeIndex)
                                 }
-                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                                className="p-2.5 text-gray-400 hover:text-red-500 transition-colors"
+                                aria-label="Delete size"
                               >
-                                <FaTrash size={11} />
+                                <FaTrash size={14} />
                               </button>
                             </div>
                           </div>
@@ -1108,22 +1194,22 @@ const ProductList = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className={`w-full sm:w-auto relative px-10 py-3 bg-black text-white font-black uppercase tracking-[0.2em] text-[11px] overflow-hidden transition-all duration-300 active:scale-95 rounded-sm ${
+                  className={`w-full sm:w-auto relative px-12 py-4 bg-black text-white font-bold uppercase tracking-widest text-sm overflow-hidden transition-all duration-300 active:scale-95 rounded-sm ${
                     loading
                       ? "opacity-70 cursor-not-allowed"
                       : "hover:bg-red-600"
                   }`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {loading ? <LoadingSpinner /> : <FaPlus size={10} />}
-                    {loading ? "Processing..." : "Deploy Product"}
+                    {loading ? <LoadingSpinner /> : <FaPlus size={12} />}
+                    {loading ? "Processing..." : "Create Product"}
                   </span>
                 </button>
               </div>
-            </div>
-          </div>
+            </section>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
