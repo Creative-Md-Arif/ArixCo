@@ -56,6 +56,24 @@ const uploadCategory = multer({
   limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
 });
 
+// ==================== SITE LOGO STORAGE ====================
+const logoStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "uploads/site-logo",
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "svg"],
+    // লোগো সাধারণত ছোট ও transparent হয়, তাই বড় resize না করে শুধু quality optimize করা
+    transformation: [
+      { width: 500, crop: "limit", quality: "auto", fetch_format: "auto" },
+    ],
+  },
+});
+
+const uploadLogo = multer({
+  storage: logoStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // লোগো ছোট ফাইল হওয়া উচিত, 2MB যথেষ্ট
+});
+
 // ==================== GENERAL UPLOAD (BACKWARD COMPATIBILITY) ====================
 const generalStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -168,6 +186,20 @@ router.post("/category", uploadCategory.single("image"), (req, res) => {
       message: "Category image uploaded successfully",
       image: req.file.path,
       url: req.file.path,
+    });
+  } else {
+    res.status(400).send({ message: "No image file provided" });
+  }
+});
+
+// ==================== SITE LOGO UPLOAD ====================
+router.post("/logo", uploadLogo.single("image"), (req, res) => {
+  if (req.file) {
+    res.status(200).send({
+      message: "Logo uploaded successfully",
+      image: req.file.path,
+      url: req.file.path,
+      public_id: req.file.filename,
     });
   } else {
     res.status(400).send({ message: "No image file provided" });

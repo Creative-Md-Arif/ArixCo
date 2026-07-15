@@ -1,5 +1,23 @@
 /* eslint-disable react/prop-types */
-const Logo = ({ className }) => {
+import { useGetSiteSettingsQuery } from "@redux/api/siteSettingApiSlice";
+
+const Logo = ({ className = "" }) => {
+  const { data } = useGetSiteSettingsQuery();
+  const logoUrl = data?.data?.logo?.url;
+
+
+  if (logoUrl) {
+    return (
+      <div className={`flex items-center cursor-pointer group ${className}`}>
+        <img
+          src={logoUrl}
+          alt="Arix Co."
+          className="h-9 sm:h-12 w-auto object-contain"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`flex items-center cursor-pointer group ${className}`}>
       <div className="flex flex-col leading-none">

@@ -20,6 +20,8 @@ export const CUPPON_URL = "/api/cuppons";
 export const SHIPPING_URL = "/api/shipping";
 export const TRACKING_URL = "/api/track";
 export const RETURNS_URL = "/api/returns";
+export const SITE_SETTING_URL = "/api/site-settings";
+export const NEWSLETTER_URL = "/api/newsletter";
 export const ORDER_PAY_URL = (orderId) => `/api/orders/${orderId}/pay`;
 export const SOCKET_URL = isDevelopment ? "http://localhost:8000" : BACKEND_URL;
 export const UPLOADS_URL = isDevelopment

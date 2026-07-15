@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+import { useState } from "react";
 import {
   FaFacebook,
   FaInstagram,
@@ -9,11 +10,14 @@ import {
 import { MdOutlineEmail, MdLocationOn } from "react-icons/md";
 import { IoCallOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useGetSiteSettingsQuery } from "@redux/api/siteSettingApiSlice";
+import { useSubscribeNewsletterMutation } from "@redux/api/newsletterApiSlice";
 import Logo from "./Logo";
 import FooterBottom from "./FooterBottom";
 import Whatsapp from "./Whatsapp";
 
-/* ─── data ───────────────────────────────────────────────── */
+/* ─── static data (link lists rarely change, kept as-is) ───── */
 const LINKS = {
   support: [
     { name: "Help Center", path: "#" },
@@ -31,23 +35,13 @@ const LINKS = {
   ],
 };
 
-const SOCIAL = [
-  { Icon: FaFacebook, href: "#", label: "Facebook" },
-  { Icon: FaInstagram, href: "#", label: "Instagram" },
-  { Icon: FaYoutube, href: "#", label: "YouTube" },
-  { Icon: FaTwitter, href: "#", label: "Twitter" },
-  { Icon: FaLinkedin, href: "#", label: "LinkedIn" },
-];
-
-const CONTACT = [
-  {
-    Icon: MdOutlineEmail,
-    text: "support@arixgear.com",
-    href: "mailto:support@arixgear.com",
-  },
-  { Icon: IoCallOutline, text: "+880 17100000000", href: "tel:+8801710000000" },
-  { Icon: MdLocationOn, text: "Dhaka, Bangladesh", href: "#" },
-];
+const SOCIAL_ICONS = {
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  youtube: FaYoutube,
+  twitter: FaTwitter,
+  linkedin: FaLinkedin,
+};
 
 const TRUST = [
   {
@@ -59,7 +53,7 @@ const TRUST = [
   {
     label: "24/7 Support",
     bg: "bg-neutral-900",
-    color: "text-[#B88E2F]", // ব্লু পরিবর্তন করে গোল্ডেন করা হয়েছে
+    color: "text-[#B88E2F]",
     path: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
   },
   {
@@ -79,17 +73,64 @@ const Heading = ({ children }) => (
 
 /* ─── Footer ─────────────────────────────────────────────── */
 const Footer = () => {
-  const handleSubscribe = (e) => {
+  const { data: settingsData } = useGetSiteSettingsQuery();
+  const [subscribeNewsletter, { isLoading: isSubscribing }] =
+    useSubscribeNewsletterMutation();
+
+  const [email, setEmail] = useState("");
+
+  const settings = settingsData?.data;
+
+  // fallback রাখা হয়েছে যাতে API লোড হওয়ার আগে বা ফেইল করলেও footer ভাঙে না
+  const contact = {
+    email: settings?.contact?.email || "support@arixgear.com",
+    phone: settings?.contact?.phone || "+880 17100000000",
+    address: settings?.contact?.address || "Dhaka, Bangladesh",
+  };
+
+  const CONTACT = [
+    {
+      Icon: MdOutlineEmail,
+      text: contact.email,
+      href: `mailto:${contact.email}`,
+    },
+    {
+      Icon: IoCallOutline,
+      text: contact.phone,
+      href: `tel:${contact.phone.replace(/\s+/g, "")}`,
+    },
+    { Icon: MdLocationOn, text: contact.address, href: "#" },
+  ];
+
+  // socialLinks অবজেক্ট থেকে শুধু যেগুলোর URL সেট করা আছে সেগুলোই দেখানো হবে
+  const socialLinks = settings?.socialLinks || {};
+  const SOCIAL = Object.entries(SOCIAL_ICONS)
+    .filter(([key]) => socialLinks[key])
+    .map(([key, Icon]) => ({
+      Icon,
+      href: socialLinks[key],
+      label: key.charAt(0).toUpperCase() + key.slice(1),
+    }));
+
+  const copyrightText = settings?.copyrightText || "ARIX CO — All rights reserved.";
+
+  const handleSubscribe = async (e) => {
     e.preventDefault();
-    alert("Thank you for subscribing!");
+    if (!email) return;
+
+    try {
+      await subscribeNewsletter(email).unwrap();
+      toast.success("Thank you for subscribing!");
+      setEmail("");
+    } catch (error) {
+      toast.error(error?.data?.message || "Failed to subscribe");
+    }
   };
 
   return (
     <footer className="bg-neutral-950 border-t border-neutral-900 font-figtree text-neutral-400">
       <div className="container mx-auto px-4 py-12 sm:py-16">
-        {/* লজিক্যাল গ্রিড স্পেসিং ফিক্স করা হয়েছে (Shop রিমুভের পর) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10">
-          
           {/* ── Brand + Newsletter ── */}
           <div className="col-span-1 md:col-span-2 lg:col-span-5 space-y-5">
             <Logo invert />
@@ -110,6 +151,8 @@ const Footer = () => {
               <form onSubmit={handleSubscribe} className="flex gap-2">
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   aria-label="Email address for newsletter"
                   required
@@ -123,15 +166,17 @@ const Footer = () => {
                 />
                 <button
                   type="submit"
+                  disabled={isSubscribing}
                   className="
                     px-4 py-2 shrink-0
                     bg-[#B88E2F] text-white
                     text-[14px] font-black uppercase tracking-widest
                     rounded-sm hover:bg-[#9E7A26]
                     transition-colors duration-200
+                    disabled:opacity-50 disabled:cursor-not-allowed
                   "
                 >
-                  Join
+                  {isSubscribing ? "..." : "Join"}
                 </button>
               </form>
             </div>
@@ -196,33 +241,37 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Social */}
-            <div>
-              <p className="text-[14px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2.5">
-                Follow Us
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SOCIAL.map(({ Icon, href, label }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    className="
-                      w-9 h-9
-                      flex items-center justify-center
-                      border border-neutral-900 rounded-sm
-                      text-neutral-400 hover:text-red-500 hover:border-red-500
-                      transition-colors duration-200 bg-neutral-900/20
-                    "
-                  >
-                    <Icon
-                      className="w-[14px] h-[14px] shrink-0"
-                      aria-hidden="true"
-                    />
-                  </a>
-                ))}
+            {/* Social — শুধু URL সেট করা আছে এমন প্ল্যাটফর্মই দেখাবে */}
+            {SOCIAL.length > 0 && (
+              <div>
+                <p className="text-[14px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2.5">
+                  Follow Us
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SOCIAL.map(({ Icon, href, label }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      className="
+                        w-9 h-9
+                        flex items-center justify-center
+                        border border-neutral-900 rounded-sm
+                        text-neutral-400 hover:text-red-500 hover:border-red-500
+                        transition-colors duration-200 bg-neutral-900/20
+                      "
+                    >
+                      <Icon
+                        className="w-[14px] h-[14px] shrink-0"
+                        aria-hidden="true"
+                      />
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -279,7 +328,7 @@ const Footer = () => {
       </div>
 
       <Whatsapp />
-      <FooterBottom />
+      <FooterBottom copyrightText={copyrightText} />
     </footer>
   );
 };

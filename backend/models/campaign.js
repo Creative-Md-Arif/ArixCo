@@ -18,6 +18,16 @@ const campaignSchema = new Schema(
       lowercase: true,
       trim: true,
     },
+
+    subtitle: {
+      type: String,
+      trim: true,
+    },
+    buttonText: {
+      type: String,
+      trim: true,
+      default: "Shop Now",
+    },
     description: {
       type: String,
       trim: true,

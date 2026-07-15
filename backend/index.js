@@ -22,6 +22,8 @@ import bannerRoutes from "./routes/bannerRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import cupponRoutes from "./routes/cupponRoutes.js";
 import shippingRoutes from "./routes/shippingRoutes.js";
+import siteSettingRoutes from "./routes/siteSettingRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
 
 // utils
 import connectDB from "./config/db.js";
@@ -136,6 +138,8 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/cuppons", cupponRoutes);
 app.use("/api/shipping", shippingRoutes);
+app.use("/api/site-settings", siteSettingRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 // static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

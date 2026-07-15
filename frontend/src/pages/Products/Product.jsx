@@ -22,21 +22,15 @@ const ProductSkeleton = () => (
 const Product = ({ product }) => {
   const dispatch = useDispatch();
 
-  // Skeleton Loading State
-  if (!product) return <ProductSkeleton />;
-
   /* ── Logic Optimization using useMemo ──────────────────── */
+  // NOTE: useMemo must run BEFORE any conditional return so hooks
+  // are always called in the same order on every render.
   const {
-    basePrice,
-    finalPrice,
     originalPrice,
     displayDiscountPercent,
     mainImage,
     productPath,
     hasCampaign,
-    camp,
-    rangeMin,
-    rangeMax,
     isRangePrice,
     priceToShow,
     priceToShowMax,
@@ -45,6 +39,25 @@ const Product = ({ product }) => {
     campaignBadgeText,
     inStock
   } = useMemo(() => {
+    // Guard: when product is missing, return safe defaults so the
+    // skeleton render path doesn't crash the hook computation.
+    if (!product) {
+      return {
+        originalPrice: 0,
+        displayDiscountPercent: 0,
+        mainImage: "/placeholder.jpg",
+        productPath: "#",
+        hasCampaign: false,
+        isRangePrice: false,
+        priceToShow: 0,
+        priceToShowMax: null,
+        crossedPrice: null,
+        crossedPriceMax: null,
+        campaignBadgeText: null,
+        inStock: false
+      };
+    }
+
     const getVariantPrice = (prod) => {
       if (!prod.hasVariants || !prod.variants) return prod?.price || 0;
       const colorIndex = prod.defaultColorIndex || 0;
@@ -150,16 +163,11 @@ const Product = ({ product }) => {
     }
 
     return {
-      basePrice: bPrice,
-      finalPrice: fPrice,
       originalPrice: oPrice,
       displayDiscountPercent: dDiscount,
       mainImage: mImage,
       productPath: pPath,
       hasCampaign: hCampaign,
-      camp: c,
-      rangeMin: rMin,
-      rangeMax: rMax,
       isRangePrice: isRange,
       priceToShow: pToShow,
       priceToShowMax: pToShowMax,
@@ -170,6 +178,9 @@ const Product = ({ product }) => {
     };
   }, [product]);
 
+  // Skeleton Loading State — MUST come after all hooks
+  if (!product) return <ProductSkeleton />;
+
   /* ── End Logic Optimization ──────────────────── */
 
   const formatPrice = (val) => Math.round(val).toLocaleString("en-BD");
@@ -178,7 +189,6 @@ const Product = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // variant থাকা product কে card থেকে সরাসরি add না করে detail page এ পাঠানো ভালো,
     if (product.hasVariants) {
       window.location.href = productPath;
       return;
@@ -259,7 +269,6 @@ const Product = ({ product }) => {
           </div>
         ) : null}
 
-        {/* Variant থাকলে ছোট color swatch দেখানো */}
         {product.hasVariants && product.variants?.length > 1 && (
           <div className="absolute bottom-2 left-2 flex gap-1 z-10">
             {product.variants.slice(0, 4).map((v, i) => (
@@ -297,7 +306,7 @@ const Product = ({ product }) => {
                 : `Add ${product.name} to cart`
             }
             className="absolute bottom-0 left-0 w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 text-[14px] font-medium capitalize tracking-px font-trebuchet text-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 focus:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B88E2F]"
-            style={{ background: "#6E2594" }} // ✅ Removed useless backgroundSize CSS
+            style={{ background: "#6E2594" }}
           >
             <FaShoppingCart
               className="w-[11px] h-[11px] sm:w-[12px] sm:h-[12px] shrink-0"
@@ -359,5 +368,4 @@ const Product = ({ product }) => {
   );
 };
 
-// ✅ Memoized to prevent unnecessary re-renders
 export default memo(Product);

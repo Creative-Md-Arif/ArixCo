@@ -15,6 +15,8 @@ const createCampaign = async (req, res) => {
   try {
     const {
       title,
+      subtitle, 
+      buttonText, 
       description,
       bannerImage,
       type,
@@ -85,6 +87,8 @@ const createCampaign = async (req, res) => {
 
     const campaign = await Campaign.create({
       title,
+      subtitle, 
+      buttonText,
       slug: finalSlug,
       description,
       bannerImage,

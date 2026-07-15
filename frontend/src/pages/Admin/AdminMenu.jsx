@@ -5,9 +5,9 @@ import { LuUsers } from "react-icons/lu";
 import { CiShoppingCart } from "react-icons/ci";
 import { AiOutlineProduct, AiOutlinePlusSquare } from "react-icons/ai";
 import { TbCategory2 } from "react-icons/tb";
-import { MdOutlineDashboard } from "react-icons/md";
+import { MdEmail, MdOutlineDashboard } from "react-icons/md";
 import { RiImageLine } from "react-icons/ri";
-import { FaCreditCard, FaArrowLeft } from "react-icons/fa";
+import { FaCreditCard, FaArrowLeft, FaCog } from "react-icons/fa";
 
 const menuItems = [
   { to: "/admin/dashboard", icon: <MdOutlineDashboard />, label: "Dashboard" },
@@ -22,6 +22,8 @@ const menuItems = [
   { to: "/admin/cuppon-manage", icon: <AiOutlinePlusSquare />, label: "Cuppons" },
   { to: "/admin/shipping-manage", icon: <AiOutlinePlusSquare />, label: "Shipping" },
   { to: "/admin/payment-settings", icon: <FaCreditCard />, label: "Payments" },
+  { to: "/admin/site-settings", icon: <FaCog />, label: "Site Settings" },
+  { to: "/admin/newsletter", icon: <MdEmail />, label: "Newsletter" },
 ];
 
 const AdminMenu = () => {

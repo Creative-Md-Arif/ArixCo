@@ -21,7 +21,6 @@ if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
   window.history.scrollRestoration = "manual";
 }
 
-
 /* ──────────────────────────────────────────────────────────
    ✅ DelayedSuspense — Fast chunk load হলে Loader flash করবে না
    ────────────────────────────────────────────────────────── */
@@ -40,15 +39,15 @@ const DelayedFallback = ({ delay }) => {
 };
 
 const DelayedSuspense = ({ children, delay = 200 }) => (
-  <Suspense fallback={<DelayedFallback delay={delay} />}>
-    {children}
-  </Suspense>
+  <Suspense fallback={<DelayedFallback delay={delay} />}>{children}</Suspense>
 );
 
 /* ──────────────────────────────────────────────────────────
    ✅ ঘন ঘন visit হওয়া page গুলো EAGER import
    ────────────────────────────────────────────────────────── */
 import Home from "./pages/Home";
+import SiteSettingManage from "./pages/Admin/SiteSettingManage";
+import NewsletterManage from "./pages/Admin/NewsletterManage";
 
 /* ──────────────────────────────────────────────────────────
    ✅ LAZY imports (ভারী এবং কম ভিজিট হওয়া পেজগুলো)
@@ -480,6 +479,22 @@ const router = createBrowserRouter(
           element={
             <DelayedSuspense>
               <CampaignManage />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/site-settings"
+          element={
+            <DelayedSuspense>
+              <SiteSettingManage />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/newsletter"
+          element={
+            <DelayedSuspense>
+              <NewsletterManage />
             </DelayedSuspense>
           }
         />

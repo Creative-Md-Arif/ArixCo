@@ -501,7 +501,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                 <li key={link.to} className="flex items-center">
                   <Link
                     to={link.to}
-                    className={`relative px-3 py-3 text-[13px] font-trebuchet text-white font-semibold tracking-px uppercase transition-colors whitespace-nowrap ${
+                    className={`relative py-3 text-[13px] font-trebuchet text-white font-semibold tracking-px uppercase transition-colors whitespace-nowrap ${
                       isActive(link.to)
                         ? "text-[#D4A843]"
                         : "text-gray-300 hover:text-white"

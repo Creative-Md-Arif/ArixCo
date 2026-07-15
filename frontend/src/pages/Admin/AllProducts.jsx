@@ -243,7 +243,6 @@ const AllProducts = () => {
           {/* Header Section */}
           <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between">
             <div>
-           
               <p className="text-sm text-gray-500 font-bold tracking-widest uppercase mt-2">
                 Total Managed Items: {sortedProducts.length}
               </p>
