@@ -40,34 +40,35 @@ const createUser = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   // ৪. নতুন ইউজার অবজেক্ট তৈরি
-  const newUser = new User({
-    username,
-    email,
-    password: hashedPassword,
-    otp,
-    otpExpires,
-    otpAttempts: 0,
+const newUser = new User({
+  username,
+  email: normalizedEmail,   // ✅
+  password: hashedPassword,
+  otp,
+  otpExpires,
+  otpAttempts: 0,
+});
+
+ try {
+  await newUser.save();
+  const message = `Your verification code is: ${otp}`;
+  await sendEmail({
+    to: newUser.email,
+    subject: "Verify Your Account",
+    text: message,
+    html: `<h1>Welcome ${username}!</h1><p>Your OTP code is: <strong>${otp}</strong>. It expires in 2 minutes.</p>`,
   });
 
-  try {
-    await newUser.save();
-    const message = `Your verification code is: ${otp}`;
-    await sendEmail({
-      to: newUser.email,
-      subject: "Verify Your Account",
-      text: message,
-      html: `<h1>Welcome ${username}!</h1><p>Your OTP code is: <strong>${otp}</strong>. It expires in 2 minutes.</p>`,
-    });
-
-    res.status(201).json({
-      message: "Registration successful. Please check your email for the OTP.",
-      email: newUser.email,
-    });
-  } catch (error) {
-    console.error("Error in Registration:", error.message);
-    res.status(500);
-    throw new Error("Registration failed or Email could not be sent.");
-  }
+  res.status(201).json({
+    message: "Registration successful. Please check your email for the OTP.",
+    email: newUser.email,
+  });
+} catch (error) {
+  console.error("Error in Registration:", error.message);
+  await User.deleteOne({ _id: newUser._id }); // ✅ রোলব্যাক
+  res.status(500);
+  throw new Error("Registration failed or Email could not be sent.");
+}
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
