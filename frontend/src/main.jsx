@@ -48,6 +48,12 @@ const DelayedSuspense = ({ children, delay = 200 }) => (
 import Home from "./pages/Home";
 import SiteSettingManage from "./pages/Admin/SiteSettingManage";
 import NewsletterManage from "./pages/Admin/NewsletterManage";
+import SeoSettings from "./pages/Admin/SeoSettings";
+import BlogManage from "./pages/Admin/blog/BlogManage";
+import BlogCreate from "./pages/Admin/blog/BlogCreate";
+import BlogUpdate from "./pages/Admin/blog/BlogUpdate";
+const BlogListPage = lazy(() => import("./pages/Blog/BlogListPage"));
+const BlogPage = lazy(() => import("./pages/Blog/BlogPage"));
 
 /* ──────────────────────────────────────────────────────────
    ✅ LAZY imports (ভারী এবং কম ভিজিট হওয়া পেজগুলো)
@@ -185,6 +191,24 @@ const router = createBrowserRouter(
         element={
           <DelayedSuspense>
             <TrackOrder />
+          </DelayedSuspense>
+        }
+      />
+
+      <Route
+        path="/blog"
+        element={
+          <DelayedSuspense>
+            <BlogListPage />
+          </DelayedSuspense>
+        }
+      />
+
+      <Route
+        path="/blog/:slugOrId"
+        element={
+          <DelayedSuspense>
+            <BlogPage />
           </DelayedSuspense>
         }
       />
@@ -495,6 +519,40 @@ const router = createBrowserRouter(
           element={
             <DelayedSuspense>
               <NewsletterManage />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/seo-settings"
+          element={
+            <DelayedSuspense>
+              <SeoSettings />
+            </DelayedSuspense>
+          }
+        />
+
+        {/* 🆕 BLOG ROUTES */}
+        <Route
+          path="/admin/blog-manage"
+          element={
+            <DelayedSuspense>
+              <BlogManage />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/blog/create"
+          element={
+            <DelayedSuspense>
+              <BlogCreate />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/blog/edit/:id"
+          element={
+            <DelayedSuspense>
+              <BlogUpdate />
             </DelayedSuspense>
           }
         />

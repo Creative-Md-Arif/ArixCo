@@ -4,7 +4,6 @@ const { v2: cloudinary } = pkg;
 
 export const getSiteSettings = async (req, res) => {
   try {
-    // singleton: প্রথমটা যদি পাওয়া যায় তাহলে সেটাই, না পাওয়া গেলে default দিয়ে নতুন create
     let settings = await SiteSetting.findOne();
 
     if (!settings) {
@@ -26,12 +25,17 @@ export const getSiteSettings = async (req, res) => {
 
 export const updateSiteSettings = async (req, res) => {
   try {
-    const { contact, socialLinks, copyrightText, logo } = req.body;
+    const { contact, socialLinks, copyrightText, logo, logoType, textLogo } =
+      req.body;
 
     let settings = await SiteSetting.findOne();
 
     if (!settings) {
       settings = new SiteSetting({});
+    }
+
+    if (logoType) {
+      settings.logoType = logoType;
     }
 
     if (
@@ -52,6 +56,14 @@ export const updateSiteSettings = async (req, res) => {
 
     if (logo) {
       settings.logo = { url: logo.url || "", public_id: logo.public_id || "" };
+    }
+
+    if (textLogo) {
+      settings.textLogo = {
+        fontSize: textLogo.fontSize || settings.textLogo.fontSize,
+        fontWeight: textLogo.fontWeight || settings.textLogo.fontWeight,
+        parts: textLogo.parts || settings.textLogo.parts,
+      };
     }
 
     if (contact) {

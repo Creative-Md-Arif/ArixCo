@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useDispatch, useSelector } from "react-redux";

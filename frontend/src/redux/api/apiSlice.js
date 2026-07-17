@@ -38,6 +38,8 @@ export const apiSlice = createApi({
     "Campaign",
     "SiteSetting",
     "Newsletter",
+    "SEO",
+    "Blog",
   ],
   endpoints: () => ({}),
 });

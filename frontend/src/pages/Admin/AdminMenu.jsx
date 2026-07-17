@@ -7,7 +7,7 @@ import { AiOutlineProduct, AiOutlinePlusSquare } from "react-icons/ai";
 import { TbCategory2 } from "react-icons/tb";
 import { MdEmail, MdOutlineDashboard } from "react-icons/md";
 import { RiImageLine } from "react-icons/ri";
-import { FaCreditCard, FaArrowLeft, FaCog } from "react-icons/fa";
+import { FaCreditCard, FaArrowLeft, FaCog, FaSearchengin, FaBlog } from "react-icons/fa";
 
 const menuItems = [
   { to: "/admin/dashboard", icon: <MdOutlineDashboard />, label: "Dashboard" },
@@ -24,6 +24,8 @@ const menuItems = [
   { to: "/admin/payment-settings", icon: <FaCreditCard />, label: "Payments" },
   { to: "/admin/site-settings", icon: <FaCog />, label: "Site Settings" },
   { to: "/admin/newsletter", icon: <MdEmail />, label: "Newsletter" },
+  { to: "/admin/seo-settings", icon: <FaSearchengin />, label: "SEO Settings" }, 
+  { to: "/admin/blog-manage", icon: <FaBlog />, label: "Blogs" },
 ];
 
 const AdminMenu = () => {

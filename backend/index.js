@@ -24,6 +24,8 @@ import cupponRoutes from "./routes/cupponRoutes.js";
 import shippingRoutes from "./routes/shippingRoutes.js";
 import siteSettingRoutes from "./routes/siteSettingRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
+import seoRoutes from "./routes/seoRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
 
 // utils
 import connectDB from "./config/db.js";
@@ -140,6 +142,8 @@ app.use("/api/cuppons", cupponRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/site-settings", siteSettingRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/seo", seoRoutes);
+app.use("/api/blogs", blogRoutes);
 
 // static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

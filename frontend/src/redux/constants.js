@@ -1,11 +1,13 @@
 const isDevelopment = import.meta.env.DEV;
 
-
-const BACKEND_URL =
-  import.meta.env.VITE_API_URL || "https://arixco.onrender.com/";
+// শেষের স্ল্যাশটি রিমুভ করার জন্য লজিক (trim trailing slash)
+const rawBackendUrl =
+  import.meta.env.VITE_API_URL || "https://arixco.onrender.com";
+export const BACKEND_URL = rawBackendUrl.replace(/\/$/, ""); // শেষের / কেটে দেবে
 
 export const BASE_URL = isDevelopment ? "" : BACKEND_URL;
 export const API_URL = isDevelopment ? "" : BACKEND_URL;
+
 export const USERS_URL = "/api/users";
 export const CATEGORY_URL = "/api/category";
 export const PRODUCT_URL = "/api/products";
@@ -22,6 +24,9 @@ export const TRACKING_URL = "/api/track";
 export const RETURNS_URL = "/api/returns";
 export const SITE_SETTING_URL = "/api/site-settings";
 export const NEWSLETTER_URL = "/api/newsletter";
+export const SEO_URL = "/api/seo";
+export const BLOG_URL = "/api/blogs";
+
 export const ORDER_PAY_URL = (orderId) => `/api/orders/${orderId}/pay`;
 export const SOCKET_URL = isDevelopment ? "http://localhost:8000" : BACKEND_URL;
 export const UPLOADS_URL = isDevelopment

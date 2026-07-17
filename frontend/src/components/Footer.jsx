@@ -28,6 +28,7 @@ const LINKS = {
   ],
   company: [
     { name: "About Us", path: "/about" },
+    { name: "Blog", path: "/blog" },
     { name: "Careers", path: "#" },
     { name: "Press", path: "#" },
     { name: "Terms of Service", path: "#" },
@@ -112,7 +113,8 @@ const Footer = () => {
       label: key.charAt(0).toUpperCase() + key.slice(1),
     }));
 
-  const copyrightText = settings?.copyrightText || "ARIX CO — All rights reserved.";
+  const copyrightText =
+    settings?.copyrightText || "ARIX CO — All rights reserved.";
 
   const handleSubscribe = async (e) => {
     e.preventDefault();
@@ -230,11 +232,8 @@ const Footer = () => {
                       <Icon
                         className="w-[16px] h-[16px] shrink-0 mt-[3px]"
                         aria-hidden="true"
-                      >
-                      </Icon>
-                      <span className="text-[14px] leading-snug">
-                        {text}
-                      </span>
+                      ></Icon>
+                      <span className="text-[14px] leading-snug">{text}</span>
                     </a>
                   </li>
                 ))}

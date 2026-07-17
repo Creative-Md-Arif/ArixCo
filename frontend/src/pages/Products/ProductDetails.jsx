@@ -73,6 +73,9 @@ const ProductDetails = () => {
     error,
   } = useGetProductDetailsQuery(productId);
 
+  console.log(product);
+  
+
   const {
     data: relatedProducts,
     isLoading: relatedLoading,
@@ -100,26 +103,32 @@ const ProductDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
-  // ── আগের ফাংশনগুলো ১০০% unchanged (useCallback দিয়ে optimize করা হয়েছে) ──
-  const getDisplayImages = useCallback(() => {
-    if (!product) return [];
-    const isVariantSelected = product.variants?.some(
-      (v, idx) =>
-        idx === selectedColorIndex &&
-        (v.color.images?.includes(activeImage) ||
-          v.color.image === activeImage)
-    );
-    if (isVariantSelected && product.variants[selectedColorIndex]) {
-      const variant = product.variants[selectedColorIndex];
-      if (variant.color.images?.length > 0) return variant.color.images;
-      if (variant.color.image) return [variant.color.image];
-    }
-    return product.images?.length > 0
+
+const getDisplayImages = useCallback(() => {
+  if (!product) return [];
+
+  const mainImages =
+    product.images?.length > 0
       ? product.images
       : product.image
         ? [product.image]
         : [];
-  }, [product, selectedColorIndex, activeImage]);
+
+  const variant = product.variants?.[selectedColorIndex];
+  const variantImages =
+    variant?.color?.images?.length > 0
+      ? variant.color.images
+      : variant?.color?.image
+        ? [variant.color.image]
+        : [];
+
+  const merged = [
+    ...variantImages,
+    ...mainImages.filter((img) => !variantImages.includes(img)),
+  ];
+
+  return merged.length > 0 ? merged : mainImages;
+}, [product, selectedColorIndex]);
 
   const getCurrentPrice = useCallback(() => {
     if (!product) return 0;

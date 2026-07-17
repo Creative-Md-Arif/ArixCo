@@ -41,18 +41,41 @@ const inputBase =
 const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`;
 
 const paymentMethods = [
-  { id: "Cash on Delivery", label: "Cash on Delivery", sub: "Pay when received", icon: <FaMoneyBillWave /> },
-  { id: "SSLCommerz", label: "Credit/Debit Card", sub: "Visa, Master, Amex", icon: <FaCreditCard /> },
+  {
+    id: "Cash on Delivery",
+    label: "Cash on Delivery",
+    sub: "Pay when received",
+    icon: <FaMoneyBillWave />,
+  },
+  {
+    id: "SSLCommerz",
+    label: "Credit/Debit Card",
+    sub: "Visa, Master, Amex",
+    icon: <FaCreditCard />,
+  },
   { id: "bKash", label: "bKash", sub: "Pay now", icon: <FaMoneyBillWaveAlt /> },
   { id: "Nagad", label: "Nagad", sub: "Pay now", icon: <FaMoneyBillWaveAlt /> },
-  { id: "Rocket", label: "Rocket", sub: "Pay now", icon: <FaMoneyBillWaveAlt /> },
-  { id: "Bank", label: "Bank Transfer", sub: "Pay now", icon: <FaUniversity /> },
+  {
+    id: "Rocket",
+    label: "Rocket",
+    sub: "Pay now",
+    icon: <FaMoneyBillWaveAlt />,
+  },
+  {
+    id: "Bank",
+    label: "Bank Transfer",
+    sub: "Pay now",
+    icon: <FaUniversity />,
+  },
 ];
 
 /* ─── Field (Accessibility Improved) ───────────────────────── */
 const Field = ({ label, error, touched, htmlFor, children }) => (
   <div>
-    <label htmlFor={htmlFor} className="block text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">
+    <label
+      htmlFor={htmlFor}
+      className="block text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5"
+    >
       {label}
     </label>
     {children}
@@ -75,7 +98,8 @@ const Shipping = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [calculateShipping, { isLoading: isCalculating }] = useCalculateShippingMutation();
+  const [calculateShipping, { isLoading: isCalculating }] =
+    useCalculateShippingMutation();
   const shippingDebounceRef = useRef(null);
 
   const getSaved = useCallback(() => {
@@ -97,7 +121,9 @@ const Shipping = () => {
   const [postalCode, setPostalCode] = useState(init.postalCode || "");
   const [country, setCountry] = useState(init.country || "Bangladesh");
   const [phoneNumber, setPhoneNumber] = useState(init.phoneNumber || "");
-  const [paymentMethod, setPaymentMethod] = useState(init.paymentMethod || "Cash on Delivery");
+  const [paymentMethod, setPaymentMethod] = useState(
+    init.paymentMethod || "Cash on Delivery",
+  );
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -153,7 +179,8 @@ const Shipping = () => {
         return "";
       case "phoneNumber":
         if (!value.trim()) return "Phone number is required";
-        if (!/^01[3-9]\d{8}$/.test(value)) return "Valid Bangladeshi number required (01XXXXXXXXX)";
+        if (!/^01[3-9]\d{8}$/.test(value))
+          return "Valid Bangladeshi number required (01XXXXXXXXX)";
         return "";
       case "address":
         if (!value.trim()) return "Full address is required";
@@ -184,67 +211,84 @@ const Shipping = () => {
   }, []);
 
   // ✅ Updater function এর ভেতর side-effect না রেখে ক্লিন করা হয়েছে
-  const handleChange = useCallback((field, raw) => {
-    let value = raw;
-    if (field === "phoneNumber") value = raw.replace(/\D/g, "").slice(0, 11);
-    if (field === "postalCode") value = raw.replace(/\D/g, "").slice(0, 4);
-    
-    const setters = {
-      name: setName,
-      address: setAddress,
-      division: setDivision,
-      district: setDistrict,
-      thana: setThana,
-      postalCode: setPostalCode,
-      country: setCountry,
-      phoneNumber: setPhoneNumber,
-    };
-    
-    if (setters[field]) setters[field](value);
+  const handleChange = useCallback(
+    (field, raw) => {
+      let value = raw;
+      if (field === "phoneNumber") value = raw.replace(/\D/g, "").slice(0, 11);
+      if (field === "postalCode") value = raw.replace(/\D/g, "").slice(0, 4);
 
-    // touched state থেকে direct check করে error আপডেট করা
-    setTouched((prevTouched) => {
-      if (prevTouched[field]) {
-        const error = validateField(field, value);
-        setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
+      const setters = {
+        name: setName,
+        address: setAddress,
+        division: setDivision,
+        district: setDistrict,
+        thana: setThana,
+        postalCode: setPostalCode,
+        country: setCountry,
+        phoneNumber: setPhoneNumber,
+      };
+
+      if (setters[field]) setters[field](value);
+
+      // touched state থেকে direct check করে error আপডেট করা
+      setTouched((prevTouched) => {
+        if (prevTouched[field]) {
+          const error = validateField(field, value);
+          setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
+        }
+        return prevTouched;
+      });
+    },
+    [validateField],
+  );
+
+  const handlePaymentChange = useCallback(
+    (id) => {
+      setPaymentMethod(id);
+      dispatch(savePaymentMethod(id));
+
+      setTouched((prevTouched) => {
+        if (prevTouched.paymentMethod) {
+          const error = validateField("paymentMethod", id);
+          setErrors((prevErrors) => ({ ...prevErrors, paymentMethod: error }));
+        }
+        return prevTouched;
+      });
+
+      const pending = localStorage.getItem("pendingOrderData");
+      if (pending) {
+        try {
+          localStorage.setItem(
+            "pendingOrderData",
+            JSON.stringify({ ...JSON.parse(pending), paymentMethod: id }),
+          );
+        } catch (err) {
+          console.error("Error updating pending order data:", err);
+        }
       }
-      return prevTouched;
-    });
-  }, [validateField]);
+    },
+    [dispatch, validateField],
+  );
 
-  const handlePaymentChange = useCallback((id) => {
-    setPaymentMethod(id);
-    dispatch(savePaymentMethod(id));
-    
-    setTouched((prevTouched) => {
-      if (prevTouched.paymentMethod) {
-        const error = validateField("paymentMethod", id);
-        setErrors((prevErrors) => ({ ...prevErrors, paymentMethod: error }));
-      }
-      return prevTouched;
-    });
-
-    const pending = localStorage.getItem("pendingOrderData");
-    if (pending) {
-      try {
-        localStorage.setItem(
-          "pendingOrderData",
-          JSON.stringify({ ...JSON.parse(pending), paymentMethod: id }),
-        );
-      } catch (err) {
-        console.error("Error updating pending order data:", err);
-      }
-    }
-  }, [dispatch, validateField]);
-
-  const handleBlur = useCallback((field, value) => {
-    setTouched((p) => ({ ...p, [field]: true }));
-    setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
-  }, [validateField]);
+  const handleBlur = useCallback(
+    (field, value) => {
+      setTouched((p) => ({ ...p, [field]: true }));
+      setErrors((p) => ({ ...p, [field]: validateField(field, value) }));
+    },
+    [validateField],
+  );
 
   const validateAll = useCallback(() => {
     const fields = {
-      name, phoneNumber, address, division, district, thana, postalCode, country, paymentMethod,
+      name,
+      phoneNumber,
+      address,
+      division,
+      district,
+      thana,
+      postalCode,
+      country,
+      paymentMethod,
     };
     const newErrors = {};
     Object.keys(fields).forEach((f) => {
@@ -254,18 +298,47 @@ const Shipping = () => {
     setErrors(newErrors);
     setTouched(Object.fromEntries(Object.keys(fields).map((f) => [f, true])));
     return Object.keys(newErrors).length === 0;
-  }, [name, phoneNumber, address, division, district, thana, postalCode, country, paymentMethod, validateField]);
+  }, [
+    name,
+    phoneNumber,
+    address,
+    division,
+    district,
+    thana,
+    postalCode,
+    country,
+    paymentMethod,
+    validateField,
+  ]);
 
   useEffect(() => {
     if (name || phoneNumber || address || division || postalCode || country) {
       localStorage.setItem(
         "shippingAddress",
         JSON.stringify({
-          name, address, division, district, thana, postalCode, country, phoneNumber, paymentMethod,
+          name,
+          address,
+          division,
+          district,
+          thana,
+          postalCode,
+          country,
+          phoneNumber,
+          paymentMethod,
         }),
       );
     }
-  }, [name, address, division, district, thana, postalCode, country, phoneNumber, paymentMethod]);
+  }, [
+    name,
+    address,
+    division,
+    district,
+    thana,
+    postalCode,
+    country,
+    phoneNumber,
+    paymentMethod,
+  ]);
 
   useEffect(() => {
     const saved = getSaved();
@@ -283,10 +356,11 @@ const Shipping = () => {
     const savings = cartItems.reduce(
       (a, item) =>
         a +
-        (getItemBasePrice(item) - getItemFinalPrice(item)) * (Number(item.qty) || 1),
+        (getItemBasePrice(item) - getItemFinalPrice(item)) *
+          (Number(item.qty) || 1),
       0,
     );
-    
+
     if (thana && district && division && cartItems.length > 0) {
       if (shippingDebounceRef.current) {
         clearTimeout(shippingDebounceRef.current);
@@ -317,7 +391,9 @@ const Shipping = () => {
           });
         } catch (err) {
           console.error("Shipping Calculation API Error:", err);
-          toast.error(err?.data?.error || "Could not calculate shipping. Using default.");
+          toast.error(
+            err?.data?.error || "Could not calculate shipping. Using default.",
+          );
           setOrderSummary({
             subtotal,
             shippingCharge: 150,
@@ -340,7 +416,7 @@ const Shipping = () => {
         isFreeShipping: false,
       });
     }
-    
+
     return () => {
       if (shippingDebounceRef.current) {
         clearTimeout(shippingDebounceRef.current);
@@ -375,13 +451,31 @@ const Shipping = () => {
     dispatch(savePaymentMethod(paymentMethod));
     localStorage.setItem("shippingAddress", JSON.stringify(data));
     return data;
-  }, [userInfo, navigate, validateAll, name, address, division, district, thana, postalCode, country, phoneNumber, orderSummary.shippingCharge, paymentMethod, dispatch]);
+  }, [
+    userInfo,
+    navigate,
+    validateAll,
+    name,
+    address,
+    division,
+    district,
+    thana,
+    postalCode,
+    country,
+    phoneNumber,
+    orderSummary.shippingCharge,
+    paymentMethod,
+    dispatch,
+  ]);
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <Helmet>
         <title>Checkout | AriX Co</title>
-        <meta name="description" content="Complete your secure checkout at AriX Co. Enter your delivery details and choose a payment method." />
+        <meta
+          name="description"
+          content="Complete your secure checkout at AriX Co. Enter your delivery details and choose a payment method."
+        />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -398,8 +492,11 @@ const Shipping = () => {
                 </p>
                 <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">
                   Don&apos;t worry —{" "}
-                  <span className="font-semibold text-gray-700">your cart items are safe</span>{" "}
-                  and won&apos;t be lost. You can fill in your delivery details now.
+                  <span className="font-semibold text-gray-700">
+                    your cart items are safe
+                  </span>{" "}
+                  and won&apos;t be lost. You can fill in your delivery details
+                  now.
                 </p>
               </div>
               <Link
@@ -410,20 +507,31 @@ const Shipping = () => {
               </Link>
             </div>
           )}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white">
-            <Link to="/" className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"
+          >
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-black hover:underline text-[14px] font-medium"
+            >
               <FaHome className="text-[14px]" />
               <span>Home</span>
             </Link>
             <span className="contents">
               <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
-              <Link to="/cart" className="text-black hover:underline text-[14px] font-medium">
+              <Link
+                to="/cart"
+                className="text-black hover:underline text-[14px] font-medium"
+              >
                 Cart
               </Link>
             </span>
             <span className="contents">
               <HiChevronRight className="text-[14px] text-black flex-shrink-0" />
-              <span className="text-black font-black text-[14px]">Checkout</span>
+              <span className="text-black font-black text-[14px]">
+                Checkout
+              </span>
             </span>
           </nav>
         </div>
@@ -451,7 +559,12 @@ const Shipping = () => {
                 </h2>
               </div>
               <div className="space-y-4">
-                <Field label="Full Name" error={errors.name} touched={touched.name} htmlFor="fullName">
+                <Field
+                  label="Full Name"
+                  error={errors.name}
+                  touched={touched.name}
+                  htmlFor="fullName"
+                >
                   <input
                     id="fullName"
                     type="text"
@@ -463,18 +576,30 @@ const Shipping = () => {
                   />
                 </Field>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Phone Number" error={errors.phoneNumber} touched={touched.phoneNumber} htmlFor="phoneNumber">
+                  <Field
+                    label="Phone Number"
+                    error={errors.phoneNumber}
+                    touched={touched.phoneNumber}
+                    htmlFor="phoneNumber"
+                  >
                     <input
                       id="phoneNumber"
                       type="tel"
                       className={inputStyle("phoneNumber", errors, touched)}
                       value={phoneNumber}
-                      onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("phoneNumber", e.target.value)
+                      }
                       onBlur={(e) => handleBlur("phoneNumber", e.target.value)}
                       placeholder="01XXX-XXXXXX"
                     />
                   </Field>
-                  <Field label="Division" error={errors.division} touched={touched.division} htmlFor="division">
+                  <Field
+                    label="Division"
+                    error={errors.division}
+                    touched={touched.division}
+                    htmlFor="division"
+                  >
                     <select
                       id="division"
                       value={division}
@@ -498,7 +623,12 @@ const Shipping = () => {
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="District" error={errors.district} touched={touched.district} htmlFor="district">
+                  <Field
+                    label="District"
+                    error={errors.district}
+                    touched={touched.district}
+                    htmlFor="district"
+                  >
                     <select
                       id="district"
                       value={district}
@@ -521,7 +651,12 @@ const Shipping = () => {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Thana / Upazila" error={errors.thana} touched={touched.thana} htmlFor="thana">
+                  <Field
+                    label="Thana / Upazila"
+                    error={errors.thana}
+                    touched={touched.thana}
+                    htmlFor="thana"
+                  >
                     <div className="relative">
                       <select
                         id="thana"
@@ -559,7 +694,12 @@ const Shipping = () => {
                     )}
                   </Field>
                 </div>
-                <Field label="Full Address" error={errors.address} touched={touched.address} htmlFor="address">
+                <Field
+                  label="Full Address"
+                  error={errors.address}
+                  touched={touched.address}
+                  htmlFor="address"
+                >
                   <input
                     id="address"
                     type="text"
@@ -571,18 +711,30 @@ const Shipping = () => {
                   />
                 </Field>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Postal Code" error={errors.postalCode} touched={touched.postalCode} htmlFor="postalCode">
+                  <Field
+                    label="Postal Code"
+                    error={errors.postalCode}
+                    touched={touched.postalCode}
+                    htmlFor="postalCode"
+                  >
                     <input
                       id="postalCode"
                       type="text"
                       className={inputStyle("postalCode", errors, touched)}
                       value={postalCode}
-                      onChange={(e) => handleChange("postalCode", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("postalCode", e.target.value)
+                      }
                       onBlur={(e) => handleBlur("postalCode", e.target.value)}
                       placeholder="1200"
                     />
                   </Field>
-                  <Field label="Country" error={errors.country} touched={touched.country} htmlFor="country">
+                  <Field
+                    label="Country"
+                    error={errors.country}
+                    touched={touched.country}
+                    htmlFor="country"
+                  >
                     <input
                       id="country"
                       type="text"
@@ -613,7 +765,7 @@ const Shipping = () => {
                 </p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 {paymentMethods.map((m) => {
                   const active = paymentMethod === m.id;
                   return (
@@ -621,22 +773,24 @@ const Shipping = () => {
                       key={m.id}
                       type="button"
                       onClick={() => handlePaymentChange(m.id)}
-                      className={`flex items-center gap-3 p-3 sm:p-4 border rounded-md text-left transition-all duration-200 ${active ? "border-black bg-gray-50 ring-1 ring-black" : "border-gray-200 bg-white hover:border-gray-400"}`}
+                      className="w-full flex items-center gap-3 text-left"
                     >
-                      <span className={`text-lg sm:text-xl ${active ? "text-black" : "text-gray-400"}`}>
-                        {m.icon}
+                      <div
+                        className={`w-4 h-4 border-2 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          active ? "border-black" : "border-gray-300"
+                        }`}
+                      >
+                        {active && (
+                          <div className="w-2 h-2 bg-black rounded-full" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-[14px] font-trebuchet font-black uppercase tracking-tight ${
+                          active ? "text-black" : "text-gray-600"
+                        }`}
+                      >
+                        {m.label}
                       </span>
-                      <div className="flex-1">
-                        <p className={`text-[11px] sm:text-xs font-mono font-black uppercase tracking-tight ${active ? "text-black" : "text-gray-800"}`}>
-                          {m.label}
-                        </p>
-                        <p className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-wide mt-0.5 ${active ? "text-gray-600" : "text-gray-400"}`}>
-                          {m.sub}
-                        </p>
-                      </div>
-                      <div className={`w-4 h-4 border-2 rounded-full flex items-center justify-center transition-colors ${active ? "border-black" : "border-gray-300"}`}>
-                        {active && <div className="w-2 h-2 bg-black rounded-full" />}
-                      </div>
                     </button>
                   );
                 })}

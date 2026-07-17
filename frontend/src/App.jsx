@@ -8,6 +8,7 @@ import { Helmet } from "react-helmet-async";
 import Cart from "./pages/Cart";
 import useBodyScrollLock from "./hooks/useBodyScrollLock";
 import { useState } from "react";
+import SeoManager from "./components/SeoManager";
 
 function App() {
   useNotifications();
@@ -21,6 +22,7 @@ function App() {
 
   return (
     <>
+    <SeoManager/>
       <Helmet>
         <meta charSet="utf-8" />
         <meta
