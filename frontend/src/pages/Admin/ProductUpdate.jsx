@@ -220,44 +220,44 @@ const ProductUpdate = () => {
     "link", "image", "video",
   ];
 
-  useEffect(() => {
-    if (productData && productData._id) {
-      setName(productData.name);
-      setDescription(productData.description || "");
-      setPrice(productData.price || 0);
-      setCategory(productData.category?._id || productData.category);
-      setQuantity(productData.quantity || 0);
-      setBrand(productData.brand || "");
-      setImages(productData.images || []);
-      setDiscountPercentage(productData.discountPercentage || 0);
-      setIsFeatured(productData.isFeatured || false);
-      setOffer(productData.offer || "");
-      setWarranty(productData.warranty || "");
-      setDiscountedAmount(productData.discountedAmount || 0);
-      setCountInStock(productData.countInStock || 0);
-      setWeight(productData.weight || 0.5);
+ useEffect(() => {
+  if (productData && productData._id) {
+    setName(productData.name);
+    setDescription(productData.description || "");
+    setPrice(productData.price || 0);
+    setCategory(productData.category?._id || productData.category);
+    setQuantity(productData.quantity || 0);
+    setBrand(productData.brand || "");
+    setImages(productData.images || []);
+    setDiscountPercentage(productData.discountPercentage || 0);
+    setIsFeatured(productData.isFeatured || false);
+    setOffer(productData.offer || "");
+    setWarranty(productData.warranty || "");
+    setDiscountedAmount(productData.discountedAmount || 0);
+    setCountInStock(productData.countInStock || 0);
+    setWeight(productData.weight || 0.5);
 
-      if (productData.shippingDetails) setShippingDetails(productData.shippingDetails);
-      if (productData.keyFeatures) setKeyFeatures(productData.keyFeatures);
-      if (productData.specifications) setSpecifications(productData.specifications);
+    if (productData.shippingDetails) setShippingDetails(structuredClone(productData.shippingDetails));
+    if (productData.keyFeatures) setKeyFeatures(structuredClone(productData.keyFeatures));
+    if (productData.specifications) setSpecifications(structuredClone(productData.specifications));
 
-      if (productData.hasVariants !== undefined) setHasVariants(productData.hasVariants);
-      if (productData.variants && productData.variants.length > 0) setVariants(productData.variants);
-    }
-  }, [productData]);
+    if (productData.hasVariants !== undefined) setHasVariants(productData.hasVariants);
+    if (productData.variants && productData.variants.length > 0) setVariants(structuredClone(productData.variants));
+  }
+}, [productData]);
 
   const addSpec = useCallback(() => setSpecifications((s) => [...s, { label: "", value: "" }]), []);
   const removeSpec = useCallback((index) => setSpecifications((s) => s.filter((_, i) => i !== index)), []);
-  const handleSpecChange = useCallback((index, field, val) => {
-    setSpecifications((prev) => {
-      const newSpecs = [...prev];
-      newSpecs[index][field] = val;
-      return newSpecs;
-    });
-  }, []);
+  
+const handleSpecChange = useCallback((index, field, val) => {
+  setSpecifications((prev) =>
+    prev.map((s, i) => (i === index ? { ...s, [field]: val } : s))
+  );
+}, []);
 
   const addFeature = useCallback(() => setKeyFeatures((f) => [...f, ""]), []);
   const removeFeature = useCallback((index) => setKeyFeatures((f) => f.filter((_, i) => i !== index)), []);
+  
   const handleFeatureChange = useCallback((index, val) => {
     setKeyFeatures((prev) => {
       const newFeatures = [...prev];
@@ -265,71 +265,84 @@ const ProductUpdate = () => {
       return newFeatures;
     });
   }, []);
-
-  const addColorVariant = useCallback(() => {
-    setVariants((v) => [...v, {
+  
+const addColorVariant = useCallback(() => {
+  setVariants((v) => [
+    ...v,
+    {
       color: { name: "", hexCode: "#000000", image: "", images: [] },
       sizes: [{ size: "", price: Number(price) || 0, countInStock: 0, sku: "", isAvailable: true }],
       isActive: true,
-    }]);
-  }, [price]);
+    },
+  ]);
+}, [price]);
 
   const removeColorVariant = useCallback((colorIndex) => setVariants((v) => v.filter((_, i) => i !== colorIndex)), []);
-  const updateColorInfo = useCallback((colorIndex, field, value) => {
-    setVariants((prev) => {
-      const newVariants = [...prev];
-      newVariants[colorIndex].color[field] = value;
-      return newVariants;
-    });
-  }, []);
+const updateColorInfo = useCallback((colorIndex, field, value) => {
+  setVariants((prev) =>
+    prev.map((v, i) =>
+      i === colorIndex ? { ...v, color: { ...v.color, [field]: value } } : v
+    )
+  );
+}, []);
+  
+const uploadColorImage = useCallback(async (e, colorIndex) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("image", file);
+  try {
+    toast.info("Uploading color image...");
+    const res = await uploadProductImage(formData).unwrap();
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== colorIndex) return v;
+        const newImage = res.images[0];
+        const images = v.color.images.includes(newImage)
+          ? v.color.images
+          : [...v.color.images, newImage];
+        return { ...v, color: { ...v.color, image: newImage, images } };
+      })
+    );
+    toast.success("Color image uploaded!");
+  } catch (error) {
+    toast.error("Upload failed");
+  }
+}, [uploadProductImage]);
 
-  const uploadColorImage = useCallback(async (e, colorIndex) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("image", file);
-    try {
-      toast.info("Uploading color image...");
-      const res = await uploadProductImage(formData).unwrap();
-      setVariants((prev) => {
-        const newVariants = [...prev];
-        newVariants[colorIndex].color.image = res.images[0];
-        if (!newVariants[colorIndex].color.images.includes(res.images[0])) {
-          newVariants[colorIndex].color.images.push(res.images[0]);
-        }
-        return newVariants;
-      });
-      toast.success("Color image uploaded!");
-    } catch (error) {
-      toast.error("Upload failed");
-    }
-  }, [uploadProductImage]);
+const addSizeToVariant = useCallback((colorIndex) => {
+  setVariants((prev) =>
+    prev.map((v, i) =>
+      i === colorIndex
+        ? {
+            ...v,
+            sizes: [
+              ...v.sizes,
+              { size: "", price: Number(price) || 0, countInStock: 0, sku: "", isAvailable: true },
+            ],
+          }
+        : v
+    )
+  );
+}, [price]);
+  
+const removeSizeFromVariant = useCallback((colorIndex, sizeIndex) => {
+  setVariants((prev) =>
+    prev.map((v, i) =>
+      i === colorIndex ? { ...v, sizes: v.sizes.filter((_, si) => si !== sizeIndex) } : v
+    )
+  );
+}, []);
 
-  const addSizeToVariant = useCallback((colorIndex) => {
-    setVariants((prev) => {
-      const newVariants = [...prev];
-      newVariants[colorIndex].sizes.push({
-        size: "", price: Number(price) || 0, countInStock: 0, sku: "", isAvailable: true,
-      });
-      return newVariants;
-    });
-  }, [price]);
-
-  const removeSizeFromVariant = useCallback((colorIndex, sizeIndex) => {
-    setVariants((prev) => {
-      const newVariants = [...prev];
-      newVariants[colorIndex].sizes = newVariants[colorIndex].sizes.filter((_, i) => i !== sizeIndex);
-      return newVariants;
-    });
-  }, []);
-
-  const updateSizeInfo = useCallback((colorIndex, sizeIndex, field, value) => {
-    setVariants((prev) => {
-      const newVariants = [...prev];
-      newVariants[colorIndex].sizes[sizeIndex][field] = value;
-      return newVariants;
-    });
-  }, []);
+const updateSizeInfo = useCallback((colorIndex, sizeIndex, field, value) => {
+  setVariants((prev) =>
+    prev.map((v, i) =>
+      i === colorIndex
+        ? { ...v, sizes: v.sizes.map((s, si) => (si === sizeIndex ? { ...s, [field]: value } : s)) }
+        : v
+    )
+  );
+}, []);
 
   const moveImage = useCallback((index, direction) => {
     setImages((prev) => {
