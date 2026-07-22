@@ -88,7 +88,6 @@ const ProductUpdate = () => {
   const [countInStock, setCountInStock] = useState(0);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [isFeatured, setIsFeatured] = useState(false);
-  const [offer, setOffer] = useState("");
   const [warranty, setWarranty] = useState("");
   const [discountedAmount, setDiscountedAmount] = useState(0);
   const [weight, setWeight] = useState(0.5);
@@ -231,7 +230,6 @@ const ProductUpdate = () => {
     setImages(productData.images || []);
     setDiscountPercentage(productData.discountPercentage || 0);
     setIsFeatured(productData.isFeatured || false);
-    setOffer(productData.offer || "");
     setWarranty(productData.warranty || "");
     setDiscountedAmount(productData.discountedAmount || 0);
     setCountInStock(productData.countInStock || 0);
@@ -426,7 +424,6 @@ const updateSizeInfo = useCallback((colorIndex, sizeIndex, field, value) => {
       formData.append("discountPercentage", discountPercentage);
       formData.append("discountedAmount", discountedAmount);
       formData.append("isFeatured", isFeatured);
-      formData.append("offer", offer);
       formData.append("warranty", warranty);
       formData.append("weight", weight);
       formData.append("shippingDetails", JSON.stringify(shippingDetails));
@@ -601,10 +598,6 @@ const updateSizeInfo = useCallback((colorIndex, sizeIndex, field, value) => {
                         variant="borderless"
                         filterTreeNode={(input, node) => node.title.toLowerCase().includes(input.toLowerCase())}
                       />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Active Offer</label>
-                      <input type="text" value={offer} placeholder="Seasonal Sale" onChange={(e) => setOffer(e.target.value)} className={inputClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Warranty Period</label>

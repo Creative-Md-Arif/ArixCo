@@ -289,7 +289,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
       >
         {/* ══════════ ROW 1 — Logo / Search / Icons ══════════ */}
         <div className="border-b border-white/5">
-          <div className="container mx-auto px-4 h-14 sm:h-16 lg:h-[76px] flex items-center gap-3 lg:gap-6">
+          <div className=" max-w-screen-2xl mx-auto px-4 h-14 sm:h-16 lg:h-[76px] flex items-center gap-3 lg:gap-6">
             {/* ── MOBILE ONLY: hamburger + search icon ── */}
             <div className="flex md:hidden items-center gap-4">
               <button
@@ -495,13 +495,13 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
 
         {/* ══════════ ROW 2 — Category Bar (desktop only) ══════════ */}
         <div className="hidden lg:block bg-[#141414]">
-          <div className="container mx-auto px-4">
+          <div className="max-w-screen-2xl mx-auto">
             <ul className="flex items-center gap-1">
               {STATIC_NAV_LINKS.map((link) => (
                 <li key={link.to} className="flex items-center">
                   <Link
                     to={link.to}
-                    className={`relative py-3 text-[13px] font-trebuchet text-white font-semibold tracking-px uppercase transition-colors whitespace-nowrap ${
+                    className={`relative py-3 px-3 text-[13px] font-trebuchet text-white font-semibold tracking-px uppercase transition-colors whitespace-nowrap ${
                       isActive(link.to)
                         ? "text-[#D4A843]"
                         : "text-gray-300 hover:text-white"
@@ -527,7 +527,7 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                         <div className="w-2 h-2 bg-white/20 animate-pulse rounded-full"></div>
                       </div>
                       <div className="fixed top-[76px] xl:top-[124px] left-0 right-0 w-full bg-white border-t border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-                        <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
+                        <div className="max-w-screen-2xl mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
                           {[1, 2, 3, 4].map((j) => (
                             <div key={`skel-mega-${j}`} className="space-y-3">
                               <div className="w-24 h-3 bg-gray-200 animate-pulse rounded"></div>
@@ -567,8 +567,8 @@ const Navigation = ({ isMenuOpen, setIsMenuOpen }) => {
                     )}
 
                     {cat.children?.length > 0 && (
-                      <div className="fixed top-[76px] xl:top-[124px] left-0 right-0 w-full bg-white border-t-2 border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-                        <div className="container mx-auto p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
+                      <div className="fixed top-[76px] lg:top-[124px] left-0 right-0 w-full bg-white border-t-2 border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div className="max-w-screen-2xl mx-auto p-4 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6">
                           {cat.children.map((subCat) => (
                             <div key={subCat._id}>
                               <Link

@@ -135,7 +135,8 @@ const cartSlice = createSlice({
       );
 
       if (existItemIndex !== -1) {
-        state.cartItems[existItemIndex].qty = normalizedItem.qty;
+        const newQty = state.cartItems[existItemIndex].qty + normalizedItem.qty;
+        state.cartItems[existItemIndex].qty = newQty;
         state.cartItems[existItemIndex] = {
           ...state.cartItems[existItemIndex],
           appliedCampaigns: normalizedItem.appliedCampaigns,
@@ -153,6 +154,26 @@ const cartSlice = createSlice({
         };
       } else {
         state.cartItems.push(normalizedItem);
+      }
+
+      return updateCart(state);
+    },
+
+    updateCartQty: (state, action) => {
+      const { _id, variantInfo, qty } = action.payload;
+      const index = state.cartItems.findIndex((item) => {
+        if (item._id !== _id) return false;
+        if (variantInfo?.hasVariants) {
+          return (
+            item.variantInfo?.colorIndex === variantInfo.colorIndex &&
+            item.variantInfo?.sizeIndex === variantInfo.sizeIndex
+          );
+        }
+        return !item.variantInfo?.hasVariants;
+      });
+
+      if (index !== -1 && qty > 0) {
+        state.cartItems[index].qty = qty;
       }
 
       return updateCart(state);
@@ -229,6 +250,7 @@ const cartSlice = createSlice({
 
 export const {
   addToCart,
+  updateCartQty,
   removeFromCart,
   saveShippingAddress,
   savePaymentMethod,

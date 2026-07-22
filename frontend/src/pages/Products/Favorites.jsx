@@ -36,20 +36,23 @@ const Favorites = () => {
   const dispatch = useDispatch();
   const favorites = useSelector(selectFavoriteProduct);
 
-  const removeHandler = useCallback((product) => {
-    dispatch(removeFromFavorites(product));
-    removeFavoriteFromLocalStorage(product._id);
-  }, [dispatch]);
+  const removeHandler = useCallback(
+    (product) => {
+      dispatch(removeFromFavorites(product));
+      removeFavoriteFromLocalStorage(product._id);
+    },
+    [dispatch],
+  );
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pt-10 pb-16 font-['Trebuchet_MS']">
+    <div className="min-h-screen bg-[#F9FAFB] font-['Trebuchet_MS']">
       {/* Breadcrumb & Header Section */}
       <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+        <div className=" max-w-screen-2xl mx-auto px-4 py-4">
           {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
-            className="mb-4 flex items-center gap-1.5 text-sm font-medium flex-wrap bg-white"
+            className="flex items-center gap-1.5 text-sm font-medium flex-wrap bg-white"
           >
             <Link
               to="/"
@@ -61,22 +64,12 @@ const Favorites = () => {
 
             <span className="contents">
               <HiChevronRight className="text-sm text-black flex-shrink-0" />
-              <span className="text-black font-black text-sm">
-                Wishlist
-              </span>
+              <span className="text-black font-black text-sm">Wishlist</span>
             </span>
           </nav>
 
-          {/* Title */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-['Playfair_Display'] font-bold text-gray-900 uppercase tracking-wider border-l-4 border-[#D4A843] pl-3">
-              My Wishlist
-            </h1>
-            <p className="text-sm text-gray-500 font-medium">
-              {favorites.length} saved{" "}
-              {favorites.length === 1 ? "item" : "items"}
-            </p>
-          </div>
+  
+
         </div>
       </header>
 
@@ -103,10 +96,10 @@ const Favorites = () => {
           // Grid Design
           <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {favorites.map((product) => (
-              <FavoriteItem 
-                key={product._id} 
-                product={product} 
-                onRemove={removeHandler} 
+              <FavoriteItem
+                key={product._id}
+                product={product}
+                onRemove={removeHandler}
               />
             ))}
           </section>

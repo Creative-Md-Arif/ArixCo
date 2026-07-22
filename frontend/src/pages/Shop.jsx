@@ -554,7 +554,7 @@ const Shop = () => {
         ]}
       />
 
-      <div className="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="max-w-screen-2xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
         <aside className="hidden lg:block w-[280px] sticky top-24 self-start">
           {categoriesQuery.isLoading || isLoading ? (
             <FilterSkeleton />

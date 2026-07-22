@@ -3,6 +3,7 @@ const { ObjectId } = mongoose.Schema;
 import slugify from "slugify";
 
 // Review Schema
+// Review Schema
 const reviewSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -13,9 +14,24 @@ const reviewSchema = mongoose.Schema(
       required: true,
       ref: "User",
     },
+ 
+    isFeatured: { type: Boolean, default: false },
+    reply: {
+      text: { type: String },
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      createdAt: { type: Date, default: Date.now },
+    },
+    helpfulVotes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true },
 );
+
+
 
 // Variant Schema - For Color/Size combinations
 const variantSchema = mongoose.Schema({
@@ -63,7 +79,6 @@ const productSchema = mongoose.Schema(
     discountPercentage: { type: Number, default: 0 },
     discountedAmount: { type: Number, default: 0 },
     isFeatured: { type: Boolean, default: false },
-    offer: { type: String, default: "" },
     warranty: { type: String, default: "" },
     weight: { type: Number, default: 0.5 },
 
@@ -183,6 +198,26 @@ productSchema.methods.getEffectivePrice = function (
     return basePrice - (basePrice * this.discountPercentage) / 100;
   }
   return basePrice;
+};
+
+productSchema.methods.getStockStatus = function (
+  colorIndex = 0,
+  sizeIndex = 0,
+  lowStockThreshold = 5,
+) {
+  const stock = this.getVariantStock(colorIndex, sizeIndex);
+  if (stock <= 0) return "out_of_stock";
+  if (stock <= lowStockThreshold) return "low_stock";
+  return "in_stock";
+};
+
+productSchema.methods.getColorAvailability = function () {
+  if (!this.hasVariants) return {};
+  const availability = {};
+  this.variants.forEach((variant, idx) => {
+    availability[idx] = variant.sizes?.some((s) => s.countInStock > 0) || false;
+  });
+  return availability;
 };
 
 productSchema.index({

@@ -127,7 +127,7 @@ const UserOrder = () => {
     <div className="bg-[#F9FAFB] min-h-screen font-['Trebuchet_MS']">
       {/* ✅ Unified Breadcrumb */}
       <header className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <nav
             aria-label="Breadcrumb"
             className="flex items-center gap-1.5 text-sm font-medium flex-wrap py-4 bg-white"
@@ -161,7 +161,7 @@ const UserOrder = () => {
       </header>
 
       {/* ✅ Full Width Container Design */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <main className="max-w-screen-2xl mx-auto px-4 py-8 sm:py-10">
         {isLoading ? (
           <OrderSkeleton />
         ) : error ? (

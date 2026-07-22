@@ -9,8 +9,8 @@
   }
 
   html {
-  scrollbar-gutter: stable;
-}
+    scrollbar-gutter: stable;
+  }
 
   /* --- Premium Custom Scrollbar --- */
   ::-webkit-scrollbar {
@@ -38,6 +38,15 @@
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 🆕 নতুন অ্যাড করা হলো */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 

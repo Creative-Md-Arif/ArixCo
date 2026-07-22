@@ -3,28 +3,59 @@ import { NavLink, Link, useLocation } from "react-router-dom";
 import { IoIosMenu, IoIosClose } from "react-icons/io";
 import { LuUsers } from "react-icons/lu";
 import { CiShoppingCart } from "react-icons/ci";
-import { AiOutlineProduct, AiOutlinePlusSquare } from "react-icons/ai";
+import { AiOutlineProduct, AiOutlinePlusSquare, AiOutlineStar } from "react-icons/ai";
 import { TbCategory2 } from "react-icons/tb";
 import { MdEmail, MdOutlineDashboard } from "react-icons/md";
 import { RiImageLine } from "react-icons/ri";
-import { FaCreditCard, FaArrowLeft, FaCog, FaSearchengin, FaBlog } from "react-icons/fa";
+import {
+  FaCreditCard,
+  FaArrowLeft,
+  FaCog,
+  FaSearchengin,
+  FaBlog,
+} from "react-icons/fa";
 
 const menuItems = [
   { to: "/admin/dashboard", icon: <MdOutlineDashboard />, label: "Dashboard" },
   { to: "/admin/categorylist", icon: <TbCategory2 />, label: "Categories" },
-  { to: "/admin/allproductslist", icon: <AiOutlineProduct />, label: "All Products" },
-  { to: "/admin/productlist", icon: <AiOutlinePlusSquare />, label: "Create Product" },
+  {
+    to: "/admin/allproductslist",
+    icon: <AiOutlineProduct />,
+    label: "All Products",
+  },
+  {
+    to: "/admin/productlist",
+    icon: <AiOutlinePlusSquare />,
+    label: "Create Product",
+  },
   { to: "/admin/userlist", icon: <LuUsers />, label: "Users" },
   { to: "/admin/orderlist", icon: <CiShoppingCart />, label: "Orders" },
-  { to: "/admin/return-management", icon: <CiShoppingCart />, label: "Returns" },
+  {
+    to: "/admin/return-management",
+    icon: <CiShoppingCart />,
+    label: "Returns",
+  },
+  { to: "/admin/review-manage", icon: <AiOutlineStar />, label: "Reviews" },
   { to: "/admin/bannerlist", icon: <RiImageLine />, label: "Banners" },
-  { to: "/admin/campaign-manage", icon: <AiOutlinePlusSquare />, label: "Campaigns" },
-  { to: "/admin/cuppon-manage", icon: <AiOutlinePlusSquare />, label: "Cuppons" },
-  { to: "/admin/shipping-manage", icon: <AiOutlinePlusSquare />, label: "Shipping" },
+  {
+    to: "/admin/campaign-manage",
+    icon: <AiOutlinePlusSquare />,
+    label: "Campaigns",
+  },
+  {
+    to: "/admin/cuppon-manage",
+    icon: <AiOutlinePlusSquare />,
+    label: "Cuppons",
+  },
+  {
+    to: "/admin/shipping-manage",
+    icon: <AiOutlinePlusSquare />,
+    label: "Shipping",
+  },
   { to: "/admin/payment-settings", icon: <FaCreditCard />, label: "Payments" },
   { to: "/admin/site-settings", icon: <FaCog />, label: "Site Settings" },
   { to: "/admin/newsletter", icon: <MdEmail />, label: "Newsletter" },
-  { to: "/admin/seo-settings", icon: <FaSearchengin />, label: "SEO Settings" }, 
+  { to: "/admin/seo-settings", icon: <FaSearchengin />, label: "SEO Settings" },
   { to: "/admin/blog-manage", icon: <FaBlog />, label: "Blogs" },
 ];
 
@@ -52,7 +83,9 @@ const AdminMenu = () => {
   }, []);
 
   // ✅ Dynamic Page Title based on current route
-  const currentItem = menuItems.find((item) => location.pathname.startsWith(item.to));
+  const currentItem = menuItems.find((item) =>
+    location.pathname.startsWith(item.to),
+  );
   const pageTitle = currentItem ? currentItem.label : "Dashboard";
 
   return (

@@ -19,7 +19,7 @@ const Contact = () => {
     <section className="min-h-screen bg-white pb-20 overflow-hidden">
       {/* 🟢 ১. ব্র্যান্ডেড হেডার (ক্যাটাগরি সেকশন স্টাইলে) */}
       <div className="mt-[105px] py-10 bg-[#FDFDFD] border border-gray-100">
-        <div className="container mx-auto px-6">
+        <div className="max-w-screen-2xl mx-auto px-6">
           <motion.div
             custom={0}
             initial="hidden"
@@ -38,7 +38,7 @@ const Contact = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 mt-20 max-w-6xl">
+      <div className="max-w-screen-2xl mx-auto px-6 mt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
           
           {/* 🟢 ২. ইনফো কলাম - AriX Tactical Look */}

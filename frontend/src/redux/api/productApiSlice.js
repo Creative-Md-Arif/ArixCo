@@ -33,8 +33,17 @@ export const productApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
+    // ✅ FIX: এখন list তৈরির জন্য providesTags যোগ করা হলো, যাতে
+    // create/update/delete/toggle এর পর এই cache invalidate হয়ে refetch হয়।
     allProducts: builder.query({
       query: () => `${PRODUCT_URL}/allProducts`,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ _id }) => ({ type: "Product", id: _id })),
+              { type: "Product", id: "LIST" },
+            ]
+          : [{ type: "Product", id: "LIST" }],
     }),
 
     getProductDetails: builder.query({
@@ -50,7 +59,8 @@ export const productApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: productData,
       }),
-      invalidatesTags: ["Product"],
+      // ✅ FIX: "Products" (getProducts) এবং "Product" LIST (allProducts) দুটোই invalidate
+      invalidatesTags: ["Products", { type: "Product", id: "LIST" }],
     }),
 
     updateProduct: builder.mutation({
@@ -59,6 +69,12 @@ export const productApiSlice = apiSlice.injectEndpoints({
         method: "PUT",
         body: formData,
       }),
+      // ✅ FIX: আগে কোনো ট্যাগ ইনভ্যালিডেট হতো না, তাই আপডেটের পরও পুরনো ডেটা cache-এ থেকে যেত
+      invalidatesTags: (result, error, { productId }) => [
+        { type: "Product", id: productId },
+        { type: "Product", id: "LIST" },
+        "Products",
+      ],
     }),
 
     uploadProductImage: builder.mutation({
@@ -75,15 +91,13 @@ export const productApiSlice = apiSlice.injectEndpoints({
         url: `${PRODUCT_URL}/${productId}`,
         method: "DELETE",
       }),
-      providesTags: ["Product"],
-    }),
-
-    createReview: builder.mutation({
-      query: (data) => ({
-        url: `${PRODUCT_URL}/${data.productId}/reviews`,
-        method: "POST",
-        body: data,
-      }),
+      // ✅ FIX: এটা ভুলভাবে providesTags ছিল (delete mutation কখনো cache provide করে না,
+      // সে শুধু invalidate করে যাতে list গুলো refetch হয়)
+      invalidatesTags: (result, error, productId) => [
+        { type: "Product", id: productId },
+        { type: "Product", id: "LIST" },
+        "Products",
+      ],
     }),
 
     getTopProducts: builder.query({
@@ -117,6 +131,40 @@ export const productApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ["BestSellers"],
     }),
 
+    toggleFeatured: builder.mutation({
+      query: (productId) => ({
+        url: `${PRODUCT_URL}/${productId}/toggle-featured`,
+        method: "PUT",
+      }),
+      // ✅ FIX: optimistic update দিয়ে instant UI change (refresh ছাড়াই),
+      // fail করলে rollback হবে
+      async onQueryStarted(productId, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          productApiSlice.util.updateQueryData(
+            "allProducts",
+            undefined,
+            (draft) => {
+              const product = draft.find((p) => p._id === productId);
+              if (product) {
+                product.isFeatured = !product.isFeatured;
+              }
+            },
+          ),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
+      // ✅ background-এ সঠিক server state দিয়ে re-sync করার জন্য invalidate ও রাখা হলো
+      invalidatesTags: (result, error, productId) => [
+        { type: "Product", id: productId },
+        { type: "Product", id: "LIST" },
+      ],
+    }),
+
     getFilteredProducts: builder.query({
       query: ({ checked, radio }) => ({
         url: `${PRODUCT_URL}/filtered-products`,
@@ -145,13 +193,13 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
-  useCreateReviewMutation,
   useGetTopProductsQuery,
   useGetNewProductsQuery,
   useUploadProductImageMutation,
   useGetFilteredProductsQuery,
   useGetNewArrivalsQuery,
   useGetBestSellersQuery,
+  useToggleFeaturedMutation,
   useUpdateSalesCountMutation,
   useGetRelatedProductsQuery,
 } = productApiSlice;

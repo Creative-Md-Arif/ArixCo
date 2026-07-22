@@ -106,6 +106,7 @@ const BannerList = lazy(() => import("./pages/Admin/BannerList"));
 const BannerCreate = lazy(() => import("./pages/Admin/BannerCreate"));
 const BannerUpdate = lazy(() => import("./pages/Admin/BannerUpdate"));
 const OrderDetail = lazy(() => import("./pages/Admin/OrderDetail"));
+const ReviewManage = lazy(() => import("./pages/Admin/review/ReviewManage"));
 
 const CampaignManage = lazy(() => import("./pages/Admin/CampaignManage"));
 
@@ -453,6 +454,15 @@ const router = createBrowserRouter(
           element={
             <DelayedSuspense>
               <CupponManage />
+            </DelayedSuspense>
+          }
+        />
+
+        <Route
+          path="/admin/review-manage"
+          element={
+            <DelayedSuspense>
+              <ReviewManage />
             </DelayedSuspense>
           }
         />

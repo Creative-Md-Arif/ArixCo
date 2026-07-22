@@ -10,7 +10,7 @@ const SQUARE_CARDS_COUNT = FEATURED_CATEGORIES_LIMIT - WIDE_CARDS_COUNT;
 
 const Skeleton = () => (
   <section className="py-10 sm:py-14 font-sans">
-    <div className="container mx-auto px-4">
+    <div className="max-w-screen-2xl mx-auto px-4">
       <div className="flex flex-col items-center mb-10 gap-2.5">
         <div className="w-20 h-3 bg-gray-200 rounded animate-pulse" />
         <div className="w-44 h-6 bg-gray-200 rounded animate-pulse" />
@@ -36,7 +36,7 @@ const Skeleton = () => (
 
 const ErrorState = () => (
   <section className="py-10 font-sans">
-    <div className="container mx-auto px-4 flex flex-col items-center gap-3 text-center">
+    <div className="max-w-screen-2xl mx-auto px-4 flex flex-col items-center gap-3 text-center">
       <FaFolder className="w-8 h-8 text-[#B88E2F] opacity-40" />
       <p className="text-xs font-bold text-gray-800 uppercase tracking-widest">
         Failed to Load
@@ -47,7 +47,7 @@ const ErrorState = () => (
 
 const EmptyState = () => (
   <section className="py-10 font-sans">
-    <div className="container mx-auto px-4 flex flex-col items-center gap-3 text-center">
+    <div className="max-w-screen-2xl mx-auto px-4 flex flex-col items-center gap-3 text-center">
       <FaFolder className="w-8 h-8 text-[#B88E2F] opacity-40" />
       <p className="text-xs font-bold text-gray-800 uppercase tracking-widest">
         No Categories Found
@@ -129,7 +129,7 @@ const Category = () => {
 
   return (
     <section aria-labelledby="category-heading" className="py-10 sm:py-14">
-      <div className="container mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-4">
         {/* Header */}
         <div className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2">
           <h2

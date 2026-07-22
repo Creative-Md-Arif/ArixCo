@@ -4,6 +4,21 @@ import typographyPlugin from "@tailwindcss/typography";
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+      },
+      screens: {
+        sm: "100%",
+        md: "100%",
+        lg: "100%",
+        xl: "1280px",
+        "2xl": "1440px",
+      },
+    },
     extend: {
       letterSpacing: {
         px: "1px",
@@ -12,12 +27,12 @@ export default {
         ripple: "ripple 0.6s linear",
         swing: "swing 2s ease-in-out infinite",
         "ping-slow": "ping 2s cubic-bezier(0, 0, 0.2, 1) infinite",
+        "bounce-short": "bounce-short 1s ease-in-out infinite",
       },
       keyframes: {
         "bounce-short": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-3px)" },
-          "bounce-short": "bounce-short 1s ease-in-out infinite",
         },
         ripple: {
           to: {

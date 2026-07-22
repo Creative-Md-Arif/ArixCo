@@ -1,8 +1,12 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useMemo, memo } from "react";
 import { Link } from "react-router-dom";
-import { useAllProductsQuery } from "@redux/api/productApiSlice";
+import {
+  useAllProductsQuery,
+  useToggleFeaturedMutation,
+} from "@redux/api/productApiSlice";
 import AdminMenu from "./AdminMenu";
+import { toast } from "react-toastify";
 import {
   FaSearch,
   FaChevronLeft,
@@ -10,6 +14,8 @@ import {
   FaSortAmountDown,
   FaBox,
   FaExternalLinkAlt,
+  FaStar,
+  FaRegStar,
 } from "react-icons/fa";
 
 // --- Skeleton Components for Smooth Loading ---
@@ -17,11 +23,19 @@ const TableSkeleton = () => (
   <div className="hidden md:block border border-gray-200 rounded-sm">
     <div className="bg-gray-50 border-b border-gray-200 p-4">
       <div className="flex gap-4">
-        {[...Array(7)].map((_, i) => <div key={i} className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>)}
+        {[...Array(7)].map((_, i) => (
+          <div
+            key={i}
+            className="h-4 bg-gray-200 rounded animate-pulse flex-1"
+          ></div>
+        ))}
       </div>
     </div>
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="p-4 border-b border-gray-100 flex gap-4 items-center">
+      <div
+        key={i}
+        className="p-4 border-b border-gray-100 flex gap-4 items-center"
+      >
         <div className="w-12 h-12 bg-gray-200 rounded animate-pulse"></div>
         <div className="flex-1 space-y-2">
           <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
@@ -55,8 +69,23 @@ const CardSkeleton = () => (
   </div>
 );
 
+// --- Stock status helper ---
+const getStockInfo = (product) => {
+  const stock = product.countInStock;
+  if (stock <= 0) return { label: "Depleted", color: "red", dot: "bg-red-600" };
+  if (stock < 10)
+    return { label: "Low Stock", color: "orange", dot: "bg-orange-500" };
+  return { label: "In Stock", color: "green", dot: "bg-green-500" };
+};
+
 // --- Memoized Sub-Components for Performance ---
-const ProductRow = memo(function ProductRow({ product }) {
+const ProductRow = memo(function ProductRow({
+  product,
+  onToggleFeatured,
+  isToggling,
+}) {
+  const stockInfo = getStockInfo(product);
+
   return (
     <tr className="group hover:bg-gray-50 transition-colors">
       <td className="p-4">
@@ -72,7 +101,9 @@ const ProductRow = memo(function ProductRow({ product }) {
       <td className="p-4">
         <div className="w-14 h-14 border border-gray-200 p-0.5 group-hover:border-black transition-all overflow-hidden bg-white">
           <img
-            src={Array.isArray(product.images) ? product.images[0] : product.image}
+            src={
+              Array.isArray(product.images) ? product.images[0] : product.image
+            }
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -85,11 +116,28 @@ const ProductRow = memo(function ProductRow({ product }) {
         </span>
       </td>
       <td className="p-4">
-        <div className="flex items-center gap-2">
-          <FaBox size={12} className="text-gray-400" />
-          <span className={`text-sm font-bold ${product.countInStock < 10 ? "text-orange-600" : "text-black"}`}>
-            {product.countInStock} <span className="text-sm text-gray-400 font-normal">Units</span>
-          </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <FaBox size={12} className="text-gray-400" />
+            <span
+              className={`text-sm font-bold ${
+                stockInfo.color === "red"
+                  ? "text-red-600"
+                  : stockInfo.color === "orange"
+                    ? "text-orange-600"
+                    : "text-black"
+              }`}
+            >
+              {product.countInStock}{" "}
+              <span className="text-sm text-gray-400 font-normal">Units</span>
+            </span>
+          </div>
+          {product.hasVariants && (
+            <span className="text-sm text-gray-400 font-normal">
+              {product.variants?.length || 0} variant
+              {product.variants?.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </td>
       <td className="p-4">
@@ -107,11 +155,35 @@ const ProductRow = memo(function ProductRow({ product }) {
       </td>
       <td className="p-4">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${product.countInStock > 0 ? "bg-green-500" : "bg-red-600"}`}></div>
-          <span className={`text-sm font-bold uppercase tracking-widest ${product.countInStock > 0 ? "text-green-600" : "text-red-600"}`}>
-            {product.countInStock > 0 ? "In Stock" : "Depleted"}
+          <div className={`w-2 h-2 rounded-full ${stockInfo.dot}`}></div>
+          <span
+            className={`text-sm font-bold uppercase tracking-widest ${
+              stockInfo.color === "red"
+                ? "text-red-600"
+                : stockInfo.color === "orange"
+                  ? "text-orange-600"
+                  : "text-green-600"
+            }`}
+          >
+            {stockInfo.label}
           </span>
         </div>
+      </td>
+      <td className="p-4">
+        <button
+          onClick={() => onToggleFeatured(product._id)}
+          disabled={isToggling}
+          title={
+            product.isFeatured ? "Remove from Featured" : "Mark as Featured"
+          }
+          className={`p-2 rounded-sm border transition-all disabled:opacity-40 ${
+            product.isFeatured
+              ? "border-yellow-400 bg-yellow-50 text-yellow-500"
+              : "border-gray-200 text-gray-300 hover:border-yellow-400 hover:text-yellow-400"
+          }`}
+        >
+          {product.isFeatured ? <FaStar size={14} /> : <FaRegStar size={14} />}
+        </button>
       </td>
       <td className="p-4 text-right">
         <Link
@@ -125,22 +197,47 @@ const ProductRow = memo(function ProductRow({ product }) {
   );
 });
 
-const ProductCard = memo(function ProductCard({ product }) {
+const ProductCard = memo(function ProductCard({
+  product,
+  onToggleFeatured,
+  isToggling,
+}) {
+  const stockInfo = getStockInfo(product);
+
   return (
     <div className="border border-gray-200 p-4 rounded-sm bg-white hover:border-black transition-colors">
       <div className="flex gap-4">
         <div className="relative w-16 h-16 border border-gray-200 p-1 flex-shrink-0 bg-white">
           <img
-            src={Array.isArray(product.images) ? product.images[0] : product.image}
+            src={
+              Array.isArray(product.images) ? product.images[0] : product.image
+            }
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-bold text-black uppercase tracking-tight truncate font-['Playfair_Display']">
-            {product.name}
-          </h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-bold text-black uppercase tracking-tight truncate font-['Playfair_Display']">
+              {product.name}
+            </h3>
+            <button
+              onClick={() => onToggleFeatured(product._id)}
+              disabled={isToggling}
+              className={`shrink-0 p-1.5 rounded-sm border transition-all disabled:opacity-40 ${
+                product.isFeatured
+                  ? "border-yellow-400 bg-yellow-50 text-yellow-500"
+                  : "border-gray-200 text-gray-300"
+              }`}
+            >
+              {product.isFeatured ? (
+                <FaStar size={12} />
+              ) : (
+                <FaRegStar size={12} />
+              )}
+            </button>
+          </div>
           <p className="text-sm text-gray-500 font-bold tracking-widest mt-1">
             {product.brand || "GENERIC"}
           </p>
@@ -149,27 +246,52 @@ const ProductCard = memo(function ProductCard({ product }) {
 
       <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
         <div>
-          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">Category</span>
-          <span className="text-sm font-bold text-black">{product.category?.name || "N/A"}</span>
+          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">
+            Category
+          </span>
+          <span className="text-sm font-bold text-black">
+            {product.category?.name || "N/A"}
+          </span>
         </div>
         <div>
-          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">Price</span>
+          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">
+            Price
+          </span>
           <div className="flex items-baseline gap-1">
             <span className="text-sm text-gray-400">৳</span>
-            <span className="text-base font-black text-black">{product.price.toLocaleString()}</span>
+            <span className="text-base font-black text-black">
+              {product.price.toLocaleString()}
+            </span>
             {product.discountPercentage > 0 && (
-              <span className="text-sm text-red-600 font-bold">-{product.discountPercentage}%</span>
+              <span className="text-sm text-red-600 font-bold">
+                -{product.discountPercentage}%
+              </span>
             )}
           </div>
         </div>
         <div>
-          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">Stock</span>
+          <span className="text-sm font-bold text-gray-400 uppercase block mb-1">
+            Stock
+          </span>
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold ${product.countInStock < 10 ? "text-orange-600" : "text-black"}`}>
+            <span
+              className={`text-sm font-bold ${
+                stockInfo.color === "red"
+                  ? "text-red-600"
+                  : stockInfo.color === "orange"
+                    ? "text-orange-600"
+                    : "text-black"
+              }`}
+            >
               {product.countInStock} Units
             </span>
-            <div className={`w-2 h-2 rounded-full ${product.countInStock > 0 ? "bg-green-500" : "bg-red-600"}`}></div>
+            <div className={`w-2 h-2 rounded-full ${stockInfo.dot}`}></div>
           </div>
+          {product.hasVariants && (
+            <span className="text-sm text-gray-400 font-normal">
+              {product.variants?.length || 0} variants
+            </span>
+          )}
         </div>
         <div className="flex items-end justify-end">
           <Link
@@ -186,9 +308,14 @@ const ProductCard = memo(function ProductCard({ product }) {
 
 const AllProducts = () => {
   const { data: products, isLoading, isError, refetch } = useAllProductsQuery();
-  
+  const [toggleFeatured, { isLoading: isToggling }] =
+    useToggleFeaturedMutation();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "createdAt",
+    direction: "desc",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -196,18 +323,29 @@ const AllProducts = () => {
     refetch();
   }, [refetch]);
 
+  const handleToggleFeatured = async (productId) => {
+    try {
+      await toggleFeatured(productId).unwrap();
+      toast.success("Featured status updated");
+    } catch (err) {
+      toast.error(err?.data?.error || "Failed to update");
+    }
+  };
+
   // Optimized filtering and sorting using useMemo
   const sortedProducts = useMemo(() => {
     if (!products) return [];
     const filtered = products.filter((product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     return [...filtered].sort((a, b) => {
       if (sortConfig.key) {
-        const valA = sortConfig.key === "category" ? a.category?.name : a[sortConfig.key];
-        const valB = sortConfig.key === "category" ? b.category?.name : b[sortConfig.key];
-        
+        const valA =
+          sortConfig.key === "category" ? a.category?.name : a[sortConfig.key];
+        const valB =
+          sortConfig.key === "category" ? b.category?.name : b[sortConfig.key];
+
         if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
         if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
       }
@@ -218,11 +356,15 @@ const AllProducts = () => {
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProducts = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const currentProducts = sortedProducts.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
 
   const handleSort = (key) => {
     let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+    if (sortConfig.key === key && sortConfig.direction === "asc")
+      direction = "desc";
     setSortConfig({ key, direction });
   };
 
@@ -237,7 +379,7 @@ const AllProducts = () => {
   return (
     <div className="min-h-screen bg-[#fdfdfd] font-['Trebuchet_MS'] pb-16">
       <AdminMenu />
-      
+
       <main className="pt-24 px-4 lg:pl-[260px] transition-all duration-300">
         <div className="max-w-[1500px] mx-auto">
           {/* Header Section */}
@@ -304,7 +446,12 @@ const AllProducts = () => {
               <div className="md:hidden space-y-4">
                 {currentProducts.length > 0 ? (
                   currentProducts.map((product) => (
-                    <ProductCard key={product._id} product={product} />
+                    <ProductCard
+                      key={product._id}
+                      product={product}
+                      onToggleFeatured={handleToggleFeatured}
+                      isToggling={isToggling}
+                    />
                   ))
                 ) : (
                   <div className="text-center py-16 text-gray-400 font-bold uppercase tracking-widest text-sm">
@@ -325,6 +472,7 @@ const AllProducts = () => {
                         { label: "Stock", key: "countInStock" },
                         { label: "Price", key: "price" },
                         { label: "Status", key: null },
+                        { label: "Featured", key: "isFeatured" },
                         { label: "Action", key: null },
                       ].map((col, i) => (
                         <th
@@ -337,7 +485,11 @@ const AllProducts = () => {
                             {col.key && (
                               <FaSortAmountDown
                                 size={12}
-                                className={sortConfig.key === col.key ? "text-black" : "text-gray-300"}
+                                className={
+                                  sortConfig.key === col.key
+                                    ? "text-black"
+                                    : "text-gray-300"
+                                }
                               />
                             )}
                           </div>
@@ -348,11 +500,19 @@ const AllProducts = () => {
                   <tbody className="divide-y divide-gray-100">
                     {currentProducts.length > 0 ? (
                       currentProducts.map((product) => (
-                        <ProductRow key={product._id} product={product} />
+                        <ProductRow
+                          key={product._id}
+                          product={product}
+                          onToggleFeatured={handleToggleFeatured}
+                          isToggling={isToggling}
+                        />
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="text-center py-16 text-gray-400 font-bold uppercase tracking-widest text-sm">
+                        <td
+                          colSpan="8"
+                          className="text-center py-16 text-gray-400 font-bold uppercase tracking-widest text-sm"
+                        >
                           No Products Found
                         </td>
                       </tr>
@@ -367,7 +527,8 @@ const AllProducts = () => {
                   <div className="text-sm font-bold text-gray-500 uppercase tracking-wider">
                     Showing{" "}
                     <span className="text-black font-black">
-                      {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedProducts.length)}
+                      {indexOfFirstItem + 1}-
+                      {Math.min(indexOfLastItem, sortedProducts.length)}
                     </span>{" "}
                     of{" "}
                     <span className="text-red-600 font-black">
@@ -377,7 +538,9 @@ const AllProducts = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
                       disabled={currentPage === 1}
                       className="p-3 border border-gray-200 text-black hover:border-black disabled:opacity-20 disabled:cursor-not-allowed transition-all rounded-sm"
                       aria-label="Previous Page"
@@ -398,7 +561,9 @@ const AllProducts = () => {
                     </div>
 
                     <button
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
                       disabled={currentPage === totalPages}
                       className="p-3 border border-gray-200 text-black hover:border-black disabled:opacity-20 disabled:cursor-not-allowed transition-all rounded-sm"
                       aria-label="Next Page"

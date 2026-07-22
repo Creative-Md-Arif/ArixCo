@@ -241,6 +241,8 @@ const updateProductDetails = asyncHandler(async (req, res) => {
     product.salesCount = Number(salesCount) || 0;
     product.discountPercentage = Number(fields.discountPercentage) || 0;
     product.discountedAmount = Number(fields.discountedAmount) || 0;
+    product.warranty = fields.warranty ?? product.warranty;
+    product.weight = fields.weight ? Number(fields.weight) : product.weight;
 
     // Keep old images if no new images are provided
     product.images = imagesArray.length > 0 ? imagesArray : product.images;
@@ -356,7 +358,6 @@ const fetchProducts = asyncHandler(async (req, res) => {
   }
 });
 
-
 const fetchProductById = asyncHandler(async (req, res) => {
   try {
     const product = await Product.findOne({
@@ -372,12 +373,42 @@ const fetchProductById = asyncHandler(async (req, res) => {
       },
     });
 
-    if (product) {
-      return res.json(product.toObject());
-    } else {
+    if (!product) {
       res.status(404);
       throw new Error("Product not found");
     }
+
+    const LOW_STOCK_THRESHOLD = 5;
+    const productObj = product.toObject();
+
+    if (productObj.hasVariants && Array.isArray(productObj.variants)) {
+      productObj.variants = productObj.variants.map((variant, colorIndex) => {
+        const colorHasStock =
+          variant.sizes?.some((s) => s.countInStock > 0) || false;
+
+        return {
+          ...variant,
+          colorHasStock,
+          sizes: (variant.sizes || []).map((size) => {
+            let stockStatus = "in_stock";
+            if (size.countInStock <= 0) stockStatus = "out_of_stock";
+            else if (size.countInStock <= LOW_STOCK_THRESHOLD)
+              stockStatus = "low_stock";
+
+            return { ...size, stockStatus };
+          }),
+        };
+      });
+    } else {
+      // Non-variant product এর জন্যও একই ধরনের status ফিল্ড দেওয়া হলো
+      let stockStatus = "in_stock";
+      if (productObj.countInStock <= 0) stockStatus = "out_of_stock";
+      else if (productObj.countInStock <= LOW_STOCK_THRESHOLD)
+        stockStatus = "low_stock";
+      productObj.stockStatus = stockStatus;
+    }
+
+    return res.json(productObj);
   } catch (error) {
     console.error(error);
     res.status(404).json({ error: "Product not found" });
@@ -401,50 +432,6 @@ const fetchAllProducts = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server Error" });
-  }
-});
-
-const addProductReview = asyncHandler(async (req, res) => {
-  const { rating, comment } = req.body;
-
-  try {
-    const product = await Product.findOne({
-      $or: [
-        { _id: mongoose.isValidObjectId(req.params.id) ? req.params.id : null },
-        { slug: req.params.id },
-      ],
-    });
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    const alreadyReviewed = product.reviews.some(
-      (review) => review.user.toString() === req.user._id.toString(),
-    );
-
-    if (alreadyReviewed) {
-      return res.status(400).json({ message: "Product already reviewed" });
-    }
-
-    const review = {
-      name: req.user.username,
-      rating: Number(rating),
-      comment,
-      user: req.user._id,
-    };
-
-    product.reviews.push(review);
-    product.numReviews = product.reviews.length;
-    product.rating =
-      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
-      product.reviews.length;
-
-    await product.save();
-    res.status(201).json({ message: "Review added" });
-  } catch (error) {
-    console.error("Error adding review:", error);
-    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -623,6 +610,23 @@ const fetchRelatedProducts = asyncHandler(async (req, res) => {
   }
 });
 
+const toggleFeatured = asyncHandler(async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    product.isFeatured = !product.isFeatured;
+    await product.save();
+
+    res.json({ _id: product._id, isFeatured: product.isFeatured });
+  } catch (error) {
+    console.error("Toggle Featured Error:", error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 export {
   addProduct,
   updateProductDetails,
@@ -630,7 +634,6 @@ export {
   fetchProducts,
   fetchProductById,
   fetchAllProducts,
-  addProductReview,
   fetchTopProducts,
   fetchNewProducts,
   fetchNewArrivals,
@@ -638,4 +641,5 @@ export {
   updateProductSalesCount,
   filterProducts,
   fetchRelatedProducts,
+  toggleFeatured, 
 };

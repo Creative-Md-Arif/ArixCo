@@ -89,7 +89,6 @@ const ProductList = () => {
   const [loading, setLoading] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [isFeatured, setIsFeatured] = useState(false);
-  const [offer, setOffer] = useState("");
   const [warranty, setWarranty] = useState("");
   const [discountedAmount, setDiscountedAmount] = useState(0);
   const [weight, setWeight] = useState(0.5);
@@ -428,7 +427,6 @@ const ProductList = () => {
       productData.append("discountPercentage", discountPercentage);
       productData.append("discountedAmount", discountedAmount);
       productData.append("isFeatured", isFeatured);
-      productData.append("offer", offer);
       productData.append("warranty", warranty);
       productData.append("weight", weight);
       productData.append("shippingDetails", JSON.stringify(shippingDetails));
@@ -716,17 +714,6 @@ const ProductList = () => {
                         filterTreeNode={(input, node) =>
                           node.title.toLowerCase().includes(input.toLowerCase())
                         }
-                      />
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>Active Offer</label>
-                      <input
-                        type="text"
-                        value={offer}
-                        placeholder="Seasonal Sale"
-                        onChange={(e) => setOffer(e.target.value)}
-                        className={inputClass}
                       />
                     </div>
 

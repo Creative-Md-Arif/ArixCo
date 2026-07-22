@@ -400,7 +400,7 @@ const PaymentInstruction = ({
 
   if (!selectedMethod) {
     return (
-      <div className={`px-4 text-center ${embedded ? "py-10" : "container mx-auto mt-[100px]"}`}>
+      <div className={`px-4 text-center ${embedded ? "py-10" : "max-w-screen-2xl mx-auto mt-[100px]"}`}>
         <h2 className="text-lg sm:text-xl font-mono font-black text-red-600 mb-4">
           Payment Method Not Available
         </h2>
@@ -416,7 +416,7 @@ const PaymentInstruction = ({
 
   // ─── Render ────────────────────────────────────────────────
   const containerClass = embedded ? "w-full" : "bg-gray-50 min-h-screen pb-10 sm:pb-20";
-  const innerClass = embedded ? "w-full" : "container mx-auto px-4 sm:px-6 pt-10 max-w-5xl";
+  const innerClass = embedded ? "w-full" : "max-w-screen-2xl mx-auto px-4";
 
   return (
     <div className={containerClass}>

@@ -31,17 +31,22 @@ const AddToCartButton = ({
     );
   }
 
-  const isAdded = cartItems.some((item) => {
-    const sameProduct = item._id === product._id;
-    if (!sameProduct) return false;
+  // ── এই exact product/variant এর জন্য cart-এ আগে থেকে থাকা qty বের করা ──
+  const existingCartItem = cartItems.find((item) => {
+    if (item._id !== product._id) return false;
     if (product?.variantInfo?.hasVariants) {
       return (
         item.variantInfo?.colorIndex === product.variantInfo.colorIndex &&
         item.variantInfo?.sizeIndex === product.variantInfo.sizeIndex
       );
     }
-    return true;
+    return !item.variantInfo?.hasVariants;
   });
+
+  const existingQty = existingCartItem?.qty || 0;
+
+  // qty selector দিয়ে existingQty এর চেয়ে বেশি qty সিলেক্ট করলে বাটন আনলক হবে
+  const isAdded = existingQty > 0 && qty <= existingQty;
 
   const mainImage =
     Array.isArray(product?.images) && product.images.length > 0
@@ -114,13 +119,15 @@ const AddToCartButton = ({
   };
 
   const handleAddToCart = () => {
+    const totalQty = existingQty + qty;
+
     if (product.variantInfo?.hasVariants) {
       const stock = product.variantInfo.countInStock;
-      if (stock !== undefined && stock < qty) {
+      if (stock !== undefined && stock < totalQty) {
         toast.error(`Only ${stock} units available!`);
         return;
       }
-    } else if (product.countInStock < qty) {
+    } else if (product.countInStock < totalQty) {
       toast.error(`Only ${product.countInStock} units available!`);
       return;
     }
@@ -131,13 +138,15 @@ const AddToCartButton = ({
   };
 
   const handleOrderNow = () => {
+    const totalQty = existingQty + qty;
+
     if (product.variantInfo?.hasVariants) {
       const stock = product.variantInfo.countInStock;
-      if (stock !== undefined && stock < qty) {
+      if (stock !== undefined && stock < totalQty) {
         toast.error(`Only ${stock} units available!`);
         return;
       }
-    } else if (product.countInStock < qty) {
+    } else if (product.countInStock < totalQty) {
       toast.error(`Only ${product.countInStock} units available!`);
       return;
     }

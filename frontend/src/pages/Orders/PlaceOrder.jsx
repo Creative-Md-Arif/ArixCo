@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCreateOrderMutation } from "@redux/api/orderApiSlice";
 import { useValidateCupponMutation } from "@redux/api/cupponApiSlice";
 import { useInitSSLCommerzMutation } from "@redux/api/paymentApiSlice";
-import { clearCartItems, addToCart } from "../../redux/features/cart/cartSlice";
+import { clearCartItems, updateCartQty } from "../../redux/features/cart/cartSlice";
 import { useState, memo, useCallback } from "react";
 import { toast } from "react-toastify";
 import { FaMinus, FaPlus, FaXmark, FaSpinner } from "react-icons/fa6";
@@ -34,12 +34,30 @@ const ButtonSpinner = () => (
 );
 
 /* ─── Inline cart items ────────────────────────────────────── */
+/* ─── Inline cart items ────────────────────────────────────── */
 const InlineItems = memo(() => {
   const { cartItems } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
-  
-  const addToCartHandler = useCallback((product, qty) => {
-    dispatch(addToCart({ ...product, qty }));
+
+  // ✅ FIX: qty +/- বাটনের জন্য absolute-set reducer (updateCartQty) ব্যবহার করা হচ্ছে,
+  // addToCart (যেটা এখন cumulative-add) না — সাথে stock এর বিপরীতে check যোগ করা হলো।
+  const updateQtyHandler = useCallback((item, newQty) => {
+    const stock = item.variantInfo?.hasVariants
+      ? item.variantInfo.countInStock
+      : item.countInStock;
+
+    if (stock !== undefined && newQty > stock) {
+      toast.error(`Only ${stock} units available!`);
+      return;
+    }
+
+    dispatch(
+      updateCartQty({
+        _id: item._id,
+        variantInfo: item.variantInfo || null,
+        qty: newQty,
+      }),
+    );
   }, [dispatch]);
 
   return (
@@ -63,12 +81,12 @@ const InlineItems = memo(() => {
 
           let badgeElement = null;
           const hasCampaign = item.appliedCampaigns && item.appliedCampaigns.length > 0;
-          
+
           if (hasCampaign) {
             const camp = item.appliedCampaigns[0];
             const typeName = (camp.type || "").replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            const discountText = camp.discountType === "percentage" 
-              ? `-${camp.discountValue}%` 
+            const discountText = camp.discountType === "percentage"
+              ? `-${camp.discountValue}%`
               : `-৳${camp.discountValue}`;
             badgeElement = (
               <span className="inline-flex items-center text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-sm uppercase tracking-wide leading-tight whitespace-nowrap">
@@ -95,7 +113,7 @@ const InlineItems = memo(() => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-xs sm:text-sm font-mono font-bold text-black uppercase tracking-tight line-clamp-2 flex-1 min-w-0">
@@ -134,7 +152,7 @@ const InlineItems = memo(() => {
                   <button
                     type="button"
                     className="w-7 h-full flex items-center justify-center text-gray-500 border-r border-gray-300 hover:bg-gray-50 transition-colors rounded-l-md disabled:opacity-30"
-                    onClick={() => item.qty > 1 && addToCartHandler(item, item.qty - 1)}
+                    onClick={() => item.qty > 1 && updateQtyHandler(item, item.qty - 1)}
                     disabled={item.qty === 1}
                     aria-label="Decrease quantity"
                   >
@@ -146,7 +164,7 @@ const InlineItems = memo(() => {
                   <button
                     type="button"
                     className="w-7 h-full flex items-center justify-center text-gray-500 border-l border-gray-300 hover:bg-gray-50 transition-colors rounded-r-md"
-                    onClick={() => addToCartHandler(item, item.qty + 1)}
+                    onClick={() => updateQtyHandler(item, item.qty + 1)}
                     aria-label="Increase quantity"
                   >
                     <FaPlus size={8} />

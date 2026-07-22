@@ -131,7 +131,7 @@ const Profile = () => {
     <div className="bg-[#F9FAFB] min-h-screen">
       {/* ✅ Unified Breadcrumb */}
       <div className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <nav
             aria-label="Breadcrumb"
             className="flex items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 bg-white"

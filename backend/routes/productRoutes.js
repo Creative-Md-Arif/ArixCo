@@ -9,7 +9,6 @@ import {
   fetchProducts,
   fetchProductById,
   fetchAllProducts,
-  addProductReview,
   fetchTopProducts,
   fetchNewProducts,
   fetchNewArrivals,
@@ -17,41 +16,45 @@ import {
   updateProductSalesCount,
   filterProducts,
   fetchRelatedProducts,
+  toggleFeatured,
 } from "../controllers/productController.js";
 import { authenticate, authorizeAdmin } from "../middlewares/authMiddleware.js";
 import checkId from "../middlewares/checkId.js";
-import { attachCampaignPricing } from "../middlewares/attachCampaignPricing.js"; // 🆕 নতুন import
+import { attachCampaignPricing } from "../middlewares/attachCampaignPricing.js";
+
+
+
 
 router
   .route("/")
-  .get(attachCampaignPricing, fetchProducts) // 🆕 middleware যোগ হলো
+  .get(attachCampaignPricing, fetchProducts)
   .post(authenticate, authorizeAdmin, formidable(), addProduct);
 
-router.route("/allproducts").get(attachCampaignPricing, fetchAllProducts); // 🆕
+router.route("/allproducts").get(attachCampaignPricing, fetchAllProducts);
 
-router.route("/:id/reviews").post(authenticate, checkId, addProductReview); // অপরিবর্তিত (price দেখায় না)
-
-router.get("/related/:id", attachCampaignPricing, fetchRelatedProducts); // 🆕
-router.get("/top", attachCampaignPricing, fetchTopProducts); // 🆕
-router.get("/new", attachCampaignPricing, fetchNewProducts); // 🆕
+router.get("/related/:id", attachCampaignPricing, fetchRelatedProducts);
+router.get("/top", attachCampaignPricing, fetchTopProducts);
+router.get("/new", attachCampaignPricing, fetchNewProducts);
 
 // 🆕 New routes for New Arrivals, Best Sellers, Flash Sale
-router.get("/new-arrivals", attachCampaignPricing, fetchNewArrivals); // 🆕
-router.get("/best-sellers", attachCampaignPricing, fetchBestSellers); // 🆕
+router.get("/new-arrivals", attachCampaignPricing, fetchNewArrivals);
+router.get("/best-sellers", attachCampaignPricing, fetchBestSellers);
 
 router.post(
   "/update-sales",
   authenticate,
   authorizeAdmin,
   updateProductSalesCount,
-); // অপরিবর্তিত (write operation)
+);
 
 router
   .route("/:id")
-  .get(attachCampaignPricing, fetchProductById) 
-  .put(authenticate, authorizeAdmin, formidable(), updateProductDetails) 
-  .delete(authenticate, authorizeAdmin, removeProduct); // অপরিবর্তিত
+  .get(attachCampaignPricing, fetchProductById)
+  .put(authenticate, authorizeAdmin, formidable(), updateProductDetails)
+  .delete(authenticate, authorizeAdmin, removeProduct);
 
-router.route("/filtered-products").post(attachCampaignPricing, filterProducts); // 🆕
-
+router.route("/filtered-products").post(attachCampaignPricing, filterProducts);
+router
+  .route("/:id/toggle-featured")
+  .put(authenticate, authorizeAdmin, toggleFeatured);
 export default router;

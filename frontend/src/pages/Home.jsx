@@ -1,17 +1,16 @@
 import { memo, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async"; // Existing package for SEO
+import { Helmet } from "react-helmet-async";
 import NewArrivals from "../components/bannerSection/NewArrivals";
 import BestSellers from "../components/bannerSection/BestSellers";
 import Category from "../components/Category";
 import HeroBanner from "../components/HeroBanner";
 import { DoubleBanner, WideBanner } from "../components/bannerSection/PromoBanners";
+import FeaturedReviews from "../pages/User/FeaturedReviews"; // 🆕 ইম্পোর্ট করা হয়েছে
 
 const Home = () => {
-  // ✅ React Router best practice: useSearchParams instead of window.location
   const [searchParams] = useSearchParams();
   
-  // ✅ Memoized keyword check to prevent unnecessary calculations on re-renders
   const keyword = useMemo(() => searchParams.get('keyword'), [searchParams]);
   const showHomeSections = !keyword;
 
@@ -27,20 +26,21 @@ const Home = () => {
         <meta property="og:type" content="website" />
       </Helmet>
 
-      {/* ── Accessibility: role="main" ── */}
       <div className="bg-[#FFFFFF] min-h-screen" role="main" aria-label="Homepage content">
         <HeroBanner />
         
-        {/* ✅ Conditionally rendering sections based on keyword presence */}
         {showHomeSections && <Category />}
         {showHomeSections && <NewArrivals />}
         {showHomeSections && <DoubleBanner />}    
         {showHomeSections && <BestSellers />}
+        
+        {/* 🆕 ফিচার্ড রিভিউ স্লাইডার যুক্ত করা হলো */}
+        {showHomeSections && <FeaturedReviews />}
+        
         {showHomeSections && <WideBanner />}  
       </div>
     </>
   );
 };
 
-// ✅ Memoized to prevent unnecessary re-renders
 export default memo(Home);

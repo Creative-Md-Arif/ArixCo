@@ -3,9 +3,9 @@ import { BASE_URL } from "../constants.js";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
-  credentials: "include", 
+  credentials: "include",
   prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth?.token || localStorage.getItem("token");
+    const token = getState().auth?.token || localStorage.getItem("token");
 
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
@@ -40,6 +40,8 @@ export const apiSlice = createApi({
     "Newsletter",
     "SEO",
     "Blog",
+    "Review",
+    "RelatedProducts",
   ],
   endpoints: () => ({}),
 });

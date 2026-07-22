@@ -9,10 +9,11 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 import {
-  addToCart,
+  updateCartQty,
   removeFromCart,
   toggleCartSidebar,
 } from "../redux/features/cart/cartSlice";
+import { toast } from "react-toastify";
 import { LuShoppingBag } from "react-icons/lu";
 import { FaArrowRightLong } from "react-icons/fa6";
 import { IoMdClose } from "react-icons/io";
@@ -24,18 +25,27 @@ const Cart = () => {
   const cart = useSelector((state) => state.cart) || {};
   const { cartItems = [], isCartOpen = false } = cart;
 
-  const addToCartHandler = useCallback(
-    (product, qty) => {
-      const cartItem = {
-        ...product,
-        qty,
-        discountPercentage: product.discountPercentage,
-        weight: product.weight,
-        variantInfo: product.variantInfo,
-        campaignPrice: product.campaignPrice,
-        appliedCampaigns: product.appliedCampaigns,
-      };
-      dispatch(addToCart(cartItem));
+  // ✅ FIX: qty +/- বাটনের জন্য absolute-set reducer (updateCartQty) ব্যবহার করা হচ্ছে,
+  // addToCart (যেটা AddToCartButton এখন cumulative-add হিসেবে ব্যবহার করে) না —
+  // দুইটা ভিন্ন intent (set vs add) একই reducer এ থাকলে qty ভুল হয়ে যাচ্ছিল।
+  const updateQtyHandler = useCallback(
+    (item, newQty) => {
+      const stock = item.variantInfo?.hasVariants
+        ? item.variantInfo.countInStock
+        : item.countInStock;
+
+      if (stock !== undefined && newQty > stock) {
+        toast.error(`Only ${stock} units available!`);
+        return;
+      }
+
+      dispatch(
+        updateCartQty({
+          _id: item._id,
+          variantInfo: item.variantInfo || null,
+          qty: newQty,
+        }),
+      );
     },
     [dispatch],
   );
@@ -205,7 +215,9 @@ const Cart = () => {
                       <div className="flex items-center justify-between mt-2 pt-1">
                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5">
                           <button
-                            onClick={() => item.qty > 1 && addToCartHandler(item, item.qty - 1)}
+                            onClick={() =>
+                              item.qty > 1 && updateQtyHandler(item, item.qty - 1)
+                            }
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800"
                             aria-label="Decrease quantity"
                           >
@@ -215,7 +227,7 @@ const Cart = () => {
                             {item.qty}
                           </span>
                           <button
-                            onClick={() => addToCartHandler(item, item.qty + 1)}
+                            onClick={() => updateQtyHandler(item, item.qty + 1)}
                             className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-800"
                             aria-label="Increase quantity"
                           >

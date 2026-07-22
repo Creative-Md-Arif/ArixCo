@@ -48,7 +48,7 @@ const BestSellers = () => {
   if (isLoading) {
     return (
       <section className="py-12 sm:py-16 font-sans" aria-busy="true">
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <HeaderSkeleton />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -65,7 +65,7 @@ const BestSellers = () => {
       className="py-10 sm:py-14 font-sans"
       aria-labelledby="best-sellers-heading"
     >
-      <div className="container mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-4">
         {/* Header */}
         <div className="flex flex-col items-center mb-8 sm:mb-10 text-center gap-2">
           <h2

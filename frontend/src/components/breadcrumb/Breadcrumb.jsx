@@ -110,7 +110,7 @@ const Breadcrumb = ({ items, className = "" }) => {
   return (
     <nav
       aria-label="Breadcrumb"
-      className={`flex container mx-auto items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 px-4 bg-white ${className}`}
+      className={`flex max-w-screen-2xl mx-auto items-center gap-1.5 text-[14px] font-playfair font-medium flex-wrap py-4 px-4 bg-white ${className}`}
     >
       <Link
         to="/"

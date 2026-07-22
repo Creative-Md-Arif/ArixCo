@@ -34,7 +34,7 @@ export const DoubleBanner = () => {
 
   return (
     <section className="py-10 sm:py-14 font-sans">
-      <div className="container mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-4">
         <div className="flex flex-col items-center mb-8 text-center gap-2">
           <h2  className="font-trebuchet text-[14px] md:text-[24px] font-bold tracking-px text-gray-900 uppercase">
             Shop By Department
@@ -79,7 +79,7 @@ export const DoubleBanner = () => {
 export const WideBanner = () => {
   return (
     <section className="py-10 sm:py-14 font-sans">
-      <div className="container mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-4">
         <Link
           to="/shop" 
           className="group relative rounded-sm overflow-hidden h-48 sm:h-64 bg-black cursor-pointer border border-transparent hover:border-[#B88E2F] transition-all duration-300 flex items-center"

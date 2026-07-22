@@ -480,7 +480,7 @@ const Shipping = () => {
       </Helmet>
 
       <div className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4">
           {!userInfo && (
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
               <span className="text-[#007EFC] mt-0.5 flex-shrink-0">
@@ -537,7 +537,7 @@ const Shipping = () => {
         </div>
       </div>
 
-      <div className="container mx-auto py-6 sm:py-10 px-4">
+      <div className="max-w-screen-2xl mx-auto py-6 sm:py-10 px-4">
         <div className="mb-6 sm:mb-10 border-b-2 border-black pb-4">
           <p className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-400 mb-1">
             Step 1 of 2

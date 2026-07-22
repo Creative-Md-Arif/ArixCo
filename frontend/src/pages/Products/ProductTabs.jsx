@@ -36,8 +36,12 @@ const ProductTabs = ({
   comment,
   setComment,
   product,
+  reviews = [], // 🆕 নতুন রিভিউ সিস্টেম থেকে আসা ডাটা গ্রহণ করবে (fallback empty array)
 }) => {
   const [activeTab, setActiveTab] = useState(1);
+
+  // 🆕 প্রোডাক্টের ডিফল্ট রিভিউ থাকলে সেটা, নাহলে নতুন রিভিউ লিস্ট ব্যবহার করবে
+  const displayReviews = reviews?.length > 0 ? reviews : product?.reviews || [];
 
   // ── Memoized Sanitized Description ──
   // শুধুমাত্র product.description পরিবর্তন হলেই এটি আবার রান করবে
@@ -77,8 +81,8 @@ const ProductTabs = ({
                   : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
               }`}
             >
-              {tab === "Reviews (0)" && product.reviews?.length > 0
-                ? `Reviews (${product.reviews.length})`
+              {tab === "Reviews (0)" && displayReviews.length > 0
+                ? `Reviews (${displayReviews.length})`
                 : tab}
             </button>
           );
@@ -143,17 +147,17 @@ const ProductTabs = ({
                 <div className="space-y-6">
                   {/* Reviews Stream Container */}
                   <div className="space-y-3">
-                    {!product.reviews || product.reviews.length === 0 ? (
+                    {displayReviews.length === 0 ? (
                       <div className="text-center py-6 border border-dashed border-gray-200 rounded text-gray-500 text-[14px] bg-gray-50">
                         There are no reviews for this product yet.
                       </div>
                     ) : (
-                      product.reviews.map((review) => (
+                      displayReviews.map((review) => (
                         <div
                           key={review._id}
-                          className="bg-white p-4 rounded border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+                          className="bg-white p-4 rounded border border-gray-200 flex flex-col sm:flex-row sm:items-start justify-between gap-4 shadow-sm"
                         >
-                          <div className="flex-1">
+                          <div className="flex-1 w-full">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded bg-blue-900 text-white flex items-center justify-center text-[14px] font-bold">
                                 {review.name?.charAt(0).toUpperCase()}
@@ -163,15 +167,34 @@ const ProductTabs = ({
                                   {review.name}
                                 </span>
                                 <span className="text-[11px] text-gray-400">
-                                  {review.createdAt.substring(0, 10)}
+                                  {new Date(review.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
                             </div>
                             <p className="text-gray-700 text-[14px] leading-relaxed mt-2 pl-12">
                               {review.comment}
                             </p>
+
+                            {/* 🆕 এডমিন রিপ্লাই দেখানোর অংশ */}
+                            {review.reply && review.reply.text && (
+                              <div className="mt-3 ml-12 bg-blue-50 border-l-4 border-blue-600 p-3 rounded-r-md">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800">
+                                    Reply from AriX Co
+                                  </span>
+                                  {review.reply.createdAt && (
+                                    <span className="text-[10px] text-gray-400">
+                                      {new Date(review.reply.createdAt).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[13px] text-gray-700">
+                                  {review.reply.text}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <div className="pl-12 sm:pl-0 self-start sm:self-center">
+                          <div className="pl-12 sm:pl-0 self-start sm:self-center flex-shrink-0">
                             <Ratings value={review.rating} />
                           </div>
                         </div>

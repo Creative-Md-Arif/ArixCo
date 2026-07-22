@@ -195,7 +195,7 @@ export default function SearchOverlay({
         )}
 
         <div className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4">
+          <div className="max-w-screen-2xl mx-auto px-4">
             {/* Loading skeleton - Show on initial load OR while fetching new keystrokes with no prior results */}
             {(isLoading || (isFetching && results.length === 0)) && hasQuery && (
               <div className="py-2">

@@ -139,7 +139,7 @@ const OrderDetails = () => {
       <div className="bg-[#F9FAFB] min-h-screen font-trebuchet">
         {/* Breadcrumb Skeleton */}
         <header className="bg-white border-b border-gray-100">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-screen-2xl mx-auto px-4 ">
             <div className="flex items-center gap-2 py-4">
               <div className="h-4 w-16 bg-gray-100 rounded animate-pulse"></div>
               <div className="h-4 w-4 bg-gray-100 rounded animate-pulse"></div>
@@ -149,7 +149,7 @@ const OrderDetails = () => {
             </div>
           </div>
         </header>
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <main className="max-w-screen-2xl mx-auto px-4 py-8 sm:py-10">
           <DetailSkeleton />
         </main>
       </div>
@@ -173,7 +173,7 @@ const OrderDetails = () => {
     <div className="bg-[#F9FAFB] min-h-screen font-trebuchet">
       {/* Breadcrumb */}
       <header className="bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm font-medium flex-wrap py-4 bg-white">
             <Link to="/" className="flex items-center gap-1.5 text-black hover:underline text-sm font-medium">
               <FaHome className="text-sm" />
@@ -194,7 +194,7 @@ const OrderDetails = () => {
       </header>
 
       {/* Full Width Container Design */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <main className="max-w-screen-2xl mx-auto px-4 py-8 sm:py-10">
         <div className="space-y-5">
           {/* Header Info */}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

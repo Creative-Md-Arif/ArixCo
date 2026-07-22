@@ -5,9 +5,13 @@ import { toast } from "react-toastify";
 import { Helmet } from "react-helmet-async"; // Existing package imported for SEO
 import {
   useGetProductDetailsQuery,
-  useCreateReviewMutation,
   useGetRelatedProductsQuery,
 } from "@redux/api/productApiSlice";
+// 🆕 নতুন reviewApiSlice থেকে ইম্পোর্ট করা হয়েছে
+import {
+  useGetProductReviewsQuery,
+  useAddProductReviewMutation,
+} from "@redux/api/reviewApiSlice";
 import Message from "../../components/Message";
 import ProductTabs from "./ProductTabs";
 import ProductCard from "./ProductCard";
@@ -19,16 +23,19 @@ import Breadcrumb from "../../components/breadcrumb/Breadcrumb";
 // ── Skeleton Loader Component ──
 const ProductDetailsSkeleton = () => (
   <div className="bg-white min-h-screen animate-pulse">
-    <div className="container mx-auto mt-2 px-4">
+    <div className="max-w-screen-2xl mx-auto mt-2 px-4">
       <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
     </div>
-    <div className="container mx-auto py-6 px-4">
+    <div className="max-w-screen-2xl mx-auto py-6 px-4">
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
         <div className="lg:w-[45%]">
           <div className="flex flex-col-reverse lg:flex-row gap-3 sm:gap-5">
             <div className="flex lg:flex-col gap-2 flex-shrink-0">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-14 h-14 sm:w-[70px] sm:h-[70px] bg-gray-200 rounded-lg"></div>
+                <div
+                  key={i}
+                  className="w-14 h-14 sm:w-[70px] sm:h-[70px] bg-gray-200 rounded-lg"
+                ></div>
               ))}
             </div>
             <div className="flex-1 bg-gray-200 rounded-2xl aspect-square"></div>
@@ -74,7 +81,11 @@ const ProductDetails = () => {
   } = useGetProductDetailsQuery(productId);
 
   console.log(product);
-  
+
+  const { data: productReviews, refetch: refetchReviews } =
+    useGetProductReviewsQuery(product?._id, {
+      skip: !product?._id,
+    });
 
   const {
     data: relatedProducts,
@@ -82,12 +93,13 @@ const ProductDetails = () => {
     error: relatedError,
   } = useGetRelatedProductsQuery(
     { productId: product?._id, limit: 5 },
-    { skip: !product?._id }
+    { skip: !product?._id },
   );
 
   const { userInfo } = useSelector((state) => state.auth);
-  const [createReview, { isLoading: loadingProductReview }] =
-    useCreateReviewMutation();
+
+  const [addProductReview, { isLoading: loadingProductReview }] =
+    useAddProductReviewMutation();
 
   useEffect(() => {
     if (product) {
@@ -103,32 +115,28 @@ const ProductDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
+  const getDisplayImages = useCallback(() => {
+    if (!product) return [];
 
-const getDisplayImages = useCallback(() => {
-  if (!product) return [];
+    const commonImages =
+      product.images?.length > 0
+        ? product.images
+        : product.image
+          ? [product.image]
+          : [];
 
-  const mainImages =
-    product.images?.length > 0
-      ? product.images
-      : product.image
-        ? [product.image]
-        : [];
+    if (!product.hasVariants) return commonImages;
 
-  const variant = product.variants?.[selectedColorIndex];
-  const variantImages =
-    variant?.color?.images?.length > 0
-      ? variant.color.images
-      : variant?.color?.image
-        ? [variant.color.image]
-        : [];
+    const variant = product.variants?.[selectedColorIndex];
+    const variantImages =
+      variant?.color?.images?.length > 0
+        ? variant.color.images
+        : variant?.color?.image
+          ? [variant.color.image]
+          : [];
 
-  const merged = [
-    ...variantImages,
-    ...mainImages.filter((img) => !variantImages.includes(img)),
-  ];
-
-  return merged.length > 0 ? merged : mainImages;
-}, [product, selectedColorIndex]);
+    return [...variantImages, ...commonImages];
+  }, [product, selectedColorIndex]);
 
   const getCurrentPrice = useCallback(() => {
     if (!product) return 0;
@@ -182,10 +190,10 @@ const getDisplayImages = useCallback(() => {
     };
   }, [product, selectedColorIndex, selectedSizeIndex]);
 
-  // ── useMemo দিয়ে ডাটা ক্যাশ করা হয়েছে যাতে বারবার হিসাব না হয় ──
   const basePrice = useMemo(() => {
     return product?.hasVariants
-      ? product.variants?.[selectedColorIndex]?.sizes?.[selectedSizeIndex]?.price || product.price
+      ? product.variants?.[selectedColorIndex]?.sizes?.[selectedSizeIndex]
+          ?.price || product.price
       : product?.price || 0;
   }, [product, selectedColorIndex, selectedSizeIndex]);
 
@@ -194,25 +202,29 @@ const getDisplayImages = useCallback(() => {
   const displayImages = useMemo(() => getDisplayImages(), [getDisplayImages]);
   const displayDiscountPercent = product?.discountPercentage || 0;
 
-  const hasCampaign = useMemo(() => 
-    product?.appliedCampaigns && product.appliedCampaigns.length > 0
-  , [product]);
+  const hasCampaign = useMemo(
+    () => product?.appliedCampaigns && product.appliedCampaigns.length > 0,
+    [product],
+  );
 
-  const getDynamicCampaignPrice = useCallback((currentBasePrice) => {
-    if (!hasCampaign) return null;
-    let calculatedPrice = currentBasePrice;
-    for (const camp of product.appliedCampaigns) {
-      let discountAmt =
-        camp.discountType === "percentage"
-          ? (calculatedPrice * camp.discountValue) / 100
-          : camp.discountValue;
-      if (camp.maxDiscountAmount) {
-        discountAmt = Math.min(discountAmt, camp.maxDiscountAmount);
+  const getDynamicCampaignPrice = useCallback(
+    (currentBasePrice) => {
+      if (!hasCampaign) return null;
+      let calculatedPrice = currentBasePrice;
+      for (const camp of product.appliedCampaigns) {
+        let discountAmt =
+          camp.discountType === "percentage"
+            ? (calculatedPrice * camp.discountValue) / 100
+            : camp.discountValue;
+        if (camp.maxDiscountAmount) {
+          discountAmt = Math.min(discountAmt, camp.maxDiscountAmount);
+        }
+        calculatedPrice -= discountAmt;
       }
-      calculatedPrice -= discountAmt;
-    }
-    return Math.max(Math.round(calculatedPrice * 100) / 100, 0);
-  }, [hasCampaign, product]);
+      return Math.max(Math.round(calculatedPrice * 100) / 100, 0);
+    },
+    [hasCampaign, product],
+  );
 
   const getCampaignBadgeText = useCallback(() => {
     if (!hasCampaign) return null;
@@ -227,19 +239,28 @@ const getDisplayImages = useCallback(() => {
     return `${typeName} ${discountText}`;
   }, [hasCampaign, product]);
 
-  const dynamicCampaignPrice = useMemo(() => getDynamicCampaignPrice(basePrice), [getDynamicCampaignPrice, basePrice]);
+  const dynamicCampaignPrice = useMemo(
+    () => getDynamicCampaignPrice(basePrice),
+    [getDynamicCampaignPrice, basePrice],
+  );
   const priceToShow = hasCampaign ? dynamicCampaignPrice : finalPrice;
   const crossedPrice = basePrice;
-  const campaignBadgeText = useMemo(() => getCampaignBadgeText(), [getCampaignBadgeText]);
+  const campaignBadgeText = useMemo(
+    () => getCampaignBadgeText(),
+    [getCampaignBadgeText],
+  );
 
-  const handleColorChange = useCallback((index) => {
-    setSelectedColorIndex(index);
-    if (product.variants[index]?.sizes?.length > 0) setSelectedSizeIndex(0);
-    const variant = product.variants[index];
-    if (variant?.color?.images?.length > 0)
-      setActiveImage(variant.color.images[0]);
-    else if (variant?.color?.image) setActiveImage(variant.color.image);
-  }, [product]);
+  const handleColorChange = useCallback(
+    (index) => {
+      setSelectedColorIndex(index);
+      if (product.variants[index]?.sizes?.length > 0) setSelectedSizeIndex(0);
+      const variant = product.variants[index];
+      if (variant?.color?.images?.length > 0)
+        setActiveImage(variant.color.images[0]);
+      else if (variant?.color?.image) setActiveImage(variant.color.image);
+    },
+    [product],
+  );
 
   const getProductForCart = useMemo(() => {
     if (!product) return null;
@@ -260,20 +281,37 @@ const getDisplayImages = useCallback(() => {
       qty,
       countInStock: currentStock,
     };
-  }, [product, basePrice, finalPrice, priceToShow, getVariantInfo, displayImages, qty, currentStock]);
+  }, [
+    product,
+    basePrice,
+    finalPrice,
+    priceToShow,
+    getVariantInfo,
+    displayImages,
+    qty,
+    currentStock,
+  ]);
 
-  const submitHandler = useCallback(async (e) => {
-    e.preventDefault();
-    try {
-      await createReview({ productId: product._id, rating, comment }).unwrap();
-      refetch();
-      toast.success("Review submitted");
-      setComment("");
-      setRating(0);
-    } catch (error) {
-      toast.error(error?.data?.message || "Error");
-    }
-  }, [createReview, product, rating, comment, refetch]);
+  const submitHandler = useCallback(
+    async (e) => {
+      e.preventDefault();
+      try {
+        await addProductReview({
+          productId: product._id,
+          rating,
+          comment,
+        }).unwrap();
+        refetch();
+        refetchReviews();
+        toast.success("Review submitted");
+        setComment("");
+        setRating(0);
+      } catch (error) {
+        toast.error(error?.data?.message || "Error");
+      }
+    },
+    [addProductReview, product, rating, comment, refetch, refetchReviews],
+  );
 
   const categoryHierarchy = useMemo(() => {
     const hierarchy = [];
@@ -295,14 +333,23 @@ const getDisplayImages = useCallback(() => {
       {/* ── SEO Optimization using Helmet ── */}
       <Helmet>
         <title>{`${product.name} - Buy Online at Best Price | AriX Co`}</title>
-        <meta name="description" content={product.description?.substring(0, 150) || `Buy ${product.name} online at AriX Co. Best deals, fast delivery, and secure payment.`} />
+        <meta
+          name="description"
+          content={
+            product.description?.substring(0, 150) ||
+            `Buy ${product.name} online at AriX Co. Best deals, fast delivery, and secure payment.`
+          }
+        />
         <meta property="og:title" content={`${product.name} | AriX Co`} />
-        <meta property="og:description" content={product.description?.substring(0, 150)} />
+        <meta
+          property="og:description"
+          content={product.description?.substring(0, 150)}
+        />
         <meta property="og:image" content={displayImages[0]} />
         <meta property="og:type" content="product" />
       </Helmet>
 
-      <div className="container mx-auto mt-2 px-4">
+      <div className="max-w-screen-2xl mx-auto mt-2">
         <Breadcrumb
           items={[
             { label: "Shop", href: "/shop" },
@@ -317,7 +364,7 @@ const getDisplayImages = useCallback(() => {
         />
       </div>
 
-      <div className="container mx-auto py-6 px-4">
+      <div className="max-w-screen-2xl mx-auto py-6">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           {/* ── Image Gallery ── */}
           <div className="lg:w-[45%]">
@@ -389,7 +436,7 @@ const getDisplayImages = useCallback(() => {
                 <span className="text-[16px] font-trebuchet font-bold text-[#000000]">
                   {Math.round(priceToShow * qty).toLocaleString()}৳
                 </span>
-                {hasCampaign && (
+                {(hasCampaign || displayDiscountPercent > 0) && (
                   <span className="text-[12px] text-gray-600 font-trebuchet font-semibold line-through ml-1">
                     {Math.round(crossedPrice * qty).toLocaleString()}৳
                   </span>
@@ -400,11 +447,31 @@ const getDisplayImages = useCallback(() => {
                 <span className="text-[14px] font-trebuchet text-gray-600 font-normal">
                   Status:
                 </span>
-                <span
-                  className={`text-[14px] font-trebuchet font-bold ${currentStock > 0 ? "text-[#000000]" : "text-red-500"}`}
-                >
-                  {currentStock > 0 ? `In Stock ` : "Out of Stock"}
-                </span>
+                {(() => {
+                  const status = product.hasVariants
+                    ? product.variants[selectedColorIndex]?.sizes[
+                        selectedSizeIndex
+                      ]?.stockStatus
+                    : product.stockStatus;
+
+                  if (status === "out_of_stock")
+                    return (
+                      <span className="text-[14px] font-trebuchet font-bold text-red-500">
+                        Out of Stock
+                      </span>
+                    );
+                  if (status === "low_stock")
+                    return (
+                      <span className="text-[14px] font-trebuchet font-bold text-orange-500">
+                        Only {currentStock} left
+                      </span>
+                    );
+                  return (
+                    <span className="text-[14px] font-trebuchet font-bold text-[#000000]">
+                      In Stock
+                    </span>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
@@ -423,9 +490,16 @@ const getDisplayImages = useCallback(() => {
                 <span className="text-[12px] font-black text-black">
                   {product.variants[selectedColorIndex]?.color?.name}
                 </span>
-                {product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]?.size && (
+                {product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]
+                  ?.size && (
                   <span className="text-[12px] text-gray-400 font-medium ml-1">
-                    ({product.variants[selectedColorIndex]?.sizes[selectedSizeIndex]?.size})
+                    (
+                    {
+                      product.variants[selectedColorIndex]?.sizes[
+                        selectedSizeIndex
+                      ]?.size
+                    }
+                    )
                   </span>
                 )}
               </div>
@@ -434,19 +508,25 @@ const getDisplayImages = useCallback(() => {
             {product.hasVariants && product.variants?.length > 0 && (
               <div className="pt-1 font-playfair">
                 <div className="flex flex-wrap gap-1">
-                  {product.variants.map((variant, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleColorChange(index)}
-                      className={`px-3 py-1 text-[13px] transition-all duration-150 border uppercase tracking-wider ${
-                        selectedColorIndex === index
-                          ? "border-[#E04F23] bg-[#E04F23] text-white font-medium"
-                          : "border-blue-700 bg-white text-black hover:bg-gray-50 font-normal"
-                      }`}
-                    >
-                      {variant.color.name}
-                    </button>
-                  ))}
+                  {product.variants.map((variant, index) => {
+                    const outOfStock = variant.colorHasStock === false;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => !outOfStock && handleColorChange(index)}
+                        disabled={outOfStock}
+                        className={`px-3 py-1 text-[13px] transition-all duration-150 border uppercase tracking-wider ${
+                          selectedColorIndex === index
+                            ? "border-[#E04F23] bg-[#E04F23] text-white font-medium"
+                            : outOfStock
+                              ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                              : "border-blue-700 bg-white text-black hover:bg-gray-50 font-normal"
+                        }`}
+                      >
+                        {variant.color.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -461,15 +541,20 @@ const getDisplayImages = useCallback(() => {
                           key={index}
                           onClick={() => setSelectedSizeIndex(index)}
                           disabled={size.countInStock === 0}
-                          className={`px-3 py-1 text-[13px] transition-all duration-150 border min-w-[40px] ${
+                          className={`relative px-3 py-1 text-[13px] transition-all duration-150 border min-w-[40px] ${
                             selectedSizeIndex === index
                               ? "border-[#E04F23] bg-[#E04F23] text-white font-medium"
-                              : size.countInStock === 0
+                              : size.stockStatus === "out_of_stock"
                                 ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
                                 : "border-blue-700 bg-white text-black hover:bg-gray-50 font-normal"
                           }`}
                         >
                           {size.size}
+                          {size.stockStatus === "low_stock" && (
+                            <span className="absolute -top-2 -right-1 text-[9px] bg-red-500 text-white px-1 rounded-full leading-tight">
+                              {size.countInStock}
+                            </span>
+                          )}
                         </button>
                       ),
                     )}
@@ -477,24 +562,22 @@ const getDisplayImages = useCallback(() => {
                 </div>
               )}
 
-            {product.specifications?.length > 0 && (
+            {product.keyFeatures?.length > 0 && (
               <div className="pt-2">
                 <h4 className="text-[18px] font-normal font-trebuchet tracking-wide text-[#1A1A1A] mb-2">
                   Key Features
                 </h4>
-                <div className="space-y-2">
-                  {product.specifications.slice(0, 5).map((spec, idx) => (
-                    <div key={idx} className="flex gap-1">
-                      <span className="text-[15px] font-normal font-trebuchet text-[#000000] capitalize min-w-[80px] sm:min-w-[120px]">
-                        {spec.label}
-                      </span>
-                      <span className="text-[15px] font-normal font-trebuchet text-[#000000] capitalize">
-                        {spec.value}
-                      </span>
-                    </div>
+                <ul className="space-y-1.5 list-disc list-inside">
+                  {product.keyFeatures.map((feature, idx) => (
+                    <li
+                      key={idx}
+                      className="text-[15px] font-normal font-trebuchet text-[#000000]"
+                    >
+                      {feature}
+                    </li>
                   ))}
-                </div>
-                {product.specifications.length > 5 && (
+                </ul>
+                {product.specifications?.length > 0 && (
                   <button
                     onClick={() =>
                       document
@@ -508,7 +591,6 @@ const getDisplayImages = useCallback(() => {
                 )}
               </div>
             )}
-
             <div className="pt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2 flex-1 sm:flex-initial">
                 <div className="flex items-center border border-gray-200 bg-white h-8 w-24 font-playfair select-none rounded-[4px] overflow-hidden flex-shrink-0">
@@ -522,7 +604,9 @@ const getDisplayImages = useCallback(() => {
                     {qty}
                   </span>
                   <button
-                    onClick={() => setQty(Math.min(currentStock || 10, qty + 1))}
+                    onClick={() =>
+                      setQty(Math.min(currentStock || 10, qty + 1))
+                    }
                     disabled={qty >= currentStock}
                     className="w-8 h-full flex items-center justify-center bg-white text-black text-[14px] font-medium border-l border-gray-100 hover:bg-gray-50 transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
                   >
@@ -557,7 +641,10 @@ const getDisplayImages = useCallback(() => {
       </div>
 
       <div className="bg-[#F9F9F9] py-6">
-        <div id="product-tabs-section" className="container mx-auto px-4 mt-12">
+        <div
+          id="product-tabs-section"
+          className="max-w-screen-2xl mx-auto px-4 mt-12"
+        >
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
             <div className="flex-1 min-w-0 w-full">
               <ProductTabs
@@ -570,6 +657,9 @@ const getDisplayImages = useCallback(() => {
                   comment,
                   setComment,
                   product,
+                  // 🆕 নতুন রিভিউ সিস্টেম থেকে আসা ডাটা product.reviews এর সাথে মার্জ করে পাঠানো হলো
+                  // যাতে ProductTabs এ কোনো বড় পরিবর্তন করতে না হয়
+                  reviews: productReviews || product.reviews,
                 }}
               />
             </div>

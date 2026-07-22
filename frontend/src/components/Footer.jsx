@@ -131,7 +131,7 @@ const Footer = () => {
 
   return (
     <footer className="bg-neutral-950 border-t border-neutral-900 font-figtree text-neutral-400">
-      <div className="container mx-auto px-4 py-12 sm:py-16">
+      <div className="max-w-screen-2xl mx-auto px-4 py-12 sm:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10">
           {/* ── Brand + Newsletter ── */}
           <div className="col-span-1 md:col-span-2 lg:col-span-5 space-y-5">
