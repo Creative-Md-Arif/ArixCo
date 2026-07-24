@@ -5,8 +5,9 @@ import NewArrivals from "../components/bannerSection/NewArrivals";
 import BestSellers from "../components/bannerSection/BestSellers";
 import Category from "../components/Category";
 import HeroBanner from "../components/HeroBanner";
-import { DoubleBanner, WideBanner } from "../components/bannerSection/PromoBanners";
-import FeaturedReviews from "../pages/User/FeaturedReviews"; // 🆕 ইম্পোর্ট করা হয়েছে
+import FeaturedReviews from "../pages/User/FeaturedReviews";
+import CategoryPromoBanner from "../components/promotional/CategoryPromoBanner";
+import FooterWideBanner from "../components/promotional/FooterWideBanner";
 
 const Home = () => {
   const [searchParams] = useSearchParams();
@@ -31,13 +32,13 @@ const Home = () => {
         
         {showHomeSections && <Category />}
         {showHomeSections && <NewArrivals />}
-        {showHomeSections && <DoubleBanner />}    
+        {showHomeSections && <CategoryPromoBanner />}    
         {showHomeSections && <BestSellers />}
         
         {/* 🆕 ফিচার্ড রিভিউ স্লাইডার যুক্ত করা হলো */}
         {showHomeSections && <FeaturedReviews />}
         
-        {showHomeSections && <WideBanner />}  
+        {showHomeSections && <FooterWideBanner />}  
       </div>
     </>
   );

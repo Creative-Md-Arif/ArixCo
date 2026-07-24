@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
-import { useState, useRef, useCallback, memo, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useCallback, memo, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom"; // ✅ useParams যুক্ত করা হয়েছে
 import { motion } from "framer-motion";
 import AdminMenu from "./AdminMenu";
 import { useCreateBannerMutation } from "@redux/api/bannerApiSlice";
@@ -37,6 +37,8 @@ const LoadingSpinner = () => (
 
 const BannerCreate = () => {
   const navigate = useNavigate();
+  const { bannerType } = useParams(); // ✅ URL থেকে টাইপ নেওয়া হচ্ছে (যেমন: 'hero', 'popup')
+  
   const fileInputRef = useRef(null);
   const mobileFileInputRef = useRef(null);
 
@@ -47,9 +49,11 @@ const BannerCreate = () => {
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
 
+  const validTypes = ["hero", "category", "promotional", "sidebar", "popup", "footer", "top-bar", "middle"];
+
   const [formData, setFormData] = useState({
     name: "",
-    type: "hero",
+    type: validTypes.includes(bannerType) ? bannerType : "hero", // ✅ ডাইনামিক টাইপ সেট
     headline: "",
     subHeadline: "",
     image: "",
@@ -83,6 +87,18 @@ const BannerCreate = () => {
     },
   });
 
+  // যদি ইউআরএল থেকে ভুল টাইপ পাস করা হয়, তবে ডিফল্ট হিরোতে রিডাইরেক্ট বা এরর দেখানো যায়
+  useEffect(() => {
+    if (!validTypes.includes(bannerType)) {
+      toast.error("Invalid Banner Type");
+      navigate("/admin/bannerlist");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bannerType, navigate]);
+
+  // UI এর জন্য টাইটেল ক্যাপিটালাইজ করা হলো (hero -> Hero)
+  const displayType = bannerType ? bannerType.charAt(0).toUpperCase() + bannerType.slice(1) : "Banner";
+
   const buttonTypeOptions = useMemo(
     () => [
       { value: "default", label: "Default (Shop Now)", icon: "🛒" },
@@ -105,20 +121,6 @@ const BannerCreate = () => {
       { value: "member-exclusive", label: "Member Exclusive", icon: "👤" },
       { value: "bundle-deal", label: "Bundle Deal", icon: "📦" },
       { value: "buy-one-get-one", label: "Buy 1 Get 1", icon: "🎊" },
-    ],
-    [],
-  );
-
-  const bannerTypes = useMemo(
-    () => [
-      { value: "hero", label: "Hero Banner" },
-      { value: "category", label: "Category Banner" },
-      { value: "promotional", label: "Promotional" },
-      { value: "sidebar", label: "Sidebar" },
-      { value: "popup", label: "Popup" },
-      { value: "footer", label: "Footer" },
-      { value: "top-bar", label: "Top Bar" },
-      { value: "middle", label: "Middle" },
     ],
     [],
   );
@@ -201,8 +203,10 @@ const BannerCreate = () => {
     if (!formData.image) return toast.error("Please upload banner image");
     if (!formData.headline) return toast.error("Headline is required");
     try {
-      await createBanner(formData).unwrap();
-      toast.success("Banner created successfully!");
+      // নিশ্চিত করা হচ্ছে যে ফর্ম ডাটার টাইপ URL এর টাইপের সাথে মিলে যাচ্ছে
+      const payload = { ...formData, type: bannerType };
+      await createBanner(payload).unwrap();
+      toast.success(`${displayType} banner created successfully!`);
       navigate("/admin/bannerlist");
     } catch (error) {
       toast.error(error.data?.error || "Failed to create banner");
@@ -237,8 +241,9 @@ const BannerCreate = () => {
           {/* Header */}
           <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between">
             <div>
+              {/* ✅ ডায়নামিক হেডার টাইটেল */}
               <h2 className="text-base font-['Playfair_Display'] font-bold text-gray-700 uppercase tracking-wider mb-6 border-b border-gray-100 pb-3 flex items-center gap-2">
-                 Create <span className="text-red-600">/ Banner</span>
+                 Create <span className="text-red-600">/ {displayType} Banner</span>
               </h2>
               <p className="text-sm text-gray-500 font-bold tracking-widest uppercase mt-2">
                 Step {step} of 3 | Configuration
@@ -403,24 +408,15 @@ const BannerCreate = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ✅ ব্যানার টাইপ ড্রপডাউন বাদ দিয়ে রিড-ওনলি ইনপুট দেওয়া হলো */}
                   <div>
-                    <label className={labelClass}>Banner Type *</label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          type: e.target.value,
-                        }))
-                      }
-                      className={selectClass}
-                    >
-                      {bannerTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
+                    <label className={labelClass}>Banner Type</label>
+                    <input
+                      type="text"
+                      value={displayType}
+                      disabled
+                      className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+                    />
                   </div>
                   <div>
                     <label className={labelClass}>Banner Name (Admin) *</label>
@@ -755,8 +751,8 @@ const BannerCreate = () => {
                   </div>
                 </div>
 
-                {/* Popup Settings */}
-                {formData.type === "popup" && (
+                {/* Popup Settings (শুধু তখনই দেখাবে যখন URL এ popup থাকবে) */}
+                {bannerType === "popup" && (
                   <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-sm">
                     <h3 className="text-sm font-bold text-black uppercase tracking-wider mb-4 border-b border-gray-200 pb-2 font-['Playfair_Display']">
                       Popup Settings
@@ -837,9 +833,8 @@ const BannerCreate = () => {
                   </div>
                 )}
 
-                {/* Offer Settings */}
-                {(formData.type === "promotional" ||
-                  formData.type === "middle") && (
+                {/* Offer Settings (promotional বা middle এর জন্য) */}
+                {(bannerType === "promotional" || bannerType === "middle") && (
                   <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-sm">
                     <h3 className="text-sm font-bold text-black uppercase tracking-wider mb-4 border-b border-gray-200 pb-2 font-['Playfair_Display']">
                       Offer Settings
@@ -989,7 +984,7 @@ const BannerCreate = () => {
                       "Creating..."
                     ) : (
                       <>
-                        <FaSave size={12} /> Create Banner
+                        <FaSave size={12} /> Create {displayType} Banner
                       </>
                     )}
                   </button>

@@ -15,7 +15,7 @@ import { useGetSiteSettingsQuery } from "@redux/api/siteSettingApiSlice";
 import { useSubscribeNewsletterMutation } from "@redux/api/newsletterApiSlice";
 import Logo from "./Logo";
 import FooterBottom from "./FooterBottom";
-import Whatsapp from "./Whatsapp";
+
 
 /* ─── static data (link lists rarely change, kept as-is) ───── */
 const LINKS = {
@@ -326,7 +326,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <Whatsapp />
+
       <FooterBottom copyrightText={copyrightText} />
     </footer>
   );

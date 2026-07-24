@@ -27,6 +27,10 @@ import siteSettingRoutes from "./routes/siteSettingRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import seoRoutes from "./routes/seoRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import integrationRoutes from "./routes/integrationRoutes.js";
+import supplierRoutes from "./routes/supplierRoutes.js";
+import purchaseRoutes from "./routes/purchaseRoutes.js";
 
 // utils
 import connectDB from "./config/db.js";
@@ -91,6 +95,12 @@ io.on("connection", (socket) => {
     console.log(`✅ User ${userId} is online.`);
   });
 
+  // 🆕 চ্যাট রুমে জয়েন করার লজিক (রিয়েল-টাইম চ্যাটের জন্য অপরিহার্য)
+  socket.on("joinChat", (chatId) => {
+    socket.join(chatId);
+    console.log(`👤 Socket joined chat room: ${chatId}`);
+  });
+
   socket.on("disconnect", () => {
     for (const [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {
@@ -146,6 +156,10 @@ app.use("/api/site-settings", siteSettingRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/seo", seoRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/integrations", integrationRoutes);
+app.use("/api/suppliers", supplierRoutes);
+app.use("/api/purchases", purchaseRoutes);
 
 // static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

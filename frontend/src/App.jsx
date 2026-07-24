@@ -9,6 +9,8 @@ import Cart from "./pages/Cart";
 import useBodyScrollLock from "./hooks/useBodyScrollLock";
 import { useState } from "react";
 import SeoManager from "./components/SeoManager";
+import SupportWidget from "./components/chatWidget/SupportWidget";
+import PopupPage from "./components/popup/PopupPage";
 
 function App() {
   useNotifications();
@@ -17,12 +19,11 @@ function App() {
 
   useBodyScrollLock(isMenuOpen);
 
-  // ✅ যদি রুটটি /admin দিয়ে শুরু হয়, তবে Navigation এবং Footer লুকাবে
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
     <>
-    <SeoManager/>
+      <SeoManager />
       <Helmet>
         <meta charSet="utf-8" />
         <meta
@@ -54,7 +55,6 @@ function App() {
           Skip to main content
         </a>
 
-        {/* ✅ শুধুমাত্র নন-অ্যাডমিন পেজের জন্য Navigation দেখাবে */}
         {!isAdminRoute && (
           <Navigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
         )}
@@ -70,11 +70,12 @@ function App() {
           <Outlet />
         </main>
 
-        {/* ✅ শুধুমাত্র নন-অ্যাডমিন পেজের জন্য Footer দেখাবে */}
         {!isAdminRoute && <Footer />}
+         {!isAdminRoute && <PopupPage />} 
       </div>
 
       <Cart />
+      <SupportWidget />
     </>
   );
 }

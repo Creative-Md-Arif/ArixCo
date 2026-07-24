@@ -8,7 +8,12 @@ const orderSchema = mongoose.Schema(
       default: shortid.generate,
       unique: true,
     },
-    user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "User" },
+   
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
     orderItems: [
       {
@@ -198,7 +203,6 @@ const orderSchema = mongoose.Schema(
     deliveredAt: {
       type: Date,
     },
-
 
     courierName: {
       type: String,

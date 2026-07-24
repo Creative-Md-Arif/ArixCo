@@ -20,6 +20,7 @@ import AddToCartButton from "../../components/AddToCartButton";
 import { motion } from "framer-motion";
 import Breadcrumb from "../../components/breadcrumb/Breadcrumb";
 
+
 // ── Skeleton Loader Component ──
 const ProductDetailsSkeleton = () => (
   <div className="bg-white min-h-screen animate-pulse">
@@ -665,6 +666,7 @@ const ProductDetails = () => {
             </div>
 
             <div className="w-full lg:w-[300px] flex-shrink-0">
+           
               <div className="bg-white border border-neutral-200 rounded-[4px] overflow-hidden">
                 <div className="px-4 py-3.5 border-b border-neutral-200 bg-white">
                   <h2

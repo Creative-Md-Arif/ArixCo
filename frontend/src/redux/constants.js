@@ -27,6 +27,10 @@ export const NEWSLETTER_URL = "/api/newsletter";
 export const SEO_URL = "/api/seo";
 export const BLOG_URL = "/api/blogs";
 export const REVIEW_URL = "/api/reviews";
+export const CHAT_URL = "/api/chat";
+export const INTEGRATION_URL = "/api/integrations";
+export const SUPPLIER_URL = "/api/suppliers";
+export const PURCHASE_URL = "/api/purchases";
 
 export const ORDER_PAY_URL = (orderId) => `/api/orders/${orderId}/pay`;
 export const SOCKET_URL = isDevelopment ? "http://localhost:8000" : BACKEND_URL;

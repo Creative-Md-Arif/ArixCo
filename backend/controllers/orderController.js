@@ -566,6 +566,142 @@ const createOrder = async (req, res) => {
 };
 
 
+
+
+const createManualOrder = async (req, res) => {
+  try {
+    const { customer, items, shippingAddress, shippingPrice, paymentMethod, paymentStatus } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "No order items" });
+    }
+
+    const productIds = items.map((x) => x.productId);
+    const itemsFromDB = await Product.find({ _id: { $in: productIds } });
+
+    let itemsPrice = 0;
+    const dbOrderItems = [];
+
+    for (const item of items) {
+      const matchingItemFromDB = itemsFromDB.find(
+        (p) => p._id.toString() === item.productId
+      );
+
+      if (!matchingItemFromDB) {
+        return res.status(404).json({ error: `Product not found: ${item.productId}` });
+      }
+
+      let itemPrice = Number(matchingItemFromDB.price);
+      let variantInfo = { hasVariants: false };
+
+      if (item.variantInfo?.hasVariants && matchingItemFromDB.hasVariants) {
+        const variant = matchingItemFromDB.variants.find(
+          (v) => v.color.name === item.variantInfo.colorName
+        );
+        const sizeVariant = variant?.sizes.find(
+          (s) => s.size === item.variantInfo.sizeName
+        );
+
+        if (!sizeVariant) return res.status(400).json({ error: "Variant not found" });
+        
+        itemPrice = Number(sizeVariant.price);
+        variantInfo = {
+          hasVariants: true,
+          colorName: variant.color.name,
+          colorHex: variant.color.hexCode || "",
+          sizeName: sizeVariant.size,
+          variantPrice: sizeVariant.price,
+          sku: sizeVariant.sku || "",
+        };
+
+        if (sizeVariant.countInStock < item.qty) {
+          return res.status(400).json({ error: `Insufficient stock for ${matchingItemFromDB.name} (${variant.color.name}/${sizeVariant.size})` });
+        }
+      } else {
+        if (matchingItemFromDB.countInStock < item.qty) {
+          return res.status(400).json({ error: `Insufficient stock for ${matchingItemFromDB.name}` });
+        }
+      }
+
+      itemsPrice += itemPrice * item.qty;
+
+      dbOrderItems.push({
+        name: matchingItemFromDB.name,
+        qty: Number(item.qty),
+        image: matchingItemFromDB.images[0],
+        price: itemPrice,
+        finalPrice: itemPrice,
+        product: matchingItemFromDB._id,
+        variantInfo: variantInfo,
+        weight: Number(matchingItemFromDB.weight) || 0,
+      });
+    }
+
+    const taxPrice = 0;
+    const totalPrice = Number(itemsPrice) + Number(shippingPrice || 0) + Number(taxPrice);
+
+    // অর্ডার তৈরি
+    const order = new Order({
+      orderId: generateOrderId(),
+      orderItems: dbOrderItems,
+      user: null, // হোয়াটসঅ্যাপের কাস্টমার, তাই ইউজার আইডি null
+      shippingAddress: {
+        name: customer.name,
+        address: shippingAddress.address,
+        city: shippingAddress.city || "N/A",
+        postalCode: shippingAddress.postalCode || "N/A",
+        country: "Bangladesh",
+        phoneNumber: customer.phone,
+        division: shippingAddress.division || "",
+        district: shippingAddress.district || "",
+        thana: shippingAddress.thana || "",
+      },
+      paymentMethod,
+      paymentStatus: paymentStatus || (paymentMethod === "Cash on Delivery" ? "due" : "paid"),
+      isPaid: paymentStatus === "paid",
+      paidAt: paymentStatus === "paid" ? new Date() : null,
+      itemsPrice: Number(itemsPrice.toFixed(2)),
+      taxPrice: Number(taxPrice.toFixed(2)),
+      shippingPrice: Number(shippingPrice || 0).toFixed(2),
+      totalPrice: Number(totalPrice.toFixed(2)),
+      isDelivered: "Order Placed",
+    });
+
+    const createdOrder = await order.save();
+
+    // স্টক কমানোর লজিক (এক্সিস্টিং লজিক)
+    for (const item of dbOrderItems) {
+      if (item.variantInfo?.hasVariants) {
+        await Product.updateOne(
+          {
+            _id: item.product,
+            "variants.color.name": item.variantInfo.colorName,
+          },
+          { $inc: { "variants.$[v].sizes.$[s].countInStock": -item.qty } },
+          {
+            arrayFilters: [
+              { "v.color.name": item.variantInfo.colorName },
+              { "s.size": item.variantInfo.sizeName },
+            ],
+          }
+        );
+      } else {
+        await Product.updateOne(
+          { _id: item.product },
+          { $inc: { countInStock: -item.qty, salesCount: item.qty } }
+        );
+      }
+    }
+
+    res.status(201).json(createdOrder);
+  } catch (error) {
+    console.error("Manual Order Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find({}).populate("user", "id username email");
@@ -928,6 +1064,7 @@ const updateOrderStatus = async (req, res) => {
 
 export {
   createOrder,
+  createManualOrder,
   getAllOrders,
   getUserOrders,
   findOrderById,

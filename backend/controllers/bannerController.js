@@ -89,17 +89,17 @@ const createBanner = asyncHandler(async (req, res) => {
       });
     }
 
-    // প্রোডাক্ট লিংক চেক
-    if (product) {
-      const productExists = await Product.findById(product);
+    const safeProduct = product && product !== "" ? product : null;
+    if (safeProduct) {
+      const productExists = await Product.findById(safeProduct);
       if (!productExists) {
         return res.status(404).json({ error: "Product not found" });
       }
     }
 
-    // ক্যাটাগরি লিংক চেক
-    if (category) {
-      const categoryExists = await Category.findById(category);
+    const safeCategory = category && category !== "" ? category : null;
+    if (safeCategory) {
+      const categoryExists = await Category.findById(safeCategory);
       if (!categoryExists) {
         return res.status(404).json({ error: "Category not found" });
       }
@@ -115,8 +115,8 @@ const createBanner = asyncHandler(async (req, res) => {
       buttonText,
       buttonType: buttonType || "default",
       link,
-      product,
-      category,
+      product: safeProduct,
+      category: safeCategory,
       position: position || 0,
       backgroundColor: backgroundColor || "#ffffff",
       textColor: textColor || "#000000",
@@ -415,38 +415,44 @@ const updateBanner = asyncHandler(async (req, res) => {
 
     const updateFields = { ...req.body };
 
-        if (updateFields.buttonType) {
-          const validButtonTypes = [
-            "default",
-            "weekend-deal",
-            "flash-sale",
-            "big-sale",
-            "limited-offer",
-            "special-offer",
-            "clearance",
-            "new-arrival",
-            "best-seller",
-            "trending-now",
-            "hot-deal",
-            "mega-sale",
-            "seasonal-offer",
-            "exclusive",
-            "last-chance",
-            "doorbuster",
-            "early-bird",
-            "member-exclusive",
-            "bundle-deal",
-            "buy-one-get-one",
-          ];
+    if (updateFields.buttonType) {
+      const validButtonTypes = [
+        "default",
+        "weekend-deal",
+        "flash-sale",
+        "big-sale",
+        "limited-offer",
+        "special-offer",
+        "clearance",
+        "new-arrival",
+        "best-seller",
+        "trending-now",
+        "hot-deal",
+        "mega-sale",
+        "seasonal-offer",
+        "exclusive",
+        "last-chance",
+        "doorbuster",
+        "early-bird",
+        "member-exclusive",
+        "bundle-deal",
+        "buy-one-get-one",
+      ];
 
-          if (!validButtonTypes.includes(updateFields.buttonType)) {
-            return res.status(400).json({
-              error: `Invalid button type. Must be one of: ${validButtonTypes.join(", ")}`,
-            });
-          }
-        }
+      if (!validButtonTypes.includes(updateFields.buttonType)) {
+        return res.status(400).json({
+          error: `Invalid button type. Must be one of: ${validButtonTypes.join(", ")}`,
+        });
+      }
+    }
 
-    // প্রোডাক্ট লিংক চেক
+    if (updateFields.product === "" || updateFields.product === undefined) {
+      updateFields.product = null;
+    }
+    if (updateFields.category === "" || updateFields.category === undefined) {
+      updateFields.category = null;
+    }
+
     if (updateFields.product) {
       const productExists = await Product.findById(updateFields.product);
       if (!productExists) {
@@ -454,7 +460,6 @@ const updateBanner = asyncHandler(async (req, res) => {
       }
     }
 
-    // ক্যাটাগরি লিংক চেক
     if (updateFields.category) {
       const categoryExists = await Category.findById(updateFields.category);
       if (!categoryExists) {

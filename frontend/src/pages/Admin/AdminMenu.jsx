@@ -1,9 +1,13 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { IoIosMenu, IoIosClose } from "react-icons/io";
 import { LuUsers } from "react-icons/lu";
 import { CiShoppingCart } from "react-icons/ci";
-import { AiOutlineProduct, AiOutlinePlusSquare, AiOutlineStar } from "react-icons/ai";
+import {
+  AiOutlineProduct,
+  AiOutlinePlusSquare,
+  AiOutlineStar,
+} from "react-icons/ai";
 import { TbCategory2 } from "react-icons/tb";
 import { MdEmail, MdOutlineDashboard } from "react-icons/md";
 import { RiImageLine } from "react-icons/ri";
@@ -13,59 +17,117 @@ import {
   FaCog,
   FaSearchengin,
   FaBlog,
+  FaComments,
+  FaPlug,
+  FaChevronDown,
+  FaTruckMoving,
+  FaClipboardList,
+  FaCartPlus,
 } from "react-icons/fa";
 
-const menuItems = [
-  { to: "/admin/dashboard", icon: <MdOutlineDashboard />, label: "Dashboard" },
-  { to: "/admin/categorylist", icon: <TbCategory2 />, label: "Categories" },
+// ✅ Menu items grouped into logical sections
+const menuGroups = [
   {
-    to: "/admin/allproductslist",
-    icon: <AiOutlineProduct />,
-    label: "All Products",
+    section: "Overview",
+    items: [
+      { to: "/admin/dashboard", icon: <MdOutlineDashboard />, label: "Dashboard" },
+    ],
   },
   {
-    to: "/admin/productlist",
-    icon: <AiOutlinePlusSquare />,
-    label: "Create Product",
-  },
-  { to: "/admin/userlist", icon: <LuUsers />, label: "Users" },
-  { to: "/admin/orderlist", icon: <CiShoppingCart />, label: "Orders" },
-  {
-    to: "/admin/return-management",
-    icon: <CiShoppingCart />,
-    label: "Returns",
-  },
-  { to: "/admin/review-manage", icon: <AiOutlineStar />, label: "Reviews" },
-  { to: "/admin/bannerlist", icon: <RiImageLine />, label: "Banners" },
-  {
-    to: "/admin/campaign-manage",
-    icon: <AiOutlinePlusSquare />,
-    label: "Campaigns",
+    section: "Catalog",
+    items: [
+      { to: "/admin/categorylist", icon: <TbCategory2 />, label: "Categories" },
+      { to: "/admin/allproductslist", icon: <AiOutlineProduct />, label: "All Products" },
+      { to: "/admin/productlist", icon: <AiOutlinePlusSquare />, label: "Create Product" },
+    ],
   },
   {
-    to: "/admin/cuppon-manage",
-    icon: <AiOutlinePlusSquare />,
-    label: "Cuppons",
+    section: "Procurement",
+    items: [
+      { to: "/admin/suppliers", icon: <FaTruckMoving />, label: "Suppliers" },
+      { to: "/admin/purchase-manager", icon: <FaClipboardList />, label: "Purchase Orders" },
+    ],
   },
   {
-    to: "/admin/shipping-manage",
-    icon: <AiOutlinePlusSquare />,
-    label: "Shipping",
+    section: "Sales",
+    items: [
+      { to: "/admin/orderlist", icon: <CiShoppingCart />, label: "Orders" },
+      { to: "/admin/manual-order", icon: <FaCartPlus />, label: "Manual Order" },
+      { to: "/admin/return-management", icon: <CiShoppingCart />, label: "Returns" },
+      { to: "/admin/review-manage", icon: <AiOutlineStar />, label: "Reviews" },
+    ],
   },
-  { to: "/admin/payment-settings", icon: <FaCreditCard />, label: "Payments" },
-  { to: "/admin/site-settings", icon: <FaCog />, label: "Site Settings" },
-  { to: "/admin/newsletter", icon: <MdEmail />, label: "Newsletter" },
-  { to: "/admin/seo-settings", icon: <FaSearchengin />, label: "SEO Settings" },
-  { to: "/admin/blog-manage", icon: <FaBlog />, label: "Blogs" },
+  {
+    section: "Marketing",
+    items: [
+      { to: "/admin/campaign-manage", icon: <AiOutlinePlusSquare />, label: "Campaigns" },
+      { to: "/admin/cuppon-manage", icon: <AiOutlinePlusSquare />, label: "Cuppons" },
+      { to: "/admin/newsletter", icon: <MdEmail />, label: "Newsletter" },
+      { to: "/admin/blog-manage", icon: <FaBlog />, label: "Blogs" },
+      { to: "/admin/seo-settings", icon: <FaSearchengin />, label: "SEO Settings" },
+    ],
+  },
+  {
+    // ✅ নতুন ব্যানার সেকশন যুক্ত করা হলো
+    section: "Banners",
+    items: [
+      { to: "/admin/bannerlist", icon: <RiImageLine />, label: "All Banners" },
+      { to: "/admin/banner/create/hero", icon: <AiOutlinePlusSquare />, label: "Hero Banner" },
+      { to: "/admin/banner/create/category", icon: <AiOutlinePlusSquare />, label: "Category Promo Banner" },
+      { to: "/admin/banner/create/promotional", icon: <AiOutlinePlusSquare />, label: "Promotional" },
+      { to: "/admin/banner/create/sidebar", icon: <AiOutlinePlusSquare />, label: "Sidebar Banner" },
+      { to: "/admin/banner/create/popup", icon: <AiOutlinePlusSquare />, label: "Popup Banner" },
+      { to: "/admin/banner/create/top-bar", icon: <AiOutlinePlusSquare />, label: "Top Bar Banner" },
+      { to: "/admin/banner/create/middle", icon: <AiOutlinePlusSquare />, label: "Middle Banner" },
+      { to: "/admin/banner/create/footer", icon: <AiOutlinePlusSquare />, label: "Wide Banner" },
+    ],
+  },
+  {
+    section: "Operations",
+    items: [
+      { to: "/admin/userlist", icon: <LuUsers />, label: "Users" },
+      { to: "/admin/chat-manage", icon: <FaComments />, label: "Chats" },
+      { to: "/admin/integration-manage", icon: <FaPlug />, label: "Integrations" },
+      { to: "/admin/shipping-manage", icon: <AiOutlinePlusSquare />, label: "Shipping" },
+      { to: "/admin/payment-settings", icon: <FaCreditCard />, label: "Payments" },
+      { to: "/admin/site-settings", icon: <FaCog />, label: "Site Settings" },
+    ],
+  },
 ];
+
+// Flattened list — used for finding the active page title
+const flatItems = menuGroups.flatMap((group) => group.items);
+
+// Find which section contains a given pathname
+const findSectionForPath = (pathname) => {
+  const group = menuGroups.find((g) =>
+    // যেহেতু রাউট এখন /admin/banner/create/hero এরকম, তাই startsWith চেক করা হচ্ছে
+    g.items.some((item) => pathname.startsWith(item.to)),
+  );
+  return group ? group.section : menuGroups[0].section;
+};
 
 const AdminMenu = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
+  // ✅ Accordion state — only ONE section stays open at a time.
+  const [openSection, setOpenSection] = useState(() =>
+    findSectionForPath(location.pathname),
+  );
+
+  const contentRefs = useRef({});
+
+  const toggleSection = (section) => {
+    setOpenSection((prev) => (prev === section ? null : section));
+  };
+
+  useEffect(() => {
+    setOpenSection(findSectionForPath(location.pathname));
+  }, [location.pathname]);
+
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-  // Lock body scroll when mobile sidebar is open
   useEffect(() => {
     document.documentElement.style.overflow = isSidebarOpen ? "hidden" : "";
     return () => {
@@ -73,7 +135,6 @@ const AdminMenu = () => {
     };
   }, [isSidebarOpen]);
 
-  // Close sidebar on resize to desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) setIsSidebarOpen(false);
@@ -83,14 +144,13 @@ const AdminMenu = () => {
   }, []);
 
   // ✅ Dynamic Page Title based on current route
-  const currentItem = menuItems.find((item) =>
+  const currentItem = flatItems.find((item) =>
     location.pathname.startsWith(item.to),
   );
   const pageTitle = currentItem ? currentItem.label : "Dashboard";
 
   return (
     <>
-      {/* ✅ Dynamic Top Header handled here */}
       <header className="fixed top-0 left-0 right-0 h-20 bg-white border-b border-gray-100 z-50 flex items-center px-4 lg:pl-[260px] shadow-sm font-['Trebuchet_MS']">
         <button
           onClick={toggleSidebar}
@@ -109,7 +169,6 @@ const AdminMenu = () => {
         </div>
       </header>
 
-      {/* Sidebar */}
       <aside
         className={`bg-white fixed top-20 left-0 h-[calc(100vh-5rem)] border-r border-gray-100 flex flex-col items-start py-8 w-[240px] z-40 shadow-2xl lg:shadow-none transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -122,33 +181,75 @@ const AdminMenu = () => {
         </div>
 
         <nav className="flex flex-col w-full px-3 overflow-y-auto flex-1 pb-10">
-          <ul className="flex flex-col w-full space-y-1">
-            {menuItems.map((item) => (
-              <li key={item.to} className="w-full">
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center space-x-4 py-3.5 px-4 w-full transition-all duration-300 ease-in-out group relative ${
-                      isActive
-                        ? "text-black bg-gray-50 border-r-4 border-red-600"
-                        : "text-gray-500 hover:text-black hover:bg-gray-50"
-                    }`
-                  }
+          {menuGroups.map((group) => {
+            const isOpen = openSection === group.section;
+            const hasActiveItem = group.items.some((item) =>
+              location.pathname.startsWith(item.to),
+            );
+
+            return (
+              <div key={group.section} className="mb-2 last:mb-0">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(group.section)}
+                  aria-expanded={isOpen}
+                  className={`flex items-center justify-between w-full px-4 py-2.5 transition-colors duration-200 ${
+                    hasActiveItem ? "text-red-600" : "text-gray-700 hover:text-black"
+                  }`}
                 >
-                  <span className="text-xl transition-transform duration-300 group-hover:scale-110 group-active:scale-90">
-                    {item.icon}
+                  <span className="text-[12px] font-trebuchet font-black tracking-tighter uppercase select-none">
+                    {group.section}
                   </span>
-                  <span className="text-sm font-bold tracking-wider uppercase">
-                    {item.label}
-                  </span>
-                  <div className="absolute inset-0 bg-red-600/5 origin-left transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 -z-10" />
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+                  <FaChevronDown
+                    size={10}
+                    className={`transition-transform duration-300 ease-in-out ${
+                      isOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+                  style={{
+                    maxHeight: isOpen
+                      ? `${contentRefs.current[group.section]?.scrollHeight ?? 1000}px`
+                      : "0px",
+                    opacity: isOpen ? 1 : 0,
+                  }}
+                >
+                  <ul
+                    ref={(el) => (contentRefs.current[group.section] = el)}
+                    className="flex flex-col w-full space-y-1 pb-2"
+                  >
+                    {group.items.map((item) => (
+                      <li key={item.to} className="w-full">
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) =>
+                            `flex items-center space-x-4 py-3.5 px-4 w-full transition-all duration-300 ease-in-out group relative ${
+                              isActive
+                                ? "text-black bg-gray-50 border-r-4 border-red-600"
+                                : "text-gray-500 hover:text-black hover:bg-gray-50"
+                            }`
+                          }
+                        >
+                          <span className="text-xl transition-transform duration-300 group-hover:scale-110 group-active:scale-90">
+                            {item.icon}
+                          </span>
+                          <span className="text-sm font-bold tracking-wider uppercase">
+                            {item.label}
+                          </span>
+                          <div className="absolute inset-0 bg-red-600/5 origin-left transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 -z-10" />
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Footer Section with Back to Home Button */}
         <div className="mt-auto px-6 py-8 w-full border-t border-gray-100">
           <Link
             to="/"

@@ -52,6 +52,11 @@ import SeoSettings from "./pages/Admin/SeoSettings";
 import BlogManage from "./pages/Admin/blog/BlogManage";
 import BlogCreate from "./pages/Admin/blog/BlogCreate";
 import BlogUpdate from "./pages/Admin/blog/BlogUpdate";
+import PurchaseManager from "./pages/Admin/PurchaseManager";
+import SupplierManager from "./pages/Admin/SupplierManager";
+import ManualOrderEntry from "./pages/Admin/ManualOrderEntry";
+
+const ChatManage = lazy(() => import("./pages/Admin/chat/ChatManage"));
 const BlogListPage = lazy(() => import("./pages/Blog/BlogListPage"));
 const BlogPage = lazy(() => import("./pages/Blog/BlogPage"));
 
@@ -107,6 +112,7 @@ const BannerCreate = lazy(() => import("./pages/Admin/BannerCreate"));
 const BannerUpdate = lazy(() => import("./pages/Admin/BannerUpdate"));
 const OrderDetail = lazy(() => import("./pages/Admin/OrderDetail"));
 const ReviewManage = lazy(() => import("./pages/Admin/review/ReviewManage"));
+const IntegrationManage = lazy(() => import("./pages/Admin/IntegrationManage"));
 
 const CampaignManage = lazy(() => import("./pages/Admin/CampaignManage"));
 
@@ -459,6 +465,23 @@ const router = createBrowserRouter(
         />
 
         <Route
+          path="suppliers"
+          element={
+            <DelayedSuspense>
+              <SupplierManager />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="purchase-manager"
+          element={
+            <DelayedSuspense>
+              <PurchaseManager />
+            </DelayedSuspense>
+          }
+        />
+
+        <Route
           path="/admin/review-manage"
           element={
             <DelayedSuspense>
@@ -466,6 +489,16 @@ const router = createBrowserRouter(
             </DelayedSuspense>
           }
         />
+
+        <Route
+          path="/admin/manual-order"
+          element={
+            <DelayedSuspense>
+              <ManualOrderEntry />
+            </DelayedSuspense>
+          }
+        />
+
         <Route
           path="shipping-manage"
           element={
@@ -493,6 +526,14 @@ const router = createBrowserRouter(
         />
         <Route
           path="banner/create"
+          element={
+            <DelayedSuspense>
+              <BannerCreate />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="banner/create/:bannerType"
           element={
             <DelayedSuspense>
               <BannerCreate />
@@ -537,6 +578,23 @@ const router = createBrowserRouter(
           element={
             <DelayedSuspense>
               <SeoSettings />
+            </DelayedSuspense>
+          }
+        />
+        <Route
+          path="/admin/chat-manage"
+          element={
+            <DelayedSuspense>
+              <ChatManage />
+            </DelayedSuspense>
+          }
+        />
+
+        <Route
+          path="integration-manage"
+          element={
+            <DelayedSuspense>
+              <IntegrationManage />
             </DelayedSuspense>
           }
         />

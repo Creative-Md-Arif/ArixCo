@@ -7,6 +7,7 @@ import {
   findOrderById,
   markOrderAsPaid,
   updateOrderStatus,
+  createManualOrder,  
 } from "../controllers/orderController.js";
 import { authenticate, authorizeAdmin } from "../middlewares/authMiddleware.js";
 
@@ -14,6 +15,7 @@ router
   .route("/")
   .post(authenticate, createOrder)
   .get(authenticate, authorizeAdmin, getAllOrders);
+router.route("/manual").post(authenticate, authorizeAdmin, createManualOrder);
 
 router.route("/mine").get(authenticate, getUserOrders);
 

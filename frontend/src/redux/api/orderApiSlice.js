@@ -8,7 +8,19 @@ export const orderApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: order,
       }),
+      invalidatesTags: ["Order"], // নতুন অর্ডার হলে লিস্ট রিফ্রেশ হবে
     }),
+
+    // orderApiSlice.js এর endpoints এর ভেতরে যুক্ত করুন
+    createManualOrder: builder.mutation({
+      query: (data) => ({
+        url: `${ORDERS_URL}/manual`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Order", "Products", "Product"], // অর্ডার ও প্রোডাক্ট লিস্ট রিফ্রেশ হবে
+    }),
+
     getOrderDetails: builder.query({
       query: (id) => ({
         url: `${ORDERS_URL}/${id}`,
@@ -36,12 +48,25 @@ export const orderApiSlice = apiSlice.injectEndpoints({
         url: `${ORDERS_URL}/mine`,
       }),
       keepUnusedDataFor: 5,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ _id }) => ({ type: "Order", id: _id })),
+              { type: "Order", id: "MY_LIST" },
+            ]
+          : [{ type: "Order", id: "MY_LIST" }],
     }),
     getOrders: builder.query({
       query: () => ({
         url: ORDERS_URL,
       }),
-      providesTags: ["Order"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ _id }) => ({ type: "Order", id: _id })),
+              { type: "Order", id: "LIST" },
+            ]
+          : [{ type: "Order", id: "LIST" }],
     }),
     deliverOrder: builder.mutation({
       query: (orderId) => ({
@@ -74,6 +99,7 @@ export const orderApiSlice = apiSlice.injectEndpoints({
 });
 export const {
   useCreateOrderMutation,
+  useCreateManualOrderMutation,
   useGetOrderDetailsQuery,
   usePayOrderMutation,
   useGetPaypalClientIdQuery,
